@@ -4,7 +4,7 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 
 import { requireAdminWriter } from "@/lib/auth/admin";
-import { findOrInviteUser, grantPocAccess, resendAccessEmail } from "@/lib/auth/invite";
+import { emailAccessGranted, findOrInviteUser, grantPocAccess, resendAccessEmail } from "@/lib/auth/invite";
 import { createClient } from "@/lib/supabase/server";
 
 export type TeamResult = { ok: true; message: string } | { ok: false; error: string };
@@ -35,7 +35,15 @@ export async function inviteAccess(input: InviteInput): Promise<TeamResult> {
     return { ok: false, error: "You can't change your own role." };
   }
 
-  const user = await findOrInviteUser(data.email, data.role);
+  let collegeName: string | undefined;
+  if (data.role === "poc") {
+    const supabase = await createClient();
+    const { data: reg } = await supabase.from("registrations").select("colleges(name)").eq("id", data.registrationId).maybeSingle();
+    if (!reg) return { ok: false, error: "College not found." };
+    collegeName = reg.colleges.name;
+  }
+
+  const user = await findOrInviteUser(data.email, data.role, { collegeName });
   if (!user.ok) return user;
 
   if (data.role === "poc") {
@@ -49,10 +57,13 @@ export async function inviteAccess(input: InviteInput): Promise<TeamResult> {
     if (error) return { ok: false, error: error.message };
   }
 
+  const emailed = !user.invited && (await emailAccessGranted(data.email, data.role, { collegeName }));
   refresh();
   return {
     ok: true,
-    message: user.invited ? `Invite sent to ${data.email}.` : `${data.email} already has an account: access granted. They can sign in at /login.`,
+    message: user.invited
+      ? `Invite sent to ${data.email}.`
+      : `${data.email} already has an account: access granted${emailed ? " and emailed" : ""}. They can sign in at /login.`,
   };
 }
 

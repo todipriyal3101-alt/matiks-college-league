@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { AdminMobileNav, AdminSidebarNav, AdminSidebarNavFallback } from "@/components/admin/admin-nav";
+import { CommandPalette } from "@/components/admin/command-palette";
 import { Logo } from "@/components/league/logo";
 import { SeasonPicker } from "@/components/admin/season-picker";
 import { UserMenu } from "@/components/admin/user-menu";
@@ -43,13 +44,14 @@ export default function AdminPanelLayout({ children }: LayoutProps<"/admin">) {
 }
 
 async function TopBar() {
-  const [{ profile }, leagues, selected] = await Promise.all([
+  const [{ profile, isWriter }, leagues, selected] = await Promise.all([
     requireAdmin(),
     getAdminLeagues(),
     getSelectedLeague(),
   ]);
   return (
     <div className="ml-auto flex min-w-0 items-center gap-1 sm:gap-2">
+      <CommandPalette isWriter={isWriter} />
       <SeasonPicker leagues={leagues} selectedId={selected?.id ?? null} />
       <UserMenu profile={profile} />
     </div>

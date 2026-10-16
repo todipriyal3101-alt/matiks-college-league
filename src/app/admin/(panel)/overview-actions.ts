@@ -4,8 +4,9 @@ import { refresh, updateTag } from "next/cache";
 import { z } from "zod";
 
 import { requireAdminWriter, type AdminProfile } from "@/lib/auth/admin";
-import { findOrInviteUser, grantPocAccess } from "@/lib/auth/invite";
+import { emailAccessGranted, findOrInviteUser, grantPocAccess } from "@/lib/auth/invite";
 import { CACHE_TAGS } from "@/lib/cache-tags";
+import { sendLater, statusChangedEmail } from "@/lib/email";
 import { REVIEW_STATUSES, STAGES, type ReviewStatus, type Stage } from "@/lib/league";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -44,8 +45,27 @@ export async function setReviewStatus(
     .in("id", parsed.data.ids);
   if (error) return { ok: false, error: error.message };
   updateTag(CACHE_TAGS.colleges);
+  emailStatusChange(parsed.data.ids, parsed.data.status);
   refresh();
   return { ok: true, previous };
+}
+
+/** Tells each POC about the new review status, once the Undo window has passed and only if it still holds. */
+function emailStatusChange(registrationIds: string[], status: ReviewStatus) {
+  if (status === "pending") return;
+  sendLater(
+    async () => {
+      const { data } = await createAdminClient()
+        .from("registrations")
+        .select("poc_email, colleges(name), leagues(name)")
+        .in("id", registrationIds)
+        .eq("status", status);
+      return (data ?? []).map((r) =>
+        statusChangedEmail(r.poc_email, { collegeName: r.colleges.name, leagueName: r.leagues.name, status }),
+      );
+    },
+    { afterUndoWindow: true },
+  );
 }
 
 /** Change the season stage of one or many. Returns the previous values for Undo. */
@@ -247,11 +267,16 @@ async function inviteOne(
     updateTag(CACHE_TAGS.colleges);
   }
 
-  const user = await findOrInviteUser(email, "poc");
+  const context = { collegeName: who, approved: parsed.data.approve };
+  const user = await findOrInviteUser(email, "poc", context);
   if (!user.ok) return { ok: false, error: `${who}: ${user.error}` };
   const granted = await grantPocAccess(user.userId, parsed.data.id, profile.user_id);
   if (!granted.ok) return { ok: false, error: `${who}: ${granted.error}` };
+  const emailed = !user.invited && (await emailAccessGranted(email, "poc", context));
 
   const prefix = parsed.data.approve ? "Approved. " : "";
-  return { ok: true, message: `${prefix}${user.invited ? `Invite sent to ${email}.` : `${email} can now sign in to this college.`}` };
+  return {
+    ok: true,
+    message: `${prefix}${user.invited ? `Invite sent to ${email}.` : `${email} can now sign in to this college${emailed ? " (emailed)" : ""}.`}`,
+  };
 }

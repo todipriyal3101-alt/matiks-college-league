@@ -264,5 +264,8 @@ Follow-ups deferred from Phase 3 — must be done before registrations open publ
 - [ ] Real Turnstile keys in Vercel (`NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`) and
       `NEXT_PUBLIC_SITE_URL` set to the production domain.
 - [ ] Supabase email templates (invite, magic link, recovery) point at `/auth/callback` (Phase 9).
+- [ ] Resend: verify the sending domain, then set `RESEND_API_KEY` and `EMAIL_FROM` in Vercel. Without the key no
+      league emails go out (they're logged as skipped) and invites fall back to Supabase's own invite email.
+- [ ] Supabase Auth > "Allow new users to sign up" is **off** (POCs only get in through Approve + invite).
 - [ ] Delete the "ZZ Test College" test registration.
 - [ ] Active league row: status `upcoming`/`live`, `registration_open = true`, `registration_deadline` set.

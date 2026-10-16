@@ -1,8 +1,10 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { siteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 // Brand fonts (CLAUDE.md rule 8): Space Grotesk headings, Inter body, JetBrains Mono numbers.
@@ -15,12 +17,15 @@ const spaceGrotesk = Space_Grotesk({
 const jetbrainsMono = JetBrains_Mono({ variable: "--font-jetbrains-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: "Matiks College League",
     template: "%s · Matiks College League",
   },
   description:
     "Matiks' inter-college mind sports league. Register your college and compete.",
+  openGraph: { type: "website", siteName: "Matiks College League", locale: "en_IN" },
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = {
@@ -38,6 +43,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <TooltipProvider>{children}</TooltipProvider>
         {/* Lifted above the sticky "Unsaved changes · Save" bar so toasts never cover the Save button. */}
         <Toaster theme="dark" closeButton offset={{ bottom: 88 }} mobileOffset={{ bottom: 88 }} />
+        <Analytics />
       </body>
     </html>
   );

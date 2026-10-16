@@ -6,6 +6,9 @@ import { z } from "zod";
 import { getAdmin } from "@/lib/auth/admin";
 import { fetchRegistrationDetail, type RegistrationDetail } from "@/lib/data/league-ops";
 import type { TablesInsert, TablesUpdate } from "@/lib/database.types";
+import { sendLater, winnerPaidEmail } from "@/lib/email";
+import { formatINR } from "@/lib/league";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
   adminEditorSchema,
@@ -210,8 +213,34 @@ async function setWinnerPayment(winnerId: string, next: WinnerPayment): Promise<
     .update({ payment_status: next.status, payment_reference: next.reference })
     .eq("id", winnerId);
   if (error) return { ok: false, error: friendly(error) };
+  if (next.status === "paid" && next.reference) emailWinnerPaid(winnerId, next.reference);
   refresh();
   return { ok: true, previous: { status: before.payment_status, reference: before.payment_reference } };
+}
+
+/** "Prize paid" to the winner (and the college POC), after the Undo window and only if still paid with this UTR. */
+function emailWinnerPaid(winnerId: string, utr: string) {
+  sendLater(
+    async () => {
+      const { data: w } = await createAdminClient()
+        .from("winners")
+        .select("name, email, position, prize_type, prize_amount, payment_status, payment_reference, registrations(poc_email, colleges(name), leagues(name))")
+        .eq("id", winnerId)
+        .maybeSingle();
+      if (!w || w.payment_status !== "paid" || w.payment_reference !== utr) return null;
+      const to = [...new Set([w.email, w.registrations.poc_email].filter((e): e is string => !!e).map((e) => e.toLowerCase()))];
+      if (!to.length) return null;
+      return winnerPaidEmail(to, {
+        winnerName: w.name ?? "there",
+        position: w.position,
+        collegeName: w.registrations.colleges.name,
+        leagueName: w.registrations.leagues.name,
+        amount: w.prize_type === "merch_only" ? null : formatINR(w.prize_amount),
+        utr,
+      });
+    },
+    { afterUndoWindow: true },
+  );
 }
 
 /** Merch sent switch on a winner or a contact. */

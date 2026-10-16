@@ -1,10 +1,13 @@
 "use server";
 
+import { track } from "@vercel/analytics/server";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 
 import { ATTRIBUTION_COOKIE, parseAttributionCookie } from "@/lib/attribution";
 import { getActiveLeagueFresh, isRegistrationOpen } from "@/lib/data/leagues";
+import { registrationReceivedEmail, sendLater } from "@/lib/email";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyTurnstile } from "@/lib/turnstile";
 import {
@@ -89,6 +92,23 @@ export async function submitRegistration(input: unknown): Promise<RegistrationRe
     );
     return { status: "error", message: "Something went wrong. Please try again." };
   }
+
+  const collegeName = college.notListed ? college.newCollege.name : null;
+  sendLater(async () => {
+    const name =
+      collegeName ??
+      (await supabase.from("registrations").select("colleges(name)").eq("id", registrationId).single()).data?.colleges.name;
+    return name ? registrationReceivedEmail(poc.email, { collegeName: name, leagueName: league.name, registrationId }) : null;
+  });
+  after(async () => {
+    // Custom events are a Vercel Pro feature; elsewhere this is a no-op.
+    await track("college_registered", {
+      league: league.slug,
+      new_college: college.notListed,
+      source: attribution.utm_source ?? null,
+      referral: attribution.ref ? true : false,
+    }).catch(() => {});
+  });
 
   redirect(`/register/success?id=${registrationId}`);
 }
