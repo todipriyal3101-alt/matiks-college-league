@@ -41,16 +41,21 @@ async function Editor({ params }: Pick<PageProps<"/admin/colleges/[registrationI
   return <CollegeEditor detail={detail} mode="admin" readOnly={!isWriter} me={profile.email} adminNames={adminNames} />;
 }
 
+/** Same shape as the editor (title, actions, tabs, panel) so nothing jumps when it loads. */
 function EditorSkeleton() {
   return (
-    <div className="space-y-10">
-      <Skeleton className="h-72 w-full rounded-xl" />
-      <div className="grid gap-4 md:grid-cols-3">
-        {Array.from({ length: 3 }, (_, i) => (
-          <Skeleton key={i} className="h-80 rounded-xl" />
-        ))}
+    <div className="space-y-5" aria-hidden>
+      <div className="space-y-2">
+        <Skeleton className="h-3 w-40" />
+        <Skeleton className="h-9 w-72" />
+        <div className="flex gap-2">
+          <Skeleton className="h-9 w-36" />
+          <Skeleton className="h-9 w-32" />
+          <Skeleton className="h-9 w-32" />
+        </div>
       </div>
-      <Skeleton className="h-40 w-full rounded-xl" />
+      <Skeleton className="h-10 w-full max-w-lg" />
+      <Skeleton className="h-72 w-full rounded-2xl" />
     </div>
   );
 }

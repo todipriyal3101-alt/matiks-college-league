@@ -32,10 +32,10 @@ async function Portal({ searchParams }: Pick<PageProps<"/college">, "searchParam
     return (
       <EmptyState
         icon={BuildingIcon}
-        title="No college linked to your account yet"
-        description={`${data?.claims.email ?? "This email"} isn't a POC for any college. Sign in with the email your college registered with, or ask a Matiks admin to invite you.`}
+        title="No college yet"
+        description={`${data?.claims.email ?? "This email"} isn't linked to a college. You'll get an email invite once your college is approved.`}
         action={
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" className="h-11">
             <Link href="/register">Register your college</Link>
           </Button>
         }
@@ -47,7 +47,7 @@ async function Portal({ searchParams }: Pick<PageProps<"/college">, "searchParam
   const selected = mine.find((m) => m.id === r) ?? mine[0];
   const detail = await getRegistrationDetail(selected.id);
   if (!detail) {
-    return <EmptyState icon={BuildingIcon} title="College not found" description="It may have been removed. Pick another season above." />;
+    return <EmptyState icon={BuildingIcon} title="College not found" description="It may have been removed." />;
   }
 
   const supabase = await createClient();
@@ -57,30 +57,30 @@ async function Portal({ searchParams }: Pick<PageProps<"/college">, "searchParam
   const adminNames = Object.fromEntries((admins ?? []).map((a) => [a.email.toLowerCase(), "Matiks team"]));
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs tracking-wider text-muted-foreground uppercase">Your college</p>
-          <p className="text-sm text-muted-foreground">Keep your contacts and winners up to date. Matiks handles stages and payouts.</p>
-        </div>
-        {mine.length > 1 && (
-          <SeasonSwitch
-            selectedId={selected.id}
-            options={mine.map((m) => ({ id: m.id, label: `${m.leagues.name} · ${m.colleges.name}` }))}
-          />
-        )}
-      </div>
+    <div className="space-y-4">
+      {mine.length > 1 && (
+        <SeasonSwitch
+          selectedId={selected.id}
+          options={mine.map((m) => ({ id: m.id, label: `${m.leagues.name} · ${m.colleges.name}` }))}
+        />
+      )}
       <CollegeEditor detail={detail} mode="poc" me={claims?.claims.email ?? null} adminNames={adminNames} />
     </div>
   );
 }
 
+/** Same shape as the portal (title, checklist, tabs, panel) so nothing jumps when it loads. */
 function PortalSkeleton() {
   return (
-    <div className="space-y-6">
-      <Skeleton className="h-10 w-64" />
-      <Skeleton className="h-64 w-full rounded-xl" />
-      <Skeleton className="h-80 w-full rounded-xl" />
+    <div className="space-y-5" aria-hidden>
+      <div className="space-y-2">
+        <Skeleton className="h-3 w-32" />
+        <Skeleton className="h-9 w-64" />
+        <Skeleton className="h-6 w-24 rounded-full" />
+      </div>
+      <Skeleton className="h-44 w-full rounded-2xl" />
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-64 w-full rounded-2xl" />
     </div>
   );
 }

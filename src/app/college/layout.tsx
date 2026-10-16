@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button";
 import { logout } from "@/lib/auth/actions";
 import { createClient } from "@/lib/supabase/server";
 
-/** POC portal shell (Lovable "College portal"): phone-first, just the college and sign out. */
+/** POC portal shell: phone-first, just the college and sign out. */
 export default function CollegeLayout({ children }: LayoutProps<"/college">) {
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/80 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4">
           <Link href="/college" aria-label="Your college">
             <Logo subtitle="College portal" />
@@ -21,14 +21,14 @@ export default function CollegeLayout({ children }: LayoutProps<"/college">) {
               <Email />
             </Suspense>
             <form action={logout}>
-              <Button type="submit" variant="ghost" size="sm">
+              <Button type="submit" variant="ghost" className="h-10" aria-label="Sign out">
                 <LogOutIcon /> <span className="hidden sm:inline">Sign out</span>
               </Button>
             </form>
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:py-8">{children}</main>
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">{children}</main>
     </div>
   );
 }
