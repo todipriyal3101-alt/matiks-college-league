@@ -36,8 +36,9 @@ export function LoginForm({ next }: { next?: string }) {
       const { error } = await createClient().auth.signInWithPassword({ email: email.trim(), password });
       if (error) return error.message === "Invalid login credentials" ? "Wrong email or password." : error.message;
       // Full navigation so src/proxy.ts and the role routing see the new session cookies.
-      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full load: /auth/continue is a
-      // route handler redirect, and the new session cookies must reach the proxy.
+      // Full page load on purpose: /auth/continue is a route handler redirect, and the new
+      // session cookies must reach the proxy.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.assign(continueUrl);
       return null;
     });

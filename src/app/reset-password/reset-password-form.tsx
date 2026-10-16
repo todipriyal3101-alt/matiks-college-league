@@ -49,8 +49,9 @@ export function ResetPasswordForm() {
           setPending(false);
           return;
         }
-        // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full load: /auth/continue is a
-        // route handler redirect, and the new session cookies must reach the proxy.
+        // Full page load on purpose: /auth/continue is a route handler redirect, and the new
+        // session cookies must reach the proxy.
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
         window.location.assign("/auth/continue");
       }}
     >
