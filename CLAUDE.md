@@ -6,7 +6,7 @@ Website for Matiks' inter-college mind sports league (Brumble and future seasons
 Two panels, one Next.js app, one Supabase database:
 
 - **Student panel (public)** — landing page, 4-step college registration form, success page,
-  "My registration" page (magic-link login), public colleges wall and fixtures.
+  college portal `/college` (POCs sign in after an approve + invite), public colleges wall and fixtures.
 - **Admin panel (/admin, private)** — dashboard, registrations review, colleges, participants,
   ambassadors, leagues (seasons), matches, team management, Excel/CSV exports.
 

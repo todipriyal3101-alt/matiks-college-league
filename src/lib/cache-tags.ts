@@ -3,4 +3,6 @@
 export const CACHE_TAGS = {
   league: "league",
   matches: "matches",
+  /** Public /colleges wall (approved colleges). Bump on review-status changes, adds, deletes and merges. */
+  colleges: "colleges",
 } as const;

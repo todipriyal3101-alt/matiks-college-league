@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { addCollege } from "@/app/admin/(panel)/overview-actions";
 import { CollegeSearch } from "@/components/register/college-search";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +36,7 @@ export function AddCollegeDialog({ leagueId, leagueName }: { leagueId: string; l
   const [notListed, setNotListed] = useState(false);
   const [college, setCollege] = useState<NewCollege>(EMPTY_COLLEGE);
   const [poc, setPoc] = useState({ name: "", email: "", phone: "" });
+  const [invitePoc, setInvitePoc] = useState(true);
 
   function reset() {
     setError(null);
@@ -42,6 +44,7 @@ export function AddCollegeDialog({ leagueId, leagueName }: { leagueId: string; l
     setNotListed(false);
     setCollege(EMPTY_COLLEGE);
     setPoc({ name: "", email: "", phone: "" });
+    setInvitePoc(true);
   }
 
   function submit(e: React.FormEvent) {
@@ -53,12 +56,13 @@ export function AddCollegeDialog({ leagueId, leagueName }: { leagueId: string; l
         collegeId: notListed ? null : (picked?.id ?? null),
         newCollege: notListed ? college : null,
         poc,
+        invitePoc,
       });
       if (!res.ok) {
         setError(res.error);
         return;
       }
-      toast.success(`${notListed ? college.name : picked?.name} added and approved`, {
+      toast.success(res.message, {
         action: { label: "Open", onClick: () => router.push(`/admin/colleges/${res.registrationId}`) },
       });
       setOpen(false);
@@ -187,12 +191,18 @@ export function AddCollegeDialog({ leagueId, leagueName }: { leagueId: string; l
                 />
               </Field>
             </div>
+            <Field orientation="horizontal">
+              <Checkbox id="poc-invite" checked={invitePoc} onCheckedChange={(v) => setInvitePoc(v === true)} />
+              <FieldLabel htmlFor="poc-invite" className="font-normal">
+                Email the POC an invite to manage this college
+              </FieldLabel>
+            </Field>
             {error && <FieldError>{error}</FieldError>}
           </FieldGroup>
           <DialogFooter className="mt-6">
             <Button type="submit" disabled={pending}>
               {pending && <Loader2Icon className="animate-spin" />}
-              Add and approve
+              {invitePoc ? "Add, approve + invite POC" : "Add and approve"}
             </Button>
           </DialogFooter>
         </form>

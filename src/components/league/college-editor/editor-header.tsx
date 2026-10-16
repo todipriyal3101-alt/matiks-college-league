@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRightIcon, LinkIcon, MailPlusIcon, MoreHorizontalIcon, Trash2Icon } from "lucide-react";
+import { ArrowRightIcon, GitMergeIcon, LinkIcon, MailPlusIcon, MoreHorizontalIcon, Trash2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
@@ -34,6 +34,7 @@ import {
 } from "@/lib/league";
 
 import type { EditorFormValues } from "./form-values";
+import { MergeDialog } from "./merge-dialog";
 
 export function EditorHeader({
   detail,
@@ -60,6 +61,8 @@ export function EditorHeader({
   const overrideValue = override === "" || override == null ? null : Number(override);
   const pool = effectivePrizePool(Number(participants) || 0, Number.isFinite(overrideValue) ? overrideValue : null);
   const e = formState.errors;
+  // Approving always goes through the invite dialog: with sign-ups off, a POC can only log in once invited.
+  const [invite, setInvite] = useState<"invite" | "approve" | null>(null);
 
   return (
     <Card className="gap-6 p-5 sm:p-6">
@@ -78,9 +81,24 @@ export function EditorHeader({
         {canAdminWrite && (
           <AdminMenu
             registrationId={registration.id}
+            collegeId={registration.colleges.id}
+            collegeName={registration.colleges.name}
+            approved={reviewStatus === "approved"}
+            onInvite={setInvite}
+          />
+        )}
+        {canAdminWrite && (
+          <InvitePocDialog
+            open={invite !== null}
+            onOpenChange={(o) => !o && setInvite(null)}
+            registrationId={registration.id}
             collegeName={registration.colleges.name}
             pocEmail={registration.poc_email}
-            approved={reviewStatus === "approved"}
+            approve={invite === "approve"}
+            onApproveOnly={() => {
+              setInvite(null);
+              onReviewStatus("approved");
+            }}
           />
         )}
       </div>
@@ -95,7 +113,10 @@ export function EditorHeader({
           <>
             <Field>
               <FieldLabel htmlFor="review-status">Review</FieldLabel>
-              <Select value={reviewStatus} onValueChange={(v) => onReviewStatus(v as ReviewStatus)}>
+              <Select
+                value={reviewStatus}
+                onValueChange={(v) => (v === "approved" ? setInvite("approve") : onReviewStatus(v as ReviewStatus))}
+              >
                 <SelectTrigger id="review-status" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -166,18 +187,20 @@ export function EditorHeader({
 
 function AdminMenu({
   registrationId,
+  collegeId,
   collegeName,
-  pocEmail,
   approved,
+  onInvite,
 }: {
   registrationId: string;
+  collegeId: string;
   collegeName: string;
-  pocEmail: string;
   approved: boolean;
+  onInvite: (kind: "invite" | "approve") => void;
 }) {
   const router = useRouter();
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [invite, setInvite] = useState<"invite" | "approve" | null>(null);
+  const [mergeOpen, setMergeOpen] = useState(false);
   return (
     <>
       <DropdownMenu>
@@ -200,27 +223,23 @@ function AdminMenu({
             <LinkIcon /> Copy link
           </DropdownMenuItem>
           {!approved && (
-            <DropdownMenuItem onSelect={() => setInvite("approve")}>
+            <DropdownMenuItem onSelect={() => onInvite("approve")}>
               <MailPlusIcon /> Approve + invite POC
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem onSelect={() => setInvite("invite")}>
+          <DropdownMenuItem onSelect={() => onInvite("invite")}>
             <MailPlusIcon /> Invite POC
           </DropdownMenuItem>
           <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={() => setMergeOpen(true)}>
+            <GitMergeIcon /> Merge into…
+          </DropdownMenuItem>
           <DropdownMenuItem variant="destructive" onSelect={() => setConfirmOpen(true)}>
             <Trash2Icon /> Delete from this season
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <InvitePocDialog
-        open={invite !== null}
-        onOpenChange={(o) => !o && setInvite(null)}
-        registrationId={registrationId}
-        collegeName={collegeName}
-        pocEmail={pocEmail}
-        approve={invite === "approve"}
-      />
+      <MergeDialog open={mergeOpen} onOpenChange={setMergeOpen} collegeId={collegeId} collegeName={collegeName} />
       <DeleteRegistrationDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}

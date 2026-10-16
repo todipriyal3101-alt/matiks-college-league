@@ -86,8 +86,10 @@ export function RowActions({
             <>
               <DropdownMenuSeparator />
               {/* The current status is shown disabled rather than hidden. */}
-              <DropdownMenuItem disabled={reviewStatus === "approved"} onSelect={() => onReview("approved")}>
-                <CheckIcon /> Approve
+              {/* Approving goes through the invite dialog (it also offers "Approve only"): sign-ups are off,
+                  so a POC can only log in once invited. */}
+              <DropdownMenuItem disabled={reviewStatus === "approved"} onSelect={() => setInvite("approve")}>
+                <CheckIcon /> Approve + invite POC
               </DropdownMenuItem>
               <DropdownMenuItem disabled={reviewStatus === "waitlisted"} onSelect={() => onReview("waitlisted")}>
                 <ClockIcon /> Waitlist
@@ -96,11 +98,6 @@ export function RowActions({
                 <XIcon /> Reject
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              {reviewStatus !== "approved" && (
-                <DropdownMenuItem onSelect={() => setInvite("approve")}>
-                  <MailPlusIcon /> Approve + invite POC
-                </DropdownMenuItem>
-              )}
               <DropdownMenuItem onSelect={() => setInvite("invite")}>
                 <MailPlusIcon /> Invite POC
               </DropdownMenuItem>
@@ -120,6 +117,10 @@ export function RowActions({
           collegeName={collegeName}
           pocEmail={pocEmail}
           approve={invite === "approve"}
+          onApproveOnly={() => {
+            setInvite(null);
+            onReview("approved");
+          }}
         />
       )}
       {isWriter && (

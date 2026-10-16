@@ -52,7 +52,7 @@ export function LoginForm({ next }: { next?: string }) {
       });
       if (error) {
         return /signups not allowed|not found/i.test(error.message)
-          ? "There's no account for this email. Ask a Matiks admin for an invite."
+          ? "There's no account for this email yet. If you registered a college, you'll get an email invite once it's approved."
           : error.message;
       }
       setSent(`We've emailed a login link to ${email.trim()}. Open it on any device.`);

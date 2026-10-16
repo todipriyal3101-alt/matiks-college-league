@@ -1,10 +1,11 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { refresh, updateTag } from "next/cache";
 import { z } from "zod";
 
-import { requireAdminWriter } from "@/lib/auth/admin";
+import { requireAdminWriter, type AdminProfile } from "@/lib/auth/admin";
 import { findOrInviteUser, grantPocAccess } from "@/lib/auth/invite";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 import { REVIEW_STATUSES, STAGES, type ReviewStatus, type Stage } from "@/lib/league";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -42,6 +43,7 @@ export async function setReviewStatus(
     .update({ status: parsed.data.status, reviewed_by: profile.user_id, reviewed_at: new Date().toISOString() })
     .in("id", parsed.data.ids);
   if (error) return { ok: false, error: error.message };
+  updateTag(CACHE_TAGS.colleges);
   refresh();
   return { ok: true, previous };
 }
@@ -81,6 +83,7 @@ export async function restoreRegistrations(previous: Previous): Promise<ActionRe
       .in("id", rows.map((r) => r.id));
     if (error) return { ok: false, error: error.message };
   }
+  updateTag(CACHE_TAGS.colleges);
   refresh();
   return { ok: true };
 }
@@ -104,6 +107,7 @@ export async function deleteRegistration(registrationId: string, typedName: stri
 
   const { error } = await supabase.from("registrations").delete().eq("id", parsed.data.id);
   if (error) return { ok: false, error: error.message };
+  updateTag(CACHE_TAGS.colleges);
   refresh();
   return { ok: true };
 }
@@ -120,6 +124,8 @@ const addCollegeSchema = z
         type: z.enum(COLLEGE_TYPES),
       })
       .nullable(),
+    /** Email the POC an invite (default). Sign-ups are off, so without one the POC can't log in. */
+    invitePoc: z.boolean().default(true),
     poc: z.object({
       name: z.string().trim().min(1, "POC name is required").max(80),
       email: z.email("Enter a valid email").trim().toLowerCase().max(120),
@@ -135,7 +141,7 @@ const addCollegeSchema = z
 export type AddCollegeInput = z.input<typeof addCollegeSchema>;
 
 /** "Add college": registers a college for this season (approved) with its primary POC. */
-export async function addCollege(input: AddCollegeInput): Promise<ActionResult<{ registrationId: string }>> {
+export async function addCollege(input: AddCollegeInput): Promise<ActionResult<{ registrationId: string; message: string }>> {
   const { profile } = await requireAdminWriter();
   const parsed = addCollegeSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid request." };
@@ -167,9 +173,15 @@ export async function addCollege(input: AddCollegeInput): Promise<ActionResult<{
     .update({ status: "approved", reviewed_by: profile.user_id, reviewed_at: new Date().toISOString() })
     .eq("id", registrationId);
   if (approveError) return { ok: false, error: `Added, but approving failed: ${approveError.message}` };
+  updateTag(CACHE_TAGS.colleges);
 
+  let message = "College added and approved.";
+  if (parsed.data.invitePoc) {
+    const invited = await inviteOne(profile, registrationId, { approve: false });
+    message = invited.ok ? `College added. ${invited.message}` : `College added, but the invite failed: ${invited.error}`;
+  }
   refresh();
-  return { ok: true, registrationId };
+  return { ok: true, registrationId, message };
 }
 
 /** "Invite POC" / "Approve + invite POC": gives the registration's POC (or another email) a login for this college. */
@@ -178,30 +190,68 @@ export async function invitePoc(
   options: { approve: boolean; email?: string },
 ): Promise<ActionResult<{ message: string }>> {
   const { profile } = await requireAdminWriter();
+  const res = await inviteOne(profile, registrationId, options);
+  refresh();
+  return res;
+}
+
+/** Bulk "Approve + invite POCs": approves each registration and invites the email it registered with. */
+export async function approveAndInvite(registrationIds: string[]): Promise<ActionResult<{ message: string; failed: string[] }>> {
+  const { profile } = await requireAdminWriter();
+  const parsed = ids.max(50, "Invite at most 50 colleges at a time.").safeParse(registrationIds);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid request." };
+
+  const failed: string[] = [];
+  let done = 0;
+  // One at a time: the auth invite endpoint is rate limited.
+  for (const id of parsed.data) {
+    const res = await inviteOne(profile, id, { approve: true });
+    if (res.ok) done++;
+    else failed.push(res.error);
+  }
+  refresh();
+  if (!done) return { ok: false, error: failed[0] ?? "Nothing was invited." };
+  return {
+    ok: true,
+    failed,
+    message: `Approved and invited ${done} POC${done === 1 ? "" : "s"}${failed.length ? `; ${failed.length} failed` : ""}.`,
+  };
+}
+
+async function inviteOne(
+  profile: AdminProfile,
+  registrationId: string,
+  options: { approve: boolean; email?: string },
+): Promise<ActionResult<{ message: string }>> {
   const parsed = z
     .object({ id: z.uuid(), approve: z.boolean(), email: z.email("Enter a valid email").trim().toLowerCase().optional() })
     .safeParse({ id: registrationId, ...options, email: options.email || undefined });
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid request." };
 
   const supabase = await createClient();
-  const { data: registration } = await supabase.from("registrations").select("poc_email, status").eq("id", parsed.data.id).maybeSingle();
+  const { data: registration } = await supabase
+    .from("registrations")
+    .select("poc_email, status, colleges(name)")
+    .eq("id", parsed.data.id)
+    .maybeSingle();
   if (!registration) return { ok: false, error: "Registration not found." };
   const email = parsed.data.email ?? registration.poc_email.toLowerCase();
+  const who = registration.colleges.name;
 
   if (parsed.data.approve && registration.status !== "approved") {
     const { error } = await supabase
       .from("registrations")
       .update({ status: "approved", reviewed_by: profile.user_id, reviewed_at: new Date().toISOString() })
       .eq("id", parsed.data.id);
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: `${who}: ${error.message}` };
+    updateTag(CACHE_TAGS.colleges);
   }
 
   const user = await findOrInviteUser(email, "poc");
-  if (!user.ok) return user;
+  if (!user.ok) return { ok: false, error: `${who}: ${user.error}` };
   const granted = await grantPocAccess(user.userId, parsed.data.id, profile.user_id);
-  if (!granted.ok) return { ok: false, error: granted.error };
+  if (!granted.ok) return { ok: false, error: `${who}: ${granted.error}` };
 
-  refresh();
   const prefix = parsed.data.approve ? "Approved. " : "";
   return { ok: true, message: `${prefix}${user.invited ? `Invite sent to ${email}.` : `${email} can now sign in to this college.`}` };
 }

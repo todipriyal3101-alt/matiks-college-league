@@ -269,7 +269,7 @@ export function RegistrationForm({ leagueName }: { leagueName: string }) {
               className="h-11 text-base"
               {...register("poc.email")}
             />
-            <FieldDescription>You&apos;ll use this to log in and manage your registration.</FieldDescription>
+            <FieldDescription>Your invite to the college portal goes here once your college is approved.</FieldDescription>
             <FieldError errors={[errors.poc?.email]} />
           </Field>
           <Field data-invalid={!!errors.poc?.phone}>

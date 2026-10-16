@@ -7,16 +7,25 @@ import {
   type ColumnDef,
   type RowSelectionState,
 } from "@tanstack/react-table";
-import { CheckIcon, ChevronDownIcon, SearchXIcon, XIcon } from "lucide-react";
+import { CheckIcon, ChevronDownIcon, Loader2Icon, MailPlusIcon, SearchXIcon, XIcon } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { restoreRegistrations, setReviewStatus, setStage } from "@/app/admin/(panel)/overview-actions";
+import { approveAndInvite, restoreRegistrations, setReviewStatus, setStage } from "@/app/admin/(panel)/overview-actions";
 import { RowActions } from "@/components/admin/overview/row-actions";
 import { ReviewBadge, StageBadge } from "@/components/league/badges";
 import { EmptyState } from "@/components/league/empty-state";
 import { Money } from "@/components/league/money";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -50,6 +59,7 @@ export function OverviewTable({
   }
   const optimisticRows = useMemo(() => overrides.reduce(applyPatch, rows), [rows, overrides]);
   const [selection, setSelection] = useState<RowSelectionState>({});
+  const [bulkApprove, setBulkApprove] = useState(false);
   const [pending, startTransition] = useTransition();
 
   /** Optimistic status/stage change with an Undo toast. */
@@ -192,10 +202,27 @@ export function OverviewTable({
         <BulkBar
           count={selectedIds.length}
           onClear={() => setSelection({})}
-          onReview={(status) => change({ ids: selectedIds, status })}
+          onReview={(status) => (status === "approved" ? setBulkApprove(true) : change({ ids: selectedIds, status }))}
           onStage={(stage) => change({ ids: selectedIds, stage })}
         />
       )}
+      <BulkApproveDialog
+        open={bulkApprove}
+        onOpenChange={setBulkApprove}
+        count={selectedIds.length}
+        onApproveOnly={() => {
+          setBulkApprove(false);
+          change({ ids: selectedIds, status: "approved" });
+        }}
+        onApproveAndInvite={async () => {
+          const res = await approveAndInvite(selectedIds);
+          if (!res.ok) return toast.error(res.error);
+          setSelection({});
+          setBulkApprove(false);
+          if (res.failed.length) toast.warning(res.message, { description: res.failed.join("\n"), duration: 15000 });
+          else toast.success(res.message);
+        }}
+      />
 
       {/* Desktop table */}
       <div className="relative hidden overflow-x-auto rounded-xl border bg-card md:block">
@@ -353,5 +380,48 @@ function BulkBar({
         <XIcon />
       </Button>
     </div>
+  );
+}
+
+/** Bulk Approve: invite each POC (the default; sign-ups are off, so POCs log in only once invited) or approve only. */
+function BulkApproveDialog({
+  open,
+  onOpenChange,
+  count,
+  onApproveOnly,
+  onApproveAndInvite,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  count: number;
+  onApproveOnly: () => void;
+  onApproveAndInvite: () => Promise<unknown>;
+}) {
+  const [pending, startTransition] = useTransition();
+  const plural = count === 1 ? "" : "s";
+  return (
+    <AlertDialog open={open} onOpenChange={(o) => !pending && onOpenChange(o)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            Approve {count} college{plural}
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            Invite sends each POC an email to manage their college at /college, using the email they registered with.
+            POCs can&apos;t log in until they&apos;re invited.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
+          <Button variant="outline" disabled={pending} onClick={onApproveOnly}>
+            Approve only
+          </Button>
+          <Button disabled={pending} onClick={() => startTransition(async () => void (await onApproveAndInvite()))}>
+            {pending ? <Loader2Icon className="animate-spin" /> : <MailPlusIcon />}
+            Approve + invite POC{plural}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

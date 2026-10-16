@@ -17,8 +17,8 @@ export default function NoAccessPage() {
           <Suspense fallback="Your account">
             <SignedInAs />
           </Suspense>{" "}
-          isn&apos;t linked to the admin panel or to a college. If you&apos;re a college POC, use the email your
-          college registered with, or ask a Matiks admin to invite you.
+          isn&apos;t linked to the admin panel or to a college. If you registered a college, you&apos;ll get an
+          email invite once your college is approved; sign in with the email that invite was sent to.
         </p>
       </div>
       <form action={logout}>

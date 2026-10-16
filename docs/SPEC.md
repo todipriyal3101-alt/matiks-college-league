@@ -164,7 +164,10 @@ clean master record; a college can have a different stage, prize pool, contacts 
 | College POC | `college_access` row (invited) **or** login email = `registrations.poc_email` | /college | own registration(s): team name, contacts, winner details |
 | Anyone else | — | "No access yet" page with logout | nothing |
 
-- No sign-up form and no "claim admin". Access is invite-only from /admin/team.
+- No sign-up form and no "claim admin". Access is invite-only from /admin/team. Supabase "Allow new users to sign up"
+  is **off**, so a student has no account until an admin invites them: every approve path (row menu, bulk bar,
+  editor review select, Add college) offers "Approve + invite POC", with "Approve only" as the secondary choice.
+  Student-facing copy says "You'll get an email invite once your college is approved".
 - Invites: look up the user with `find_user_id_by_email` (service role only); if new,
   `auth.admin.inviteUserByEmail` with redirect `/auth/callback?next=/college` (POCs) or `next=/admin`.
 - Login (one page for everyone): password, magic link, forgot password → /reset-password.

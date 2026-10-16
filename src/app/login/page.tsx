@@ -20,7 +20,6 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
       <Suspense>
         <LoginContent searchParams={searchParams} />
       </Suspense>
-      <p className="text-center text-xs text-muted-foreground">Access is invite-only. Ask a Matiks admin to add you.</p>
     </AuthCard>
   );
 }
@@ -43,6 +42,11 @@ async function LoginContent({ searchParams }: Pick<PageProps<"/login">, "searchP
         </p>
       )}
       <LoginForm next={nextPath} />
+      <p className="text-center text-xs text-muted-foreground">
+        {nextPath?.startsWith("/college")
+          ? "Registered your college? You'll get an email invite once your college is approved. Sign in here after that."
+          : "Access is invite-only. Registered a college? You'll get an email invite once it's approved."}
+      </p>
     </>
   );
 }

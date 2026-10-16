@@ -65,9 +65,12 @@ async function SuccessContent({ searchParams }: Pick<PageProps<"/register/succes
         <h2 className="font-display text-lg font-semibold">What happens next</h2>
         {/* TODO: confirm next-steps copy and timelines with the league team. */}
         <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
-          <li>Our team reviews your registration (status: pending).</li>
-          <li>We&apos;ll contact you on WhatsApp/email once it&apos;s approved.</li>
-          <li>Sign in to your college portal any time to update your contacts and, later, your winners.</li>
+          <li>Our team reviews your registration.</li>
+          <li>
+            You&apos;ll get an email invite once your college is approved. It lets you sign in to your college portal
+            to add your team&apos;s contacts and, later, your winners.
+          </li>
+          <li>Watch your inbox (and spam folder) for an email from Matiks.</li>
         </ol>
       </div>
 
@@ -77,7 +80,7 @@ async function SuccessContent({ searchParams }: Pick<PageProps<"/register/succes
       </div>
 
       <Button asChild variant="outline" className="h-11 w-full sm:w-auto">
-        <Link href="/college">Go to your college portal</Link>
+        <Link href="/colleges">See the colleges in the league</Link>
       </Button>
     </div>
   );

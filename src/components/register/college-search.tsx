@@ -15,12 +15,16 @@ export function CollegeSearch({
   invalid,
   onSelect,
   onQueryChange,
+  id = "college-search",
+  placeholder = "Start typing your college name",
 }: {
   selectedId: string | null;
   selectedLabel: string;
   invalid?: boolean;
   onSelect: (college: CollegeSearchResult) => void;
   onQueryChange?: (query: string) => void;
+  id?: string;
+  placeholder?: string;
 }) {
   const [query, setQuery] = useState(selectedLabel);
   const [results, setResults] = useState<CollegeSearchResult[]>([]);
@@ -59,13 +63,13 @@ export function CollegeSearch({
       <div className="relative">
         <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          id="college-search"
+          id={id}
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
             onQueryChange?.(e.target.value);
           }}
-          placeholder="Start typing your college name"
+          placeholder={placeholder}
           autoComplete="off"
           aria-invalid={invalid}
           className="h-11 pl-9 text-base"

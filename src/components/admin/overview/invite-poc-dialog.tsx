@@ -25,6 +25,7 @@ export function InvitePocDialog({
   collegeName,
   pocEmail,
   approve,
+  onApproveOnly,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -32,6 +33,8 @@ export function InvitePocDialog({
   collegeName: string;
   pocEmail: string;
   approve: boolean;
+  /** Shown in approve mode: approve without sending an invite (the POC can't log in until invited). */
+  onApproveOnly?: () => void;
 }) {
   const [email, setEmail] = useState(pocEmail);
   const [error, setError] = useState<string | null>(null);
@@ -75,6 +78,11 @@ export function InvitePocDialog({
             <FieldError>{error}</FieldError>
           </Field>
           <DialogFooter>
+            {approve && onApproveOnly && (
+              <Button type="button" variant="ghost" disabled={pending} onClick={onApproveOnly}>
+                Approve only
+              </Button>
+            )}
             <Button type="submit" disabled={pending || !email}>
               {pending ? <Loader2Icon className="animate-spin" /> : <SendIcon />}
               {approve ? "Approve and send invite" : "Send invite"}
