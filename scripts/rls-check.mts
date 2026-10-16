@@ -210,14 +210,16 @@ async function pocChecks(poc: SupabaseClient, pocUserId: string) {
     ["prize_pool_override", 1],
     ["status", "approved"],
   ] as const) {
-    await check(role, `cannot change ${field}`, async () => {
-      const { data: before } = await service.from("registrations").select(field).eq("id", REG!).single();
-      const { data, error } = await poc.from("registrations").update({ [field]: value }).eq("id", REG!).select("id");
-      if (!error && data?.length) {
-        await service.from("registrations").update(before as never).eq("id", REG!); // revert
-        return "ALLOWED (reverted)";
-      }
-      return true;
+    // The POC may update its registration (RLS), but protect_registration_admin_fields (0003) silently keeps the
+    // old value of admin-only fields. So judge by what is stored afterwards, read with the service role.
+    await check(role, `cannot change ${field} (refused or silently ignored)`, async () => {
+      const read = async () => (await service.from("registrations").select(field).eq("id", REG!).single()).data as Record<string, unknown>;
+      const before = await read();
+      await poc.from("registrations").update({ [field]: value }).eq("id", REG!);
+      const after = await read();
+      if (after[field] === before[field]) return true;
+      await service.from("registrations").update(before as never).eq("id", REG!); // restore, but still fail
+      return `VALUE CHANGED: ${String(before[field])} → ${String(after[field])} (restored)`;
     });
   }
   await check(role, "cannot update another registration", async () => {
