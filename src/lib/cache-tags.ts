@@ -2,4 +2,5 @@
 // server action (shows immediately) or revalidateTag(tag, { expire: 0 }) in a route handler.
 export const CACHE_TAGS = {
   league: "league",
+  matches: "matches",
 } as const;

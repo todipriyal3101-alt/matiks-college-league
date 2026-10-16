@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { AddCollegeDialog } from "@/components/admin/overview/add-college-dialog";
+import { InsightsView } from "@/components/admin/insights/insights-view";
 import { ExportMenu } from "@/components/admin/overview/export-menu";
 import { OverviewFilters } from "@/components/admin/overview/overview-filters";
 import { OverviewTable } from "@/components/admin/overview/overview-table";
@@ -54,6 +55,7 @@ async function Overview({ searchParams }: Pick<PageProps<"/admin">, "searchParam
   ]);
   const pocEmails = Object.fromEntries((emails.data ?? []).map((r) => [r.id, r.poc_email]));
   const filters = parseOverviewFilters(params);
+  const insights = params.tab === "insights";
   const stats = overviewStats(rows);
   const visible = filterOverview(rows, filters);
 
@@ -87,7 +89,20 @@ async function Overview({ searchParams }: Pick<PageProps<"/admin">, "searchParam
         />
       </div>
 
-      {rows.length === 0 ? (
+      <nav className="flex gap-1 border-b border-border/60" aria-label="Overview sections">
+        <TabLink href="/admin" active={!insights}>
+          Colleges
+        </TabLink>
+        <TabLink href="/admin?tab=insights" active={insights}>
+          Insights
+        </TabLink>
+      </nav>
+
+      {insights ? (
+        <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>
+          <InsightsView leagueId={league.id} />
+        </Suspense>
+      ) : rows.length === 0 ? (
         <EmptyState
           icon={BuildingIcon}
           title="No colleges registered yet"
@@ -108,6 +123,18 @@ async function Overview({ searchParams }: Pick<PageProps<"/admin">, "searchParam
         </section>
       )}
     </div>
+  );
+}
+
+function TabLink({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={`-mb-px border-b-2 px-3 py-2 text-sm ${active ? "border-primary font-medium text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+    >
+      {children}
+    </Link>
   );
 }
 
