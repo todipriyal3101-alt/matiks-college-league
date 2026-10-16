@@ -15,6 +15,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SUPPORT_EMAIL } from "@/app/(public)/content";
 import { INDIAN_STATES } from "@/lib/indian-states";
 import {
   YEARS,
@@ -97,7 +98,7 @@ export function RegistrationForm({ leagueName }: { leagueName: string }) {
     return (
       <Notice title={`${result.collegeName} is already in`}>
         {result.pocFirstName ? `${result.pocFirstName} registered` : "Someone registered"} your college for {leagueName}. Ask
-        them to add you to the team.
+        them to add you to the team. Can&apos;t reach them? Email <SupportLink />.
       </Notice>
     );
   }
@@ -369,6 +370,14 @@ export function RegistrationForm({ leagueName }: { leagueName: string }) {
         </Button>
       </div>
     </form>
+  );
+}
+
+function SupportLink() {
+  return (
+    <a href={`mailto:${SUPPORT_EMAIL}`} className="text-primary underline-offset-4 hover:underline">
+      {SUPPORT_EMAIL}
+    </a>
   );
 }
 

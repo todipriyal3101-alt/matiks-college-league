@@ -35,6 +35,7 @@ export default async function HomePage() {
             <HeroFact label="Prize pool" value={LANDING.prizePool} />
             {deadline && <HeroFact label="Register by" value={deadline} />}
           </dl>
+          <p className="text-sm text-muted-foreground">{LANDING.prizeNote}</p>
           <div className="hidden sm:block">
             <RegisterButton />
           </div>

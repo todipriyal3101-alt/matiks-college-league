@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { z } from "zod";
 
+import { SUPPORT_EMAIL } from "@/app/(public)/content";
 import { ShareButtons } from "@/components/register/share-buttons";
 import { Mascot } from "@/components/league/mascot";
 import { Button } from "@/components/ui/button";
@@ -80,6 +81,12 @@ async function SuccessContent({ searchParams }: Pick<PageProps<"/register/succes
         <h2 className="text-2xl">Challenge other colleges</h2>
         <ShareButtons url={`${siteUrl}/register`} message={message} />
       </div>
+      <p className="text-sm text-muted-foreground">
+        Questions?{" "}
+        <a href={`mailto:${SUPPORT_EMAIL}`} className="text-primary underline-offset-4 hover:underline">
+          {SUPPORT_EMAIL}
+        </a>
+      </p>
       <p className="font-mono text-xs break-all text-muted-foreground">ID {registration.id}</p>
     </div>
   );

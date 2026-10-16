@@ -4,10 +4,14 @@ import { formatINR, PRIZE_TIERS } from "@/lib/league";
 
 const tiers = PRIZE_TIERS.map((t) => (t.min > 0 ? `${t.min}+ players: ${formatINR(t.amount)}` : `Fewer: ${formatINR(t.amount)}`));
 
+/** Public support contact (Matiks staff, not a student). */
+export const SUPPORT_EMAIL = "satish@matiks.com";
+
 export const LANDING = {
   fallbackLeagueName: "Brumble 2.0",
   tagline: "Play it smart.",
-  prizePool: "Depends on number of participants",
+  prizePool: `Up to ${formatINR(PRIZE_TIERS[0].amount)}`,
+  prizeNote: "Bigger college turnout = bigger prize",
   format: ["7 days of play", "100% online, play from anywhere", "Your college vs the rest"],
   whoCanJoin: ["Everyone from your college", "Any year, any course"],
   faq: [

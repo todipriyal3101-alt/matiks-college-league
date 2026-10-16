@@ -53,7 +53,7 @@ export async function leagueOgImage({ eyebrow, cta }: { eyebrow: string; cta: st
             <div style={{ fontSize: 40, color: "#b1fa63", letterSpacing: 2 }}>{eyebrow.toUpperCase()}</div>
             <div style={{ fontSize: 150, lineHeight: 0.95, letterSpacing: 2 }}>{name.toUpperCase()}</div>
             <div style={{ display: "flex", gap: 56, marginTop: 24 }}>
-              <Fact label="Format" value="7 days · online" />
+              <Fact label="Prize pool" value={LANDING.prizePool} />
               {deadline && <Fact label="Registration closes" value={deadline} />}
             </div>
           </div>
