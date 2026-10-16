@@ -7,6 +7,7 @@ import { CollegeEditor } from "@/components/league/college-editor/college-editor
 import { EmptyState } from "@/components/league/empty-state";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getAdmin } from "@/lib/auth/admin";
 import { getMyRegistrations, getRegistrationDetail } from "@/lib/data/league-ops";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -29,6 +30,21 @@ async function Portal({ searchParams }: Pick<PageProps<"/college">, "searchParam
   if (mine.length === 0) {
     const supabase = await createClient();
     const { data } = await supabase.auth.getClaims();
+    // Admins land here from a shared /college link: point them to the admin panel, not to registering.
+    if (await getAdmin()) {
+      return (
+        <EmptyState
+          icon={BuildingIcon}
+          title="This is the POC portal"
+          description="You're signed in as a Matiks admin, so there's no college here. Manage colleges from the admin panel."
+          action={
+            <Button asChild className="h-11">
+              <Link href="/admin">Go to admin</Link>
+            </Button>
+          }
+        />
+      );
+    }
     return (
       <EmptyState
         icon={BuildingIcon}

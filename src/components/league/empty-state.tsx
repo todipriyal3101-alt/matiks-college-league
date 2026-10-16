@@ -27,7 +27,8 @@ export function EmptyState({
       )}
     >
       {mascot ? (
-        <Mascot className="size-28" />
+        // Usually the largest thing on screen: load it straight away.
+        <Mascot eager className="size-28" />
       ) : (
         <div className="flex size-11 items-center justify-center rounded-xl bg-olive text-primary">
           <Icon className="size-5" />

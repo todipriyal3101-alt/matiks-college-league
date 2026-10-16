@@ -76,7 +76,13 @@ export function RegistrationForm({ leagueName }: { leagueName: string }) {
   const isLast = step === STEPS.length - 1;
 
   async function next() {
-    if (!(await trigger(STEPS[step].fields, { shouldFocus: true }))) return;
+    if (!(await trigger(STEPS[step].fields))) {
+      // Focus the first invalid field on screen. react-hook-form's own shouldFocus can't: the first error is
+      // often the college, whose registered input is hidden (the visible one is the search box).
+      const first = "form [data-invalid=true] :is(input:not([type=hidden]), textarea, button)";
+      setTimeout(() => document.querySelector<HTMLElement>(first)?.focus(), 0);
+      return;
+    }
     setStep(1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
