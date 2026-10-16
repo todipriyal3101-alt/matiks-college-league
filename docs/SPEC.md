@@ -91,7 +91,7 @@ Every table: "Export to Excel" and "Export CSV" of the current filtered view (ad
 - RLS on every table (see `supabase/migrations/0001_init.sql`)
 - Public can read: leagues, colleges (names only are public anyway), matches. Nothing else.
 - Students (magic link) can read/update only registrations where `poc_email` = their login email, and that registration's contacts/participants
-- Admin routes guarded by middleware + `is_admin()`; writes require `is_admin_writer()`
+- Admin routes guarded by `src/proxy.ts` (Next.js 16 proxy, formerly middleware) + `is_admin()`; writes require `is_admin_writer()`
 - Registration inserts go through a server action using the service role client after validation
 - Turnstile captcha + rate limit on the registration action
 - Privacy note + consent checkbox on the form; no phones/emails on public pages (India DPDP Act)

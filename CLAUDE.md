@@ -25,7 +25,7 @@ Always read the relevant part of SPEC.md before building a feature.
 ## Folder conventions
 
 - `src/app/(public)/...` — student-facing pages
-- `src/app/admin/...` — admin pages (protected by middleware)
+- `src/app/admin/...` — admin pages (protected by `src/proxy.ts`)
 - `src/lib/supabase/` — `client.ts` (browser), `server.ts` (server, user session), `admin.ts` (service role, server only)
 - `src/lib/validation/` — zod schemas
 - `src/components/ui/` — shadcn components; `src/components/` — app components

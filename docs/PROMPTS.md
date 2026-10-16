@@ -17,7 +17,7 @@ TypeScript, Tailwind, App Router, src/ dir, alias @/*).
    dialog, dropdown-menu, sonner, tabs, checkbox, separator, skeleton.
 3. Create `src/lib/supabase/client.ts` (browser), `server.ts` (server with cookies via @supabase/ssr)
    and `admin.ts` (service role, with `import "server-only"` at the top; install `server-only`).
-4. Create `src/middleware.ts` that refreshes the Supabase session on every request (official @supabase/ssr pattern).
+4. Create `src/proxy.ts` (Next.js 16 name for middleware; export `proxy`) that refreshes the Supabase session on every request (official @supabase/ssr pattern).
 5. Create placeholder pages: `/` , `/register`, `/register/success`, `/my`, `/colleges`,
    `/admin/login`, `/admin`. Each just shows its title.
 6. Add a simple public header/footer layout for public pages.
@@ -43,7 +43,7 @@ Read the "Student panel" section of docs/SPEC.md.
 1. Landing page `/`: hero with league name from getActiveLeague(), prize pool, format, timeline,
    FAQ (accordion), big "Register your college" button. Leave clear TODO placeholders for copy I'll provide.
 2. On first visit, store utm_source, utm_medium, utm_campaign, utm_content and ref from the URL in a
-   30-day cookie (do this in middleware so it works on any landing URL).
+   30-day cookie (do this in `src/proxy.ts` so it works on any landing URL).
 3. `/register`: 4-step form with react-hook-form + zod (schema in `src/lib/validation/registration.ts`):
    step 1 college (type-ahead using /api/colleges/search, or "My college isn't listed" → name, city, state, type);
    step 2 POC (name, email, 10-digit Indian mobile, year, course, Matiks username);
@@ -66,7 +66,7 @@ Read the "Student panel" section of docs/SPEC.md.
 
 Read the "Admin panel" and "Security" sections of docs/SPEC.md.
 1. `/admin/login`: email + password login, and "Continue with Google" (Supabase Auth).
-2. Middleware: every `/admin/*` route except `/admin/login` requires a logged-in user who has a row in
+2. In `src/proxy.ts`: every `/admin/*` route except `/admin/login` requires a logged-in user who has a row in
    `admin_profiles`; otherwise redirect to `/admin/login` (show "You don't have admin access" if logged in but not listed).
 3. Admin layout: sidebar (Dashboard, Registrations, Colleges, Participants, Ambassadors, Leagues, Matches,
    Team, Import), top bar with season picker (stored in a `league` search param or cookie) and user menu with logout.
