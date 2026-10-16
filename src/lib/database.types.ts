@@ -664,6 +664,21 @@ export type Database = {
         }
         Returns: undefined
       }
+      merge_colleges: {
+        Args: { p_duplicate: string; p_keep: string }
+        Returns: Json
+      }
+      public_approved_colleges: {
+        Args: { p_league_id: string }
+        Returns: {
+          city: string
+          id: string
+          logo_url: string
+          name: string
+          short_name: string
+          state: string
+        }[]
+      }
       register_college: {
         Args: {
           p_college_city?: string

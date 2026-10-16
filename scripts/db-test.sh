@@ -22,6 +22,7 @@ for m in supabase/migrations/*.sql; do
 done
 [[ -f "supabase/tests/$NAME.seed.sql" ]] && run -d "$DB" -f "supabase/tests/$NAME.seed.sql"
 run -d "$DB" -f "supabase/migrations/$NAME.sql"
+run -d "$DB" -f supabase/tests/runner.sql >/dev/null
 run -d "$DB" -f "supabase/tests/$NAME.test.sql" >/dev/null
 
 run -d "$DB" -P pager=off -c "
