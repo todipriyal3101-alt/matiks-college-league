@@ -45,13 +45,15 @@ export function overviewStats(rows: OverviewRow[]): OverviewStats {
 }
 
 /** Applies the URL filters. Used by the table and by exports, so an export matches what's on screen. */
-export function filterOverview(rows: OverviewRow[], f: OverviewFilters): OverviewRow[] {
+/** `peopleMatchIds`: registrations whose winners/contacts match the search (see matchPeople). */
+export function filterOverview(rows: OverviewRow[], f: OverviewFilters, peopleMatchIds?: Set<string>): OverviewRow[] {
   const q = f.q.toLowerCase();
   const filtered = rows.filter((r) => {
     if (f.review !== "all" && r.review_status !== f.review) return false;
     if (f.stage !== "all" && r.stage !== f.stage) return false;
     if (f.source !== "all" && (r.utm_source ?? "direct") !== f.source) return false;
     if (!q) return true;
+    if (peopleMatchIds?.has(r.registration_id!)) return true;
     return [r.college_name, r.city, r.state, r.primary_poc_name, r.team_name, r.referral_code]
       .some((v) => v?.toLowerCase().includes(q));
   });

@@ -53,9 +53,9 @@ export function OverviewFilters({ filters, sources }: { filters: Filters; source
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search college, city, POC, team, referral…"
+          placeholder="Search college, POC, winner, phone…"
           className="h-9 pl-9"
-          aria-label="Search colleges"
+          aria-label="Search colleges, contacts and winners"
         />
         {pending && (
           <Loader2Icon className="absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />

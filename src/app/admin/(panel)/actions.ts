@@ -6,6 +6,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/admin";
 import { ADMIN_LEAGUE_COOKIE, getSelectedLeague } from "@/lib/data/admin-leagues";
 import { getOverview } from "@/lib/data/league-ops";
+import { getSeasonPeople, type PersonHit } from "@/lib/data/people";
 
 /** Season picker: remembers the selected league for every admin page. Viewers may switch too (read-only). */
 export async function selectLeague(leagueId: string) {
@@ -22,11 +23,14 @@ export async function selectLeague(leagueId: string) {
 
 export type PaletteCollege = { registrationId: string; name: string; city: string | null; status: string };
 
-/** ⌘K palette: colleges of the selected season (admins and viewers). */
-export async function paletteColleges(): Promise<PaletteCollege[]> {
+/** ⌘K palette: colleges, winners and contacts of the selected season (admins and viewers). */
+export async function paletteData(): Promise<{ colleges: PaletteCollege[]; people: PersonHit[] }> {
   await requireAdmin();
   const league = await getSelectedLeague();
-  if (!league) return [];
-  const rows = await getOverview(league.id);
-  return rows.map((r) => ({ registrationId: r.registration_id!, name: r.college_name!, city: r.city, status: r.review_status! }));
+  if (!league) return { colleges: [], people: [] };
+  const [rows, people] = await Promise.all([getOverview(league.id), getSeasonPeople(league.id)]);
+  return {
+    colleges: rows.map((r) => ({ registrationId: r.registration_id!, name: r.college_name!, city: r.city, status: r.review_status! })),
+    people,
+  };
 }

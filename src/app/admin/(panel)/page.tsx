@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { requireAdmin } from "@/lib/auth/admin";
 import { getSelectedLeague } from "@/lib/data/admin-leagues";
 import { filterOverview, getOverview, overviewSources, overviewStats } from "@/lib/data/league-ops";
+import { getSeasonPeople, matchPeople } from "@/lib/data/people";
 import { formatINR } from "@/lib/league";
 import { createClient } from "@/lib/supabase/server";
 import { parseOverviewFilters } from "@/lib/validation/league-ops";
@@ -57,7 +58,11 @@ async function Overview({ searchParams }: Pick<PageProps<"/admin">, "searchParam
   const filters = parseOverviewFilters(params);
   const insights = params.tab === "insights";
   const stats = overviewStats(rows);
-  const visible = filterOverview(rows, filters);
+  // The search box also finds winners and contacts by name or phone; the row then says who matched.
+  const people = filters.q ? matchPeople(await getSeasonPeople(league.id), filters.q) : [];
+  const matches: Record<string, string[]> = {};
+  for (const p of people) (matches[p.registrationId] ??= []).push(`${p.name || p.phone} (${p.detail})`);
+  const visible = filterOverview(rows, filters, new Set(Object.keys(matches)));
 
   return (
     <div className="space-y-6">
@@ -118,7 +123,7 @@ async function Overview({ searchParams }: Pick<PageProps<"/admin">, "searchParam
           <p className="text-xs text-muted-foreground">
             {visible.length} of {rows.length}
           </p>
-          <OverviewTable rows={visible} isWriter={isWriter} pocEmails={pocEmails} />
+          <OverviewTable rows={visible} isWriter={isWriter} pocEmails={pocEmails} matches={matches} />
         </section>
       )}
     </div>

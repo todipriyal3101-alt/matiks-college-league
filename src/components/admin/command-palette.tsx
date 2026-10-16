@@ -7,15 +7,14 @@ import {
   Loader2Icon,
   SchoolIcon,
   SearchIcon,
+  TrophyIcon,
+  UserIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import {
-  paletteColleges,
-  type PaletteCollege,
-} from "@/app/admin/(panel)/actions";
+import { paletteData, type PaletteCollege } from "@/app/admin/(panel)/actions";
 import { ADMIN_NAV } from "@/components/admin/nav-items";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +28,7 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command";
+import type { PersonHit } from "@/lib/data/people";
 import { REVIEW_LABELS, type ReviewStatus } from "@/lib/league";
 
 /** File download from a route handler (not a page navigation). */
@@ -44,6 +44,8 @@ export function CommandPalette({ isWriter }: { isWriter: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [colleges, setColleges] = useState<PaletteCollege[] | null>(null);
+  const [people, setPeople] = useState<PersonHit[]>([]);
+  const [query, setQuery] = useState("");
   const [loading, startLoading] = useTransition();
 
   useEffect(() => {
@@ -60,7 +62,11 @@ export function CommandPalette({ isWriter }: { isWriter: boolean }) {
   // Fresh list every time it opens (new registrations arrive all the time).
   useEffect(() => {
     if (!open) return;
-    startLoading(async () => setColleges(await paletteColleges()));
+    startLoading(async () => {
+      const data = await paletteData();
+      setColleges(data.colleges);
+      setPeople(data.people);
+    });
   }, [open]);
 
   function run(fn: () => void) {
@@ -90,7 +96,11 @@ export function CommandPalette({ isWriter }: { isWriter: boolean }) {
         description="Jump to a college, a page or an action"
       >
         <Command>
-          <CommandInput placeholder="Search colleges, pages, actions…" />
+          <CommandInput
+            placeholder="Search colleges, people, phones, pages…"
+            value={query}
+            onValueChange={setQuery}
+          />
           <CommandList>
             <CommandEmpty>
               {loading ? "Loading…" : "Nothing found."}
@@ -124,6 +134,35 @@ export function CommandPalette({ isWriter }: { isWriter: boolean }) {
                 </CommandItem>
               ))}
             </CommandGroup>
+            {/* People only once something is typed: hundreds of names would bury the colleges. */}
+            {query.trim().length >= 2 && people.length > 0 && (
+              <CommandGroup heading="Winners & contacts">
+                {people.map((p, i) => (
+                  <CommandItem
+                    key={`${p.kind}-${p.registrationId}-${i}`}
+                    value={`person ${p.name} ${p.phone ?? ""} ${p.college} ${p.registrationId}-${i}`}
+                    onSelect={() =>
+                      run(() =>
+                        router.push(
+                          `/admin/colleges/${p.registrationId}?tab=${p.kind === "winner" ? "winners" : "contacts"}`,
+                        ),
+                      )
+                    }
+                  >
+                    {p.kind === "winner" ? <TrophyIcon /> : <UserIcon />}
+                    <span className="truncate">{p.name || p.phone}</span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {p.detail} · {p.college}
+                    </span>
+                    {p.phone && (
+                      <CommandShortcut className="font-mono">
+                        {p.phone}
+                      </CommandShortcut>
+                    )}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
             <CommandSeparator />
             <CommandGroup heading="Pages">
               {ADMIN_NAV.map(({ href, label, icon: Icon }) => (
@@ -172,6 +211,18 @@ export function CommandPalette({ isWriter }: { isWriter: boolean }) {
                   >
                     <DownloadIcon /> Export all to CSV
                   </CommandItem>
+                  <CommandItem
+                    value="export winners payments upi utr"
+                    onSelect={() => run(() => download("/admin/export?kind=winners&format=xlsx"))}
+                  >
+                    <DownloadIcon /> Export all winners (payments)
+                  </CommandItem>
+                  <CommandItem
+                    value="export contacts poc shipping merch address"
+                    onSelect={() => run(() => download("/admin/export?kind=contacts&format=xlsx"))}
+                  >
+                    <DownloadIcon /> Export all contacts (shipping)
+                  </CommandItem>
                 </>
               )}
               <CommandItem
@@ -182,7 +233,7 @@ export function CommandPalette({ isWriter }: { isWriter: boolean }) {
                       await navigator.clipboard.writeText(
                         `${window.location.origin}/register`,
                       );
-                      toast.success("Copied");
+                      toast.success("Link copied");
                     } catch {
                       toast.error("Couldn't copy the link.");
                     }
