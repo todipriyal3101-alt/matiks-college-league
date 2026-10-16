@@ -10,9 +10,10 @@ import "./globals.css";
 // Matiks fonts (CLAUDE.md rule 8), as on matiks.com: Montserrat UI, Nunito Sans paragraphs,
 // Bebas Neue display headings, Space Mono numbers.
 const montserrat = Montserrat({ variable: "--font-montserrat", subsets: ["latin"] });
-const nunitoSans = Nunito_Sans({ variable: "--font-nunito-sans", subsets: ["latin"] });
+// Not preloaded: paragraphs and numbers aren't needed for the first paint (they swap in when loaded).
+const nunitoSans = Nunito_Sans({ variable: "--font-nunito-sans", subsets: ["latin"], preload: false });
 const bebasNeue = Bebas_Neue({ variable: "--font-bebas-neue", subsets: ["latin"], weight: "400" });
-const spaceMono = Space_Mono({ variable: "--font-space-mono", subsets: ["latin"], weight: ["400", "700"] });
+const spaceMono = Space_Mono({ variable: "--font-space-mono", subsets: ["latin"], weight: ["400", "700"], preload: false });
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
