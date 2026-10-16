@@ -35,5 +35,5 @@ export async function updateSession(request: NextRequest) {
   // getClaims() validates the JWT and triggers the token refresh.
   const { data } = await supabase.auth.getClaims();
 
-  return { response, claims: data?.claims ?? null };
+  return { response, supabase, claims: data?.claims ?? null };
 }
