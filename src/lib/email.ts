@@ -67,20 +67,20 @@ export function sendLater(build: () => Promise<Email | Email[] | null>, options:
 const esc = (s: string) =>
   s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
-const C = { bg: "#0b0d16", card: "#15151f", border: "#26263a", text: "#ededf3", muted: "#9b9bb0", primary: "#a46bff" };
+const C = { bg: "#1a1a1a", card: "#212121", border: "#333333", text: "#ffffff", muted: "#a2a2a2", primary: "#b1fa63", edge: "#749f45" };
 
 function layout(opts: { preheader: string; heading: string; body: string; cta?: { label: string; href: string }; footnote?: string }) {
   const cta = opts.cta
-    ? `<p style="margin:28px 0 8px"><a href="${esc(opts.cta.href)}" style="display:inline-block;background:${C.primary};color:#0b0b12;font-weight:600;text-decoration:none;padding:12px 20px;border-radius:10px">${esc(opts.cta.label)}</a></p>`
+    ? `<p style="margin:28px 0 8px"><a href="${esc(opts.cta.href)}" style="display:inline-block;background:${C.primary};color:#000;font-weight:700;text-transform:uppercase;letter-spacing:.5px;text-decoration:none;padding:13px 22px;border-radius:10px;box-shadow:0 4px 0 ${C.edge}">${esc(opts.cta.label)}</a></p>`
     : "";
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"></head>
-<body style="margin:0;background:${C.bg};font-family:Inter,Segoe UI,Helvetica,Arial,sans-serif;color:${C.text}">
+<body style="margin:0;background:${C.bg};font-family:Montserrat,Segoe UI,Helvetica,Arial,sans-serif;color:${C.text}">
 <span style="display:none;max-height:0;overflow:hidden">${esc(opts.preheader)}</span>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.bg};padding:24px 12px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px">
-<tr><td style="padding:0 4px 16px;font-weight:700;font-size:15px"><span style="display:inline-block;background:${C.primary};color:#0b0b12;border-radius:8px;width:28px;height:28px;line-height:28px;text-align:center;margin-right:8px">&Sigma;</span>Matiks College League</td></tr>
-<tr><td style="background:${C.card};border:1px solid ${C.border};border-radius:16px;padding:28px 24px;font-size:15px;line-height:1.6">
-<h1 style="margin:0 0 12px;font-size:22px;line-height:1.3">${esc(opts.heading)}</h1>
+<tr><td style="padding:0 4px 16px"><img src="${SITE}/brand/icon.png" width="32" height="32" alt="Matiks" style="vertical-align:middle;border-radius:8px;margin-right:10px"><span style="font-weight:800;font-size:15px;letter-spacing:1px;text-transform:uppercase;vertical-align:middle">Matiks College League</span></td></tr>
+<tr><td style="background:${C.card};border:1px solid ${C.border};border-radius:24px;padding:28px 24px;font-size:15px;line-height:1.6">
+<h1 style="margin:0 0 12px;font-size:24px;line-height:1.25;text-transform:uppercase;letter-spacing:.5px">${esc(opts.heading)}</h1>
 ${opts.body}${cta}
 ${opts.footnote ? `<p style="margin:20px 0 0;color:${C.muted};font-size:13px">${opts.footnote}</p>` : ""}
 </td></tr>
@@ -90,7 +90,7 @@ ${opts.footnote ? `<p style="margin:20px 0 0;color:${C.muted};font-size:13px">${
 
 const p = (html: string) => `<p style="margin:0 0 12px">${html}</p>`;
 const muted = (html: string) => `<span style="color:${C.muted}">${html}</span>`;
-const mono = (s: string) => `<span style="font-family:'JetBrains Mono',Menlo,monospace">${esc(s)}</span>`;
+const mono = (s: string) => `<span style="font-family:'Space Mono',Menlo,monospace">${esc(s)}</span>`;
 
 export function registrationReceivedEmail(to: string, d: { collegeName: string; leagueName: string; registrationId: string }): Email {
   return {

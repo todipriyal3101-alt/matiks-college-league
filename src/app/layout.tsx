@@ -1,20 +1,18 @@
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import { Bebas_Neue, Montserrat, Nunito_Sans, Space_Mono } from "next/font/google";
 
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { siteUrl } from "@/lib/site-url";
 import "./globals.css";
 
-// Brand fonts (CLAUDE.md rule 8): Space Grotesk headings, Inter body, JetBrains Mono numbers.
-const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-});
-const jetbrainsMono = JetBrains_Mono({ variable: "--font-jetbrains-mono", subsets: ["latin"] });
+// Matiks fonts (CLAUDE.md rule 8), as on matiks.com: Montserrat UI, Nunito Sans paragraphs,
+// Bebas Neue display headings, Space Mono numbers.
+const montserrat = Montserrat({ variable: "--font-montserrat", subsets: ["latin"] });
+const nunitoSans = Nunito_Sans({ variable: "--font-nunito-sans", subsets: ["latin"] });
+const bebasNeue = Bebas_Neue({ variable: "--font-bebas-neue", subsets: ["latin"], weight: "400" });
+const spaceMono = Space_Mono({ variable: "--font-space-mono", subsets: ["latin"], weight: ["400", "700"] });
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -29,7 +27,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b0d16", // --background
+  themeColor: "#1a1a1a", // --background
   colorScheme: "dark",
 };
 
@@ -37,7 +35,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`dark ${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`dark ${montserrat.variable} ${nunitoSans.variable} ${bebasNeue.variable} ${spaceMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col overflow-x-clip">
         <TooltipProvider>{children}</TooltipProvider>

@@ -47,9 +47,11 @@ Always read the relevant part of SPEC.md before building a feature.
 5. **Validate on the server** with zod even when the form already validated.
 6. **Mobile-first.** Students arrive from Instagram/WhatsApp on phones. Test every student page at 375px wide.
 7. **Never show student phone numbers or emails on public pages.**
-8. **Design = Lovable's dark theme** on the whole site (SPEC "League operations > Design"): tokens in
-   `src/app/globals.css` (violet primary `oklch(0.68 0.22 295)`, status pill tokens), Space Grotesk headings,
-   Inter body, JetBrains Mono numbers; rupees in Indian format via `formatINR()`. Set up in Phase 5.
+8. **Design = the matiks.com look** on the whole site (SPEC "League operations > Design"): tokens in
+   `src/app/globals.css` (#1a1a1a background, lime primary `#b1fa63` with the raised `edge`, lilac accent, status
+   pill tokens with Live in teal), Bebas Neue for h1/h2, Montserrat UI, Nunito Sans paragraphs, Space Mono numbers;
+   brand files in `public/brand/` (wordmark, icon, mascot). Grid background on public pages only; mascot on public
+   pages only. Rupees in Indian format via `formatINR()`.
 9. Before saying a task is done: run `npm run build` and fix every error and type error.
 10. Keep each change small and focused; explain what you changed at the end in a short list.
 11. **DB types are hand-written.** The Supabase CLI is not linked, so `src/lib/database.types.ts` is written by hand

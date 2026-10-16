@@ -213,9 +213,11 @@ view `registration_overview` (security_invoker) · `find_user_id_by_email()` (se
 
 ### Design
 
-Lovable's dark theme on the whole site (public + admin): deep-space background, electric violet primary
-`oklch(0.68 0.22 295)`, status pill tokens (registration blue, live green, pending amber, done grey).
-Headings Space Grotesk, body Inter, numbers JetBrains Mono.
+The matiks.com look on the whole site (public + admin), taken from matiks.com's own CSS variables: #1a1a1a
+background (faint square grid on public pages; admin plain), lime primary `#b1fa63` with a raised darker-lime edge on
+buttons, lilac `#b8a7f5` highlights, status pills (registration blue, live teal, pending amber, done grey).
+Bebas Neue (all-caps) for big headings, Montserrat UI, Nunito Sans paragraphs, Space Mono numbers. Real Matiks
+wordmark, app icon and mascot in `public/brand/`; the mascot appears on public pages only (hero, success, empty states).
 
 ### UX rules (better than the prototype)
 

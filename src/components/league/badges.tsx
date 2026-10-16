@@ -19,7 +19,7 @@ const REVIEW_STYLES: Record<ReviewStatus, string> = {
   pending: "bg-status-pending text-status-pending-fg",
   approved: "bg-status-live text-status-live-fg",
   waitlisted: "bg-status-registration text-status-registration-fg",
-  rejected: "bg-destructive/20 text-destructive",
+  rejected: "bg-destructive/15 text-destructive",
 };
 
 /** Admin review status: Pending review / Approved / Waitlisted / Rejected. */

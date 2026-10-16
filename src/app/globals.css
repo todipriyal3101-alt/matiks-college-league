@@ -7,10 +7,15 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
-  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  /* Matiks fonts: Montserrat (UI), Nunito Sans (paragraphs), Bebas Neue (display), Space Mono (numbers). */
+  --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-nunito-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-space-mono), ui-monospace, monospace;
+  --font-display: var(--font-bebas-neue), "Arial Narrow", ui-sans-serif, sans-serif;
   --font-heading: var(--font-display);
+  --color-primary-edge: var(--primary-edge);
+  --color-lilac: var(--lilac);
+  --color-olive: var(--olive);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -40,7 +45,7 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  /* Status pills: stage + payment/merch (Lovable tokens) */
+  /* Status pills: stage + payment/merch */
   --color-status-registration: var(--status-registration);
   --color-status-registration-fg: var(--status-registration-fg);
   --color-status-live: var(--status-live);
@@ -61,62 +66,66 @@
 
 :root {
   /*
-   * Matiks College League: Lovable "Matiks League Manager" dark theme (CLAUDE.md rule 8).
+   * Matiks College League: the matiks.com look (CLAUDE.md rule 8). Values from matiks.com's own CSS variables
+   * (--color-background-dark #1a1a1a, --color-primary-green-2 #b1fa63, --color-primary-purple #b8a7f5, ...).
    * Dark-only: <html class="dark">. Never hardcode colours in components; use these tokens.
    */
   color-scheme: dark;
-  --radius: 0.75rem;
+  --radius: 0.625rem; /* 10px: Matiks buttons and inputs. Public cards use rounded-3xl (24px). */
 
-  /* Deep space canvas */
-  --background: oklch(0.16 0.02 275);
-  --foreground: oklch(0.97 0.01 275);
-  --card: oklch(0.2 0.025 275);
-  --card-foreground: oklch(0.97 0.01 275);
-  --popover: oklch(0.2 0.025 275);
-  --popover-foreground: oklch(0.97 0.01 275);
+  --background: #1a1a1a;
+  --foreground: #ffffff;
+  --card: #212121;
+  --card-foreground: #ffffff;
+  --popover: #242424;
+  --popover-foreground: #ffffff;
 
-  /* Electric violet primary */
-  --primary: oklch(0.68 0.22 295);
-  --primary-foreground: oklch(0.14 0.02 275);
+  /* Matiks lime, with the darker "edge" under raised buttons */
+  --primary: #b1fa63;
+  --primary-foreground: #000000;
+  --primary-edge: #749f45;
+  --olive: #233214;
+  --lilac: #b8a7f5;
 
-  --secondary: oklch(0.27 0.04 275);
-  --secondary-foreground: oklch(0.97 0.01 275);
-  --muted: oklch(0.24 0.03 275);
-  --muted-foreground: oklch(0.68 0.03 275);
-  --accent: oklch(0.32 0.06 295);
-  --accent-foreground: oklch(0.97 0.01 275);
+  --secondary: #2a2a2a;
+  --secondary-foreground: #ffffff;
+  --muted: #262626;
+  --muted-foreground: #a2a2a2;
+  /* shadcn uses accent for hover/selected backgrounds, so it stays neutral; highlights use --lilac. */
+  --accent: #2c2c2c;
+  --accent-foreground: #ffffff;
 
-  --destructive: oklch(0.62 0.24 25);
-  --destructive-foreground: oklch(0.98 0.01 275);
+  --destructive: #ff7b7b;
+  --destructive-foreground: #1a1a1a;
 
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.68 0.22 295);
+  --border: #333333;
+  --input: #3a3a3a;
+  --ring: #b1fa63;
 
-  /* Status pills */
-  --status-registration: oklch(0.35 0.1 240);
-  --status-registration-fg: oklch(0.85 0.14 235);
-  --status-live: oklch(0.35 0.13 155);
-  --status-live-fg: oklch(0.85 0.17 152);
-  --status-pending: oklch(0.38 0.13 65);
-  --status-pending-fg: oklch(0.87 0.16 82);
-  --status-done: oklch(0.32 0.02 275);
-  --status-done-fg: oklch(0.75 0.02 275);
+  /* Status pills (text >= 4.5:1 on its pill). Live is teal so it never blurs with the lime primary. */
+  --status-registration: #1d3350;
+  --status-registration-fg: #9cc7ff;
+  --status-live: #11403f;
+  --status-live-fg: #6ee7d8;
+  --status-pending: #4a3410;
+  --status-pending-fg: #ffd27a;
+  --status-done: #2e2e2e;
+  --status-done-fg: #c4c4c4;
 
-  --chart-1: oklch(0.68 0.22 295);
-  --chart-2: oklch(0.72 0.17 155);
-  --chart-3: oklch(0.78 0.17 82);
-  --chart-4: oklch(0.65 0.2 240);
-  --chart-5: oklch(0.65 0.22 25);
+  --chart-1: #b1fa63;
+  --chart-2: #b8a7f5;
+  --chart-3: #6ee7d8;
+  --chart-4: #ffd27a;
+  --chart-5: #ff8f7a;
 
-  --sidebar: oklch(0.18 0.02 275);
-  --sidebar-foreground: oklch(0.97 0.01 275);
-  --sidebar-primary: oklch(0.68 0.22 295);
-  --sidebar-primary-foreground: oklch(0.14 0.02 275);
-  --sidebar-accent: oklch(0.24 0.03 275);
-  --sidebar-accent-foreground: oklch(0.97 0.01 275);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.68 0.22 295);
+  --sidebar: #151515;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #b1fa63;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #262626;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #2a2a2a;
+  --sidebar-ring: #b1fa63;
 }
 
 @layer base {
@@ -129,22 +138,57 @@
   html {
     @apply font-sans;
   }
+  p {
+    font-family: var(--font-body);
+  }
+  /* Bebas Neue is an all-caps display face: big headings only. Small headings stay in Montserrat. */
   h1,
-  h2,
+  h2 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
   h3,
   h4 {
-    font-family: var(--font-display);
-    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
-@utility glow {
-  box-shadow: 0 0 40px -10px oklch(0.68 0.22 295 / 0.4);
+/* Matiks raised button: a darker lime edge under the button that presses down on tap. */
+@utility edge {
+  box-shadow: 0 4px 0 0 var(--primary-edge);
+  &:active:not(:disabled) {
+    box-shadow: 0 1px 0 0 var(--primary-edge);
+    transform: translateY(3px);
+  }
 }
 
-/* Soft violet/green glow behind hero + auth cards. */
-@utility bg-aurora {
-  background:
-    radial-gradient(600px circle at 20% 20%, oklch(0.68 0.22 295 / 0.25), transparent),
-    radial-gradient(500px circle at 80% 70%, oklch(0.72 0.17 155 / 0.15), transparent);
+/* The faint square grid behind matiks.com (public pages only; admin stays plain). */
+@utility bg-grid {
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.045) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+/* Subtle page entrance; disabled by prefers-reduced-motion above. */
+@utility fade-in {
+  animation: fade-in 0.25s ease-out both;
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
 }
