@@ -31,6 +31,14 @@ import {
 } from "@/components/ui/command";
 import { REVIEW_LABELS, type ReviewStatus } from "@/lib/league";
 
+/** File download from a route handler (not a page navigation). */
+function download(href: string) {
+  const a = document.createElement("a");
+  a.href = href;
+  a.download = "";
+  a.click();
+}
+
 /** Ctrl/⌘+K: jump to a college of the selected season, a page, or run an action. */
 export function CommandPalette({ isWriter }: { isWriter: boolean }) {
   const router = useRouter();
@@ -148,7 +156,7 @@ export function CommandPalette({ isWriter }: { isWriter: boolean }) {
                     value="export excel xlsx"
                     onSelect={() =>
                       run(() =>
-                        window.location.assign("/admin/export?format=xlsx"),
+                        download("/admin/export?format=xlsx"),
                       )
                     }
                   >
@@ -158,7 +166,7 @@ export function CommandPalette({ isWriter }: { isWriter: boolean }) {
                     value="export csv"
                     onSelect={() =>
                       run(() =>
-                        window.location.assign("/admin/export?format=csv"),
+                        download("/admin/export?format=csv"),
                       )
                     }
                   >
