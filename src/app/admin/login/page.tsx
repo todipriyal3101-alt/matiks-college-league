@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { logout } from "@/app/admin/(panel)/actions";
+import { Logo } from "@/components/league/logo";
 import { Button } from "@/components/ui/button";
 
 import { LoginForm } from "./login-form";
@@ -15,12 +16,11 @@ const ERRORS: Record<string, string> = {
 
 export default function AdminLoginPage({ searchParams }: PageProps<"/admin/login">) {
   return (
-    <main className="flex min-h-full flex-1 items-center justify-center p-4">
-      <div className="w-full max-w-sm space-y-6 rounded-xl border p-6">
-        <div className="space-y-1">
-          <h1 className="text-xl font-semibold tracking-tight">Admin login</h1>
-          <p className="text-sm text-muted-foreground">Matiks College League</p>
-        </div>
+    <main className="relative isolate flex min-h-full flex-1 items-center justify-center overflow-hidden p-4">
+      <div aria-hidden className="bg-aurora pointer-events-none absolute inset-0 -z-10 opacity-40" />
+      <div className="w-full max-w-sm space-y-6 rounded-xl border bg-card p-6 sm:p-8">
+        <Logo subtitle="Admin console" />
+        <h1 className="sr-only">Admin login</h1>
         <Suspense>
           <LoginContent searchParams={searchParams} />
         </Suspense>

@@ -7,9 +7,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-display);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -39,8 +40,16 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --color-brand: var(--brand-primary);
-  --color-brand-accent: var(--brand-accent);
+  /* Status pills: stage + payment/merch (Lovable tokens) */
+  --color-status-registration: var(--status-registration);
+  --color-status-registration-fg: var(--status-registration-fg);
+  --color-status-live: var(--status-live);
+  --color-status-live-fg: var(--status-live-fg);
+  --color-status-pending: var(--status-pending);
+  --color-status-pending-fg: var(--status-pending-fg);
+  --color-status-done: var(--status-done);
+  --color-status-done-fg: var(--status-done-fg);
+  --color-destructive-foreground: var(--destructive-foreground);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -51,75 +60,63 @@
 }
 
 :root {
-  /* TODO(brand): Matiks primary + accent hex (CLAUDE.md rule 8). Neutral until provided. */
-  --brand-primary: oklch(0.205 0 0);
-  --brand-accent: oklch(0.646 0.222 41.116);
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
+  /*
+   * Matiks College League: Lovable "Matiks League Manager" dark theme (CLAUDE.md rule 8).
+   * Dark-only: <html class="dark">. Never hardcode colours in components; use these tokens.
+   */
+  color-scheme: dark;
+  --radius: 0.75rem;
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
+  /* Deep space canvas */
+  --background: oklch(0.16 0.02 275);
+  --foreground: oklch(0.97 0.01 275);
+  --card: oklch(0.2 0.025 275);
+  --card-foreground: oklch(0.97 0.01 275);
+  --popover: oklch(0.2 0.025 275);
+  --popover-foreground: oklch(0.97 0.01 275);
+
+  /* Electric violet primary */
+  --primary: oklch(0.68 0.22 295);
+  --primary-foreground: oklch(0.14 0.02 275);
+
+  --secondary: oklch(0.27 0.04 275);
+  --secondary-foreground: oklch(0.97 0.01 275);
+  --muted: oklch(0.24 0.03 275);
+  --muted-foreground: oklch(0.68 0.03 275);
+  --accent: oklch(0.32 0.06 295);
+  --accent-foreground: oklch(0.97 0.01 275);
+
+  --destructive: oklch(0.62 0.24 25);
+  --destructive-foreground: oklch(0.98 0.01 275);
+
   --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.68 0.22 295);
+
+  /* Status pills */
+  --status-registration: oklch(0.35 0.1 240);
+  --status-registration-fg: oklch(0.85 0.14 235);
+  --status-live: oklch(0.35 0.13 155);
+  --status-live-fg: oklch(0.85 0.17 152);
+  --status-pending: oklch(0.38 0.13 65);
+  --status-pending-fg: oklch(0.87 0.16 82);
+  --status-done: oklch(0.32 0.02 275);
+  --status-done-fg: oklch(0.75 0.02 275);
+
+  --chart-1: oklch(0.68 0.22 295);
+  --chart-2: oklch(0.72 0.17 155);
+  --chart-3: oklch(0.78 0.17 82);
+  --chart-4: oklch(0.65 0.2 240);
+  --chart-5: oklch(0.65 0.22 25);
+
+  --sidebar: oklch(0.18 0.02 275);
+  --sidebar-foreground: oklch(0.97 0.01 275);
+  --sidebar-primary: oklch(0.68 0.22 295);
+  --sidebar-primary-foreground: oklch(0.14 0.02 275);
+  --sidebar-accent: oklch(0.24 0.03 275);
+  --sidebar-accent-foreground: oklch(0.97 0.01 275);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: oklch(0.68 0.22 295);
 }
 
 @layer base {
@@ -127,9 +124,27 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
   html {
     @apply font-sans;
   }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+}
+
+@utility glow {
+  box-shadow: 0 0 40px -10px oklch(0.68 0.22 295 / 0.4);
+}
+
+/* Soft violet/green glow behind hero + auth cards. */
+@utility bg-aurora {
+  background:
+    radial-gradient(600px circle at 20% 20%, oklch(0.68 0.22 295 / 0.25), transparent),
+    radial-gradient(500px circle at 80% 70%, oklch(0.72 0.17 155 / 0.15), transparent);
 }

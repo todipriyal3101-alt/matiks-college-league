@@ -1,3 +1,3 @@
 export default function MyRegistrationPage() {
-  return <h1 className="text-2xl font-semibold tracking-tight">My registration</h1>;
+  return <h1 className="font-display text-3xl font-bold">My registration</h1>;
 }

@@ -9,7 +9,7 @@ export default async function AdminDashboardPage() {
   const [{ profile, isWriter }, league] = await Promise.all([requireAdmin(), getSelectedLeague()]);
   return (
     <div className="space-y-2">
-      <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+      <h1 className="font-display text-3xl font-bold">Dashboard</h1>
       <p className="text-sm text-muted-foreground">
         {league ? `Season: ${league.name}` : "No season selected"} · Signed in as {profile.email} (
         {isWriter ? "admin" : "viewer, read-only"})

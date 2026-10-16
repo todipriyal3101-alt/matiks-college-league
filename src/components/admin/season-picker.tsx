@@ -37,14 +37,14 @@ export function SeasonPicker({ leagues, selectedId }: { leagues: AdminLeague[]; 
         })
       }
     >
-      <SelectTrigger className="w-44 sm:w-56" aria-label="Season">
+      <SelectTrigger className="w-40 min-w-0 sm:w-56" aria-label="Season">
         <SelectValue placeholder="Select season" />
       </SelectTrigger>
       <SelectContent>
         {leagues.map((l) => (
           <SelectItem key={l.id} value={l.id}>
             {l.name}
-            <span className="text-xs text-muted-foreground">· {l.status}</span>
+            <span className="hidden text-xs text-muted-foreground sm:inline">· {l.status}</span>
           </SelectItem>
         ))}
       </SelectContent>

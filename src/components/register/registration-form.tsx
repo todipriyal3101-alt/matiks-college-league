@@ -95,7 +95,7 @@ export function RegistrationForm({ leagueName }: { leagueName: string }) {
 
   if (result?.status === "already_registered") {
     return (
-      <div className="space-y-4 rounded-xl border p-5">
+      <div className="space-y-4 rounded-xl border bg-card p-5">
         <h2 className="text-lg font-semibold">{result.collegeName} is already registered</h2>
         <p className="text-sm text-muted-foreground">
           {result.pocFirstName ? `${result.pocFirstName} has` : "Someone has"} already registered your
@@ -111,7 +111,7 @@ export function RegistrationForm({ leagueName }: { leagueName: string }) {
 
   if (result?.status === "closed") {
     return (
-      <div className="space-y-2 rounded-xl border p-5">
+      <div className="space-y-2 rounded-xl border bg-card p-5">
         <h2 className="text-lg font-semibold">Registrations just closed</h2>
         <p className="text-sm text-muted-foreground">
           Sorry, registrations for {leagueName} closed before your form went through.
@@ -134,7 +134,7 @@ export function RegistrationForm({ leagueName }: { leagueName: string }) {
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-muted">
           <div
-            className="h-full rounded-full bg-brand transition-all"
+            className="h-full rounded-full bg-primary transition-all"
             style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
           />
         </div>

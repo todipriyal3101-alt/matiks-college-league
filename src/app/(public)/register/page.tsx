@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Register your college" };
 export default function RegisterPage() {
   return (
     <div className="mx-auto max-w-xl">
-      <h1 className="mb-6 text-2xl font-semibold tracking-tight">Register your college</h1>
+      <h1 className="mb-6 font-display text-3xl font-bold">Register your college</h1>
       <Suspense fallback={<p className="text-sm text-muted-foreground">Loading…</p>}>
         <RegisterContent />
       </Suspense>
@@ -28,7 +28,7 @@ async function RegisterContent() {
 
   if (!league || !isRegistrationOpen(league)) {
     return (
-      <div className="space-y-4 rounded-xl border p-5">
+      <div className="space-y-4 rounded-xl border bg-card p-5">
         <h2 className="text-lg font-semibold">Registrations closed</h2>
         <p className="text-sm text-muted-foreground">
           {league

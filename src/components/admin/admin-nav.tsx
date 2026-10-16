@@ -24,8 +24,8 @@ export function AdminSidebarNav() {
           key={href}
           href={href}
           className={cn(
-            "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground",
-            isActive(pathname, href) && "bg-muted font-medium text-foreground",
+            "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground",
+            isActive(pathname, href) && "bg-accent font-medium text-foreground",
           )}
         >
           <Icon className="size-4" />
