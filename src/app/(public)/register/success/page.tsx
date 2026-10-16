@@ -11,6 +11,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata: Metadata = { title: "Registration received" };
 
+const NEXT_STEPS = [
+  { title: "We review it", body: "The Matiks team checks your registration." },
+  { title: "Check your email", body: "Once approved, you get an invite to your college portal." },
+  { title: "Set up your college", body: "Sign in and add your contact details. Winners go in after the league." },
+];
+
 export default function RegisterSuccessPage({ searchParams }: PageProps<"/register/success">) {
   return (
     <div className="mx-auto max-w-xl">
@@ -45,8 +51,7 @@ async function SuccessContent({ searchParams }: Pick<PageProps<"/register/succes
 
   const leagueName = league?.name ?? "Brumble 2.0";
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-  // TODO: final share copy from the Matiks social team.
-  const message = `${registration.collegeName} just registered for ${leagueName}, Matiks' inter-college mind sports league! Get your college in:`;
+  const message = `${registration.collegeName} is in ${leagueName}, the 7-day online college league by Matiks. Play it smart. Get your college in:`;
 
   return (
     <div className="space-y-6 text-center">
@@ -54,9 +59,22 @@ async function SuccessContent({ searchParams }: Pick<PageProps<"/register/succes
       <div className="space-y-2">
         <h1 className="text-5xl">You&apos;re in!</h1>
         <p className="text-muted-foreground">
-          <strong className="text-foreground">{registration.collegeName}</strong> is registered. You&apos;ll get an email invite
-          once it&apos;s approved.
+          <strong className="text-foreground">{registration.collegeName}</strong> is registered.
         </p>
+      </div>
+      <div className="space-y-3 rounded-3xl border bg-card p-5 text-left">
+        <h2 className="text-2xl">What happens next</h2>
+        <ol className="space-y-3">
+          {NEXT_STEPS.map((step, i) => (
+            <li key={step.title} className="flex gap-3">
+              <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-olive font-mono text-sm text-primary">{i + 1}</span>
+              <div>
+                <p className="font-semibold">{step.title}</p>
+                <p className="text-sm text-muted-foreground">{step.body}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
       </div>
       <div className="space-y-3 rounded-3xl border bg-card p-5">
         <h2 className="text-2xl">Challenge other colleges</h2>

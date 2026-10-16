@@ -14,8 +14,14 @@ const dateFormat = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "sh
 export default async function HomePage() {
   const league = await getActiveLeague();
   const leagueName = league?.name ?? LANDING.fallbackLeagueName;
-  const deadline = league?.registration_deadline ? dateFormat.format(new Date(league.registration_deadline)) : null;
-  const dates = LANDING.timeline.map((item, i) => (i === 0 && deadline ? { ...item, date: deadline } : item));
+  const fmt = (d: string | null | undefined) => (d ? dateFormat.format(new Date(d)) : null);
+  const deadline = fmt(league?.registration_deadline);
+  // Only dates the season actually has; the card hides when there are none.
+  const dates = [
+    { label: "Registration closes", date: deadline },
+    { label: "League starts", date: fmt(league?.start_date) },
+    { label: "League ends", date: fmt(league?.end_date) },
+  ].filter((d): d is { label: string; date: string } => d.date !== null);
 
   return (
     <div className="space-y-10 pb-24 sm:space-y-14 sm:pb-6">
@@ -37,7 +43,7 @@ export default async function HomePage() {
       </section>
 
       {/* Facts */}
-      <section className="grid gap-3 sm:grid-cols-3">
+      <section className={dates.length > 0 ? "grid gap-3 sm:grid-cols-3" : "grid gap-3 sm:grid-cols-2"}>
         <FactCard icon={SwordsIcon} title="Format">
           <ul className="space-y-1">
             {LANDING.format.map((f) => (
@@ -45,16 +51,18 @@ export default async function HomePage() {
             ))}
           </ul>
         </FactCard>
-        <FactCard icon={CalendarDaysIcon} title="Dates">
-          <dl className="space-y-1">
-            {dates.map((d) => (
-              <div key={d.label} className="flex justify-between gap-3">
-                <dt>{d.label}</dt>
-                <dd className="font-mono text-foreground">{d.date}</dd>
-              </div>
-            ))}
-          </dl>
-        </FactCard>
+        {dates.length > 0 && (
+          <FactCard icon={CalendarDaysIcon} title="Dates">
+            <dl className="space-y-1">
+              {dates.map((d) => (
+                <div key={d.label} className="flex justify-between gap-3">
+                  <dt>{d.label}</dt>
+                  <dd className="font-mono text-foreground">{d.date}</dd>
+                </div>
+              ))}
+            </dl>
+          </FactCard>
+        )}
         <FactCard icon={GraduationCapIcon} title="Who can join">
           <ul className="space-y-1">
             {LANDING.whoCanJoin.map((w) => (
@@ -89,7 +97,7 @@ function HeroFact({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 flex-1 rounded-2xl border bg-card px-4 py-3 sm:flex-none">
       <dt className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">{label}</dt>
-      <dd className="truncate font-display text-3xl text-primary">{value}</dd>
+      <dd className="font-display text-2xl leading-tight text-primary sm:text-3xl">{value}</dd>
     </div>
   );
 }

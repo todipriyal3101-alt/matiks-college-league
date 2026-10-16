@@ -98,7 +98,6 @@ export function RegistrationForm({ leagueName }: { leagueName: string }) {
       <Notice title={`${result.collegeName} is already in`}>
         {result.pocFirstName ? `${result.pocFirstName} registered` : "Someone registered"} your college for {leagueName}. Ask
         them to add you to the team.
-        {/* TODO: add the Matiks support contact (email/WhatsApp) for students who can't reach their POC. */}
       </Notice>
     );
   }
@@ -329,7 +328,6 @@ export function RegistrationForm({ leagueName }: { leagueName: string }) {
               )}
             />
             <FieldLabel htmlFor="consent" className="leading-snug font-normal">
-              {/* TODO: link to the league rules and the Matiks privacy policy. */}
               I agree to the league rules and let Matiks store these details to run the league.
             </FieldLabel>
           </Field>

@@ -23,7 +23,6 @@ const assets = () =>
 export async function leagueOgImage({ eyebrow, cta }: { eyebrow: string; cta: string }) {
   const [league, [bebas, mascot, icon]] = await Promise.all([getActiveLeague(), assets()]);
   const name = league?.name ?? LANDING.fallbackLeagueName;
-  const prize = LANDING.prizePool.startsWith("TODO") ? null : LANDING.prizePool;
   const deadline = league?.registration_deadline ? date.format(new Date(league.registration_deadline)) : null;
   const src = (buf: Buffer) => `data:image/png;base64,${buf.toString("base64")}`;
 
@@ -54,7 +53,7 @@ export async function leagueOgImage({ eyebrow, cta }: { eyebrow: string; cta: st
             <div style={{ fontSize: 40, color: "#b1fa63", letterSpacing: 2 }}>{eyebrow.toUpperCase()}</div>
             <div style={{ fontSize: 150, lineHeight: 0.95, letterSpacing: 2 }}>{name.toUpperCase()}</div>
             <div style={{ display: "flex", gap: 56, marginTop: 24 }}>
-              {prize && <Fact label="Prize pool" value={prize} />}
+              <Fact label="Format" value="7 days · online" />
               {deadline && <Fact label="Registration closes" value={deadline} />}
             </div>
           </div>

@@ -1,29 +1,27 @@
-// Landing page copy. Everything marked TODO is a placeholder waiting for final copy.
-// The league name and registration deadline come from the active league in the database when set.
+import { formatINR, PRIZE_TIERS } from "@/lib/league";
+
+// Landing page copy. The league name and dates come from the active league in the database.
+
+const tiers = PRIZE_TIERS.map((t) => (t.min > 0 ? `${t.min}+ players: ${formatINR(t.amount)}` : `Fewer: ${formatINR(t.amount)}`));
 
 export const LANDING = {
   fallbackLeagueName: "Brumble 2.0",
-  tagline: "TODO: tagline",
-  prizePool: "TODO: prize pool",
-  format: [
-    // TODO: describe the league format (rounds, team size, games played).
-    "TODO: format point 1",
-    "TODO: format point 2",
-    "TODO: format point 3",
-  ],
-  timeline: [
-    { label: "Registration closes", date: "TODO: date" }, // replaced by leagues.registration_deadline when set
-    { label: "Qualifiers", date: "TODO: date" },
-    { label: "Finals", date: "TODO: date" },
-  ],
-  whoCanJoin: [
-    // TODO: eligibility rules.
-    "TODO: who can join",
-  ],
+  tagline: "Play it smart.",
+  prizePool: "Depends on number of participants",
+  format: ["7 days of play", "100% online, play from anywhere", "Your college vs the rest"],
+  whoCanJoin: ["Everyone from your college", "Any year, any course"],
   faq: [
-    // TODO: final FAQ.
-    { q: "TODO: question 1", a: "TODO: answer 1" },
-    { q: "TODO: question 2", a: "TODO: answer 2" },
-    { q: "TODO: question 3", a: "TODO: answer 3" },
+    {
+      q: "How big is the prize pool?",
+      a: `It grows with the number of students from your college who play. ${tiers.join(" · ")}.`,
+    },
+    {
+      q: "Who registers our college?",
+      a: "One student registers and becomes the point of contact. Once we approve it, they get an email invite to the college portal.",
+    },
+    {
+      q: "My college is already registered. How do I join?",
+      a: "Ask your college's point of contact to add you to the team.",
+    },
   ],
 } as const;

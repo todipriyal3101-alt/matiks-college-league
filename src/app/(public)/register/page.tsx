@@ -35,8 +35,11 @@ async function RegisterContent() {
           {league
             ? `Registrations for ${league.name} aren't open right now.`
             : "There's no league open for registration right now."}{" "}
-          Follow Matiks to hear when the next season opens.
-          {/* TODO: link Matiks Instagram / WhatsApp channel. */}
+          Follow{" "}
+          <a href="https://www.matiks.com" target="_blank" rel="noopener" className="text-primary underline-offset-4 hover:underline">
+            Matiks
+          </a>{" "}
+          to hear when the next season opens.
         </p>
         <Button asChild variant="outline" className="h-11">
           <Link href="/">Back to home</Link>
