@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { AdminMobileNav, AdminSidebarNav } from "@/components/admin/admin-nav";
+import { AdminMobileNav, AdminSidebarNav, AdminSidebarNavFallback } from "@/components/admin/admin-nav";
 import { Logo } from "@/components/league/logo";
 import { SeasonPicker } from "@/components/admin/season-picker";
 import { UserMenu } from "@/components/admin/user-menu";
@@ -17,12 +17,16 @@ export default function AdminPanelLayout({ children }: LayoutProps<"/admin">) {
         <Link href="/admin" className="mb-5 block px-2 py-2">
           <Logo subtitle="Admin console" />
         </Link>
-        <AdminSidebarNav />
+        <Suspense fallback={<AdminSidebarNavFallback />}>
+          <AdminSidebarNav />
+        </Suspense>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border/60 bg-background/80 px-3 backdrop-blur sm:px-6">
-          <AdminMobileNav />
+          <Suspense fallback={<div className="size-9 md:hidden" />}>
+            <AdminMobileNav />
+          </Suspense>
           <Link href="/admin" className="md:hidden" aria-label="Admin home">
             <Logo compact />
           </Link>

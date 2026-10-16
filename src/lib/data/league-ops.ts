@@ -80,8 +80,11 @@ export type RegistrationDetail = {
   activity: Tables<"activity_log">[];
 };
 
-/** Everything the CollegeEditor needs for one registration, or null if the user can't see it. */
-export const getRegistrationDetail = cache(async (id: string): Promise<RegistrationDetail | null> => {
+/**
+ * Everything the CollegeEditor needs for one registration, or null if the user can't see it.
+ * Uncached: server actions call it after writing, so they must not get the pre-save result.
+ */
+export async function fetchRegistrationDetail(id: string): Promise<RegistrationDetail | null> {
   const supabase = await createClient();
   const { data: registration, error } = await supabase
     .from("registrations")
@@ -108,7 +111,10 @@ export const getRegistrationDetail = cache(async (id: string): Promise<Registrat
     participants: participants.data ?? [],
     activity: activity.data ?? [],
   };
-});
+}
+
+/** Cached per request, for pages. */
+export const getRegistrationDetail = cache(fetchRegistrationDetail);
 
 export type MyRegistration = Pick<Tables<"registrations">, "id" | "team_name" | "stage" | "status"> & {
   colleges: Pick<Tables<"colleges">, "name" | "city">;

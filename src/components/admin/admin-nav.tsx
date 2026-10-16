@@ -14,9 +14,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-/** Desktop sidebar links. */
+/** Desktop sidebar links, with the current page highlighted (reads the URL, so render inside <Suspense>). */
 export function AdminSidebarNav() {
-  const pathname = usePathname();
+  return <SidebarLinks pathname={usePathname()} />;
+}
+
+/** Same links without a highlight: the Suspense fallback while the URL is read. */
+export function AdminSidebarNavFallback() {
+  return <SidebarLinks pathname={null} />;
+}
+
+function SidebarLinks({ pathname }: { pathname: string | null }) {
   return (
     <nav className="flex flex-col gap-0.5">
       {ADMIN_NAV.map(({ href, label, icon: Icon }) => (
@@ -25,7 +33,7 @@ export function AdminSidebarNav() {
           href={href}
           className={cn(
             "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground",
-            isActive(pathname, href) && "bg-accent font-medium text-foreground",
+            pathname && isActive(pathname, href) && "bg-accent font-medium text-foreground",
           )}
         >
           <Icon className="size-4" />

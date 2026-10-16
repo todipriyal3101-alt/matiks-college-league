@@ -100,13 +100,13 @@ export const editorSchema = z.object({
   winners: z.array(winnerSchema).max(50),
 });
 
+// Stage, review status, paid and merch are immediate toggles (with Undo), not part of the form.
 export const adminEditorSchema = editorSchema.extend({
   contacts: z.array(adminContactSchema).min(1, "Keep at least the primary contact").max(3, "Max 3 contacts"),
   winners: z.array(adminWinnerSchema).max(50),
-  stage: z.enum(STAGES),
-  reviewStatus: z.enum(REVIEW_STATUSES),
-  participantCount: z.coerce.number().int().min(0).max(100_000),
-  prizePoolOverride: rupees.nullable(),
+  participantCount: z.coerce.number("Enter a number").int("Whole number").min(0).max(100_000),
+  /** Empty = no override (use the auto tier). */
+  prizePoolOverride: z.preprocess((v) => (v === "" || v == null ? null : v), rupees.nullable()),
 });
 
 export type EditorInput = z.input<typeof editorSchema>;
