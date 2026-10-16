@@ -225,7 +225,8 @@ function WinnerRow({
           <FieldLabel htmlFor={`w${i}-name`} className="md:sr-only">Name</FieldLabel>
           <Input id={`w${i}-name`} className="h-8" disabled={locked} {...register(`winners.${i}.name`)} />
         </Field>
-        <Field data-invalid={!!e?.phone} className="col-span-1">
+        {/* Phone and UPI take the full width on phones so a 10-digit number isn't clipped. */}
+        <Field data-invalid={!!e?.phone} className="col-span-2 sm:col-span-1">
           <FieldLabel htmlFor={`w${i}-phone`} className="md:sr-only">Phone</FieldLabel>
           <div className="flex items-center gap-0.5">
             <Input id={`w${i}-phone`} className="h-8" type="tel" inputMode="numeric" disabled={locked} {...register(`winners.${i}.phone`)} />
@@ -233,7 +234,7 @@ function WinnerRow({
           </div>
           <FieldError errors={[e?.phone]} />
         </Field>
-        <Field data-invalid={!!e?.upiId} className="col-span-1">
+        <Field data-invalid={!!e?.upiId} className="col-span-2 sm:col-span-1">
           <FieldLabel htmlFor={`w${i}-upi`} className="md:sr-only">UPI ID</FieldLabel>
           <div className="flex items-center gap-0.5">
             <Input id={`w${i}-upi`} className="h-8 font-mono text-xs" autoCapitalize="none" placeholder="name@bank" disabled={locked} {...register(`winners.${i}.upiId`)} />

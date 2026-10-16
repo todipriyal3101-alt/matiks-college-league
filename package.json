@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "rls-check": "node --env-file=.env.local scripts/rls-check.mts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",

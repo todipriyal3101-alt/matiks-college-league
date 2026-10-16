@@ -8,6 +8,7 @@ import { after } from "next/server";
 import { ATTRIBUTION_COOKIE, parseAttributionCookie } from "@/lib/attribution";
 import { getActiveLeagueFresh, isRegistrationOpen } from "@/lib/data/leagues";
 import { registrationReceivedEmail, sendLater } from "@/lib/email";
+import { registrationLimitReached } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyTurnstile } from "@/lib/turnstile";
 import {
@@ -29,6 +30,13 @@ export async function submitRegistration(input: unknown): Promise<RegistrationRe
   const ip = requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim();
   if (!(await verifyTurnstile(review.turnstileToken, ip))) {
     return { status: "error", message: "Captcha check failed. Please try again." };
+  }
+
+  if (await registrationLimitReached(poc.email, poc.phone)) {
+    return {
+      status: "error",
+      message: "Too many registrations from this email or phone in the last hour. Please try again later.",
+    };
   }
 
   // Never the cached getActiveLeague(): registration_open and the deadline must be current.

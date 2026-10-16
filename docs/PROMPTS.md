@@ -256,8 +256,8 @@ src/routes/auth.tsx, src/routes/reset-password.tsx.
 
 Follow-ups deferred from Phase 3 — must be done before registrations open publicly.
 
-- [ ] **Confirmation email** on submitRegistration (Resend; Phase 12 step 1).
-- [ ] **Rate limiting** on submitRegistration — max 5 per email/phone per hour (Phase 13 step 4).
+- [x] **Confirmation email** on submitRegistration (Resend; Phase 12 step 1; needs RESEND_API_KEY).
+- [x] **Rate limiting** on submitRegistration — max 5 per email/phone per hour (Phase 13 step 4).
 - [ ] Lovable dark theme applied everywhere (Phase 5; CLAUDE.md rule 8).
 - [ ] Replace every `TODO` in landing copy (`src/app/(public)/content.ts`), success page and form
       (rules/privacy links, support contact, Matiks app link, social links).
@@ -267,5 +267,9 @@ Follow-ups deferred from Phase 3 — must be done before registrations open publ
 - [ ] Resend: verify the sending domain, then set `RESEND_API_KEY` and `EMAIL_FROM` in Vercel. Without the key no
       league emails go out (they're logged as skipped) and invites fall back to Supabase's own invite email.
 - [ ] Supabase Auth > "Allow new users to sign up" is **off** (POCs only get in through Approve + invite).
+- [ ] Run the full RLS check once, viewer and POC included (creates two throwaway auth users and deletes them):
+      `RLS_ADMIN_EMAIL=<admin> RLS_REGISTRATION_ID=<test registration> npm run rls-check -- --temp-users`
+- [ ] Supabase Auth > Rate Limits: keep the defaults (they cover login, magic link and reset); raise
+      "emails per hour" once custom SMTP is on.
 - [ ] Delete the "ZZ Test College" test registration.
 - [ ] Active league row: status `upcoming`/`live`, `registration_open = true`, `registration_deadline` set.
