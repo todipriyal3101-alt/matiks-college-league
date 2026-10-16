@@ -26,7 +26,11 @@ Always read the relevant part of SPEC.md before building a feature.
 
 - `src/app/(public)/...` — student-facing pages
 - `src/app/admin/...` — admin pages (protected by `src/proxy.ts`)
-- `src/lib/supabase/` — `client.ts` (browser), `server.ts` (server, user session), `admin.ts` (service role, server only)
+- `src/lib/supabase/` — `client.ts` (browser), `server.ts` (server, user session), `admin.ts` (service role, server only),
+  `public.ts` (cookie-free anon client for public data; safe inside `"use cache"`)
+- `src/lib/data/` — data helpers (`leagues.ts`, `colleges.ts`)
+- `src/lib/database.types.ts` — DB types, **hand-written** from the migrations (see rule 11)
+- `src/lib/cache-tags.ts` — cache tag names
 - `src/lib/validation/` — zod schemas
 - `src/components/ui/` — shadcn components; `src/components/` — app components
 - `supabase/migrations/` — numbered SQL migrations; `supabase/seed.sql` — sample data
@@ -46,15 +50,33 @@ Always read the relevant part of SPEC.md before building a feature.
 8. Matiks brand: primary colour `#______`, accent `#______`, font `______` (fill in).
 9. Before saying a task is done: run `npm run build` and fix every error and type error.
 10. Keep each change small and focused; explain what you changed at the end in a short list.
+11. **DB types are hand-written.** The Supabase CLI is not linked, so `src/lib/database.types.ts` is written by hand
+    from `supabase/migrations/*.sql` in the standard `supabase gen types` format. Update it in the same change as
+    any migration that adds or alters tables, columns, enums or functions.
+12. **Caching (Cache Components is on).**
+    - Public league data (`getActiveLeague()`) is cached with `"use cache"` and tagged `CACHE_TAGS.league`.
+      Every server action that changes a league (edit, open/close registration, status) must call
+      `updateTag(CACHE_TAGS.league)` so the change shows immediately (`revalidateTag(tag, { expire: 0 })` in route handlers).
+    - The registration server action must read the league with `getActiveLeagueFresh()` (uncached) to check
+      `registration_open` and the deadline — never the cached version.
+    - `/api/colleges/search` is never cached (dynamic + `Cache-Control: no-store`), so newly added colleges appear at once.
 
 ## Deploy rule
 
-Apply new migrations to the live database (`npx supabase db push`) **before** pushing code that
-depends on them to `main`, or the live site breaks.
+The Supabase CLI is **not linked** on this machine — never run `npx supabase db push` or `supabase gen types`.
+Migrations are applied by hand in the Supabase SQL Editor.
+
+When a phase adds a migration file:
+1. **Stop** and tell me to paste the full contents of `supabase/migrations/000N_name.sql` into
+   Supabase Dashboard > SQL Editor and run it.
+2. **Wait for me to confirm** it ran successfully before continuing (no further code that depends on it,
+   no commit/push).
+3. The migration must be applied to the live database **before** code that depends on it is pushed to `main`,
+   or the live site breaks.
 
 ## Commands
 
 - `npm run dev` — local dev server at http://localhost:3000
 - `npm run build` — production build (must pass)
-- `npx supabase db push` — apply migrations to the linked Supabase project
-- `npx supabase gen types typescript --linked > src/lib/database.types.ts` — regenerate DB types after a migration
+- Migrations: paste into Supabase Dashboard > SQL Editor and run (see Deploy rule) — the CLI is not linked
+- DB types: no generator — edit `src/lib/database.types.ts` by hand after each migration (rule 11)

@@ -28,11 +28,15 @@ TypeScript, Tailwind, App Router, src/ dir, alias @/*).
 ## Phase 2 — Database types and data helpers
 
 The schema is in `supabase/migrations/0001_init.sql` and is already applied to the live project.
-1. Generate types into `src/lib/database.types.ts` (`npx supabase gen types typescript --linked`).
+1. Write `src/lib/database.types.ts` by hand from the migrations, in the standard Supabase generated-types format
+   (Tables with Row/Insert/Update, Enums, Functions). The Supabase CLI is not linked, so don't run `supabase gen types`.
 2. Type the three Supabase clients with `Database`.
 3. Create `src/lib/data/leagues.ts` with `getActiveLeague()` (the most recent league with status
    'upcoming' or 'live') and `src/lib/data/colleges.ts` with `searchColleges(query)` (max 10, by name or short_name, ilike).
+   Both read through a cookie-free public client (`src/lib/supabase/public.ts`).
+   `getActiveLeague()` is cached (`"use cache"`) and tagged `"league"`; also add an uncached `getActiveLeagueFresh()`.
 4. Create an API route `GET /api/colleges/search?q=` that returns `searchColleges` results (id, name, short_name, city, state).
+   Never cached, so a college added by one student is found by the next.
 5. Run `npm run build`.
 
 ---
@@ -52,7 +56,7 @@ Read the "Student panel" section of docs/SPEC.md.
    Progress bar, back/next, keeps data between steps, works perfectly at 375px.
 4. Server action `submitRegistration` in `src/app/register/actions.ts`:
    validate with the same zod schema; verify Turnstile with TURNSTILE_SECRET_KEY; check the active league
-   has registration_open; find-or-create the college (by normalized name); if a registration already exists
+   has registration_open (read with `getActiveLeagueFresh()`, never the cached `getActiveLeague()`); find-or-create the college (by normalized name); if a registration already exists
    for this college + league return an "already registered" result with the POC's first name only;
    insert registration (pending) + POC contact + participants using the admin client; read UTM/ref from the cookie.
 5. Redirect to `/register/success?id=<registration id>` showing the ID, next steps and share buttons
@@ -96,7 +100,7 @@ Read the "Admin panel" and "Security" sections of docs/SPEC.md.
    return, for a league_id: totals (colleges, approved colleges, participants, states covered, pending),
    registrations per day, registrations by utm_source, by state, and top 10 referral codes with ambassador name.
 2. `/admin` dashboard: stat cards, line chart (per day), bar charts (source, state), top ambassadors table. Recharts.
-3. Tell me to run `npx supabase db push` before I push the code.
+3. Stop and tell me to paste the migration into Supabase SQL Editor and run it; wait for my confirmation before pushing the code.
 4. Run `npm run build`.
 
 ---
@@ -106,6 +110,7 @@ Read the "Admin panel" and "Security" sections of docs/SPEC.md.
 1. `/admin/ambassadors`: add/edit ambassador, auto-generate a short unique referral code, copy link
    (`/register?ref=CODE`), QR code (use `qrcode`), signups count per code.
 2. `/admin/leagues`: create/edit season, dates, deadline, max colleges, status, open/close registration toggle.
+   Every league-changing server action calls `updateTag(CACHE_TAGS.league)` so the public site updates immediately.
 3. `/admin/matches`: create fixtures between approved colleges of the season, enter scores, set winner.
 4. `/admin/participants`: all players across colleges for the season; filter; highlight missing Matiks usernames.
 5. `/admin/team`: list admins, add by email (user must exist in auth), set admin/viewer, remove.
