@@ -44,7 +44,7 @@ Rules
 | Landing | / | League pitch, prize pool, format, timeline, past highlights, FAQ, "Register your college" CTA |
 | Register | /register | 4-step form |
 | Success | /register/success | Registration ID, next steps, share buttons with pre-filled message |
-| My registration | /my | Magic-link login with POC email; view status; edit details and teammates until deadline |
+| College portal | /college (was /my) | POC login; their college this season — see **League operations** |
 | Colleges | /colleges | Public wall of approved colleges (name, city, logo only) |
 | Fixtures | /fixtures | Public schedule and results (phase 7) |
 
@@ -66,6 +66,9 @@ On submit (server action):
 ---
 
 ## Admin panel
+
+> Season operations (overview, college editor, access, POC portal) are specified in
+> **League operations** below, which wins where the two differ.
 
 Season picker in the top bar filters every page.
 
@@ -107,3 +110,121 @@ Links per channel: `/register?utm_source=instagram&utm_campaign=brumble-s2`, `li
 - Open Graph image 1200x630 with league name, prize pool, deadline
 - Share buttons on success page; QR codes for posters
 - Vercel Analytics; `college_registered` event to product analytics
+
+---
+
+## League operations
+
+Running each season after registration: stages, prize pools, contacts, winners, payouts, merch and
+POC access. Modelled on the Lovable prototype "Matiks League Manager" (screens, wording, look; product name is always **Matiks College League** — never "MatiksLined" or "Matiks League Manager"), rebuilt
+on this stack. **Supersedes** the Admin panel table above where they differ, and replaces `/my` with `/college`.
+
+Everything below is **per registration** (= one college in one season). The `colleges` row stays the
+clean master record; a college can have a different stage, prize pool, contacts and winners each season.
+
+### Two status axes
+
+| Axis | Column | Values (label) | Who changes it |
+| --- | --- | --- | --- |
+| Review | `registrations.status` | pending, approved, waitlisted, rejected | admins |
+| Stage | `registrations.stage` | registration_phase (Registration), live (Live), ended_prize_pending (Prize pending), ended_prize_sent (Complete) | admins |
+
+### Prize pool
+
+- `participant_count` (int ≥ 0, admin-entered from the Matiks app) — **not** the number of `participants` rows.
+- Auto tier `calc_prize_pool(count)`: 600+ → ₹10,000 · 400+ → ₹7,500 · 200+ → ₹5,000 · else ₹3,000.
+- Effective prize pool = `prize_pool_override` if set, else the auto tier. UI: "Auto tier ₹X → Effective ₹Y",
+  plus an "override" tag.
+- Money is whole rupees (int), shown in Indian format: ₹1,00,000.
+
+### Contacts (POCs)
+
+- Existing `contacts` table, max **3** per registration, exactly one **primary** (★). The first contact becomes
+  primary automatically; the registration form's POC is the primary.
+- Fields: name, email, phone, year, course, matiks_username, tshirt_size (XS–XXL), address, pincode;
+  admin-only: merch_description ("merch owed"), merch_sent, merch_sent_at (auto).
+- POCs can't change merch fields or `is_primary`, and can't delete the primary contact.
+
+### Winners
+
+- `winners`, any number per registration: position, name, email, phone, matiks_username, upi_id,
+  tshirt_size, address, pincode.
+- Admin-only: prize_type (cash / cash_plus_merch / merch_only), prize_amount, merch_description,
+  payment_status, paid_at (auto), payment_reference (UTR), merch_sent, merch_sent_at (auto).
+- POCs add winners and edit their details; prize and payment fields are forced to defaults on insert and
+  kept on update. Once a winner is **paid**, POCs can't edit (error) or delete it.
+- "Mark paid" asks for the UTR.
+
+### Access
+
+| Who | How they get in | Lands on | Can do |
+| --- | --- | --- | --- |
+| Admin | `admin_profiles.role = admin` | /admin | everything |
+| Viewer | `admin_profiles.role = viewer` | /admin | read everything; no writes, no exports |
+| College POC | `college_access` row (invited) **or** login email = `registrations.poc_email` | /college | own registration(s): team name, contacts, winner details |
+| Anyone else | — | "No access yet" page with logout | nothing |
+
+- No sign-up form and no "claim admin". Access is invite-only from /admin/team.
+- Invites: look up the user with `find_user_id_by_email` (service role only); if new,
+  `auth.admin.inviteUserByEmail` with redirect `/auth/callback?next=/college` (POCs) or `next=/admin`.
+- Login (one page for everyone): password, magic link, forgot password → /reset-password.
+- POCs never rename the college (the master record); they edit `team_name` only.
+
+### Participants
+
+The registration's players (`participants`: name, Matiks username, year) are shown as a **read-only list inside
+the college editor** (admin and POC). There is no separate participants page.
+
+### Duplicate colleges
+
+`normalized_name` only catches spelling/punctuation variants; it won't match "IIT Bombay" with "Indian Institute
+of Technology Bombay". Admins merge duplicates with **"Merge into…"** (Phase 11): pick the college to keep; its
+registrations, matches and ambassadors move over (a season where both registered needs resolving first), then the
+duplicate is deleted. Admin writers only.
+
+### Activity log
+
+- `activity_log` rows are written **only by database triggers**: registration status / stage /
+  participant_count / prize_pool_override; winner added / payment_status / prize_amount / merch_sent / upi_id;
+  contact merch_sent. Each row: registration, actor (auth.uid()), entity, field, old → new, time.
+- Admins read all; POCs read their own registrations'; nobody inserts from the client.
+
+### Database objects (migration 0003_league_ops.sql)
+
+registrations.stage / participant_count / prize_pool_override · calc_prize_pool() · contacts merch +
+is_primary + trigger (max 3, auto-primary) · winners · college_access · activity_log + triggers ·
+view `registration_overview` (security_invoker) · `find_user_id_by_email()` (service_role only) ·
+`is_registration_poc()` also true via college_access · admin-only field guards in triggers using the
+`auth.role() = 'authenticated' and not is_admin_writer()` pattern · RLS + grants on everything; anon gets nothing.
+
+### Screens
+
+| URL | Screen |
+| --- | --- |
+| /admin | **League Overview** for the selected season: stat cards (Colleges, Prize committed, Prize paid out, Live now, Pending review); colleges table (college, review status, stage, participants, prize pool + override tag, primary POC, winners paid X/Y, POC merch X/Y, source, ⋯ menu: Manage, Copy link, Approve / Waitlist / Reject, Invite POC, Delete with typed-name confirm); search + filters in the URL; bulk approve / reject / change stage; "Add college"; Excel/CSV export (not viewers); cards on mobile; **Insights** tab with the charts |
+| /admin/colleges/[registrationId] | **CollegeEditor** (mode admin): header with review status, stage, participants, override, "Auto tier ₹X → Effective ₹Y"; contact cards; winners table with expandable rows, Paid / Merch switches, "Mark paid" dialog (UTR); read-only participants list; activity timeline |
+| /admin/team | **Manage Access**: invite Admin / Viewer / College POC (POC picks a college from this season); list with last sign-in; resend invite; revoke (not yourself) |
+| /admin/colleges (master list) | Redirects to /admin; "Merge into…" lives on the college editor's ⋯ menu (Phase 11) |
+| /college | **POC portal**: same CollegeEditor in mode poc; season switch if several; phone-first. `/my` redirects here |
+| /login, /reset-password, /no-access | Auth (see Access) |
+
+### Design
+
+Lovable's dark theme on the whole site (public + admin): deep-space background, electric violet primary
+`oklch(0.68 0.22 295)`, status pill tokens (registration blue, live green, pending amber, done grey).
+Headings Space Grotesk, body Inter, numbers JetBrains Mono.
+
+### UX rules (better than the prototype)
+
+- Optimistic toggles (paid, merch, stage) with an **Undo** toast.
+- One sticky **"Unsaved changes · Discard · Save"** bar per editor, not a Save button on every card.
+- AlertDialog for every destructive action (never `window.confirm`); typed-name confirm to delete a college.
+- Skeleton loading; every empty state says what to do next.
+- Ctrl/⌘+K command palette in admin (jump to a college, page or action).
+
+### Prototype bugs we must not copy
+
+Open sign-up + "claim admin"; POCs editing winners' prize amounts; POCs editing or deleting paid winners;
+POCs renaming the college; activity log inserted from the browser (and never actually written);
+invite lookup with `listUsers()` first page only; magic-link login coded but never shown; hard-coded admin
+user id in a migration; the made-up name "MatiksLined".

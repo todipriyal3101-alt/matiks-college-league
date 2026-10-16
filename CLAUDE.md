@@ -47,8 +47,9 @@ Always read the relevant part of SPEC.md before building a feature.
 5. **Validate on the server** with zod even when the form already validated.
 6. **Mobile-first.** Students arrive from Instagram/WhatsApp on phones. Test every student page at 375px wide.
 7. **Never show student phone numbers or emails on public pages.**
-8. Matiks brand: primary colour `TODO` (`--brand-primary`), accent `TODO` (`--brand-accent`), font `TODO`.
-   Placeholders live in `src/app/globals.css` and `src/app/layout.tsx`; fill them in there and here.
+8. **Design = Lovable's dark theme** on the whole site (SPEC "League operations > Design"): tokens in
+   `src/app/globals.css` (violet primary `oklch(0.68 0.22 295)`, status pill tokens), Space Grotesk headings,
+   Inter body, JetBrains Mono numbers; rupees in Indian format via `formatINR()`. Set up in Phase 5.
 9. Before saying a task is done: run `npm run build` and fix every error and type error.
 10. Keep each change small and focused; explain what you changed at the end in a short list.
 11. **DB types are hand-written.** The Supabase CLI is not linked, so `src/lib/database.types.ts` is written by hand
@@ -61,6 +62,12 @@ Always read the relevant part of SPEC.md before building a feature.
     - The registration server action must read the league with `getActiveLeagueFresh()` (uncached) to check
       `registration_open` and the deadline — never the cached version.
     - `/api/colleges/search` is never cached (dynamic + `Cache-Control: no-store`), so newly added colleges appear at once.
+
+13. **League operations follow docs/SPEC.md "League operations".** Everything there is per registration
+    (one college in one season). Admin-only fields, paid-winner locks and the activity log are enforced in the
+    database (triggers + RLS), not only in the UI — never rely on hiding a button. Reference UI: the Lovable export
+    unzipped to `/tmp/lovable-ref` (re-unzip `~/Desktop/lovable-project-*.zip` without its `.env` if missing);
+    match its screens and wording, never copy its code or the bugs listed in SPEC.
 
 ## Deploy rule
 
