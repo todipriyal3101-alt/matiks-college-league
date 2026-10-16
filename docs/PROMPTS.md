@@ -96,7 +96,7 @@ Read the "Admin panel" and "Security" sections of docs/SPEC.md.
 
 ## Phase 6 — Dashboard
 
-1. New migration `0002_dashboard.sql` with SQL functions (security invoker, admin-only via RLS) that
+1. New migration `0003_dashboard.sql` with SQL functions (security invoker, admin-only via RLS) that
    return, for a league_id: totals (colleges, approved colleges, participants, states covered, pending),
    registrations per day, registrations by utm_source, by state, and top 10 referral codes with ambassador name.
 2. `/admin` dashboard: stat cards, line chart (per day), bar charts (source, state), top ambassadors table. Recharts.
@@ -141,3 +141,18 @@ Read the "Admin panel" and "Security" sections of docs/SPEC.md.
 4. Add rate limiting to submitRegistration (max 5 per email/phone per hour; simple table or Upstash).
 5. Test the full registration flow at 375px and fix layout issues.
 6. Run `npm run build` and list everything you changed.
+
+---
+
+## Before launch
+
+Follow-ups deferred from Phase 3 — must be done before registrations open publicly.
+
+- [ ] **Confirmation email** on submitRegistration (Resend; Phase 8 step 2).
+- [ ] **Rate limiting** on submitRegistration — max 5 per email/phone per hour (Phase 9 step 4).
+- [ ] Fill brand colours + font (CLAUDE.md rule 8, `src/app/globals.css`, `src/app/layout.tsx`).
+- [ ] Replace every `TODO` in landing copy (`src/app/(public)/content.ts`), success page and form
+      (rules/privacy links, support contact, Matiks app link, social links).
+- [ ] Real Turnstile keys in Vercel (`NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`) and
+      `NEXT_PUBLIC_SITE_URL` set to the production domain.
+- [ ] Active league row: status `upcoming`/`live`, `registration_open = true`, `registration_deadline` set.

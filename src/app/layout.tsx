@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
+// TODO(brand): swap Geist for the Matiks brand font (CLAUDE.md rule 8).
 const geistSans = Geist({
   variable: "--font-sans",
   subsets: ["latin"],

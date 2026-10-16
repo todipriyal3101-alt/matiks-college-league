@@ -411,6 +411,25 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_admin_writer: { Args: never; Returns: boolean }
       is_registration_poc: { Args: { reg_id: string }; Returns: boolean }
+      register_college: {
+        Args: {
+          p_college_city?: string
+          p_college_id?: string
+          p_college_name?: string
+          p_college_state?: string
+          p_college_type?: Database["public"]["Enums"]["college_type"]
+          p_league_id: string
+          p_participants?: Json
+          p_poc: Json
+          p_referral_code?: string
+          p_team_name?: string
+          p_utm_campaign?: string
+          p_utm_content?: string
+          p_utm_medium?: string
+          p_utm_source?: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       admin_role: "admin" | "viewer"

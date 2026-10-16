@@ -47,7 +47,8 @@ Always read the relevant part of SPEC.md before building a feature.
 5. **Validate on the server** with zod even when the form already validated.
 6. **Mobile-first.** Students arrive from Instagram/WhatsApp on phones. Test every student page at 375px wide.
 7. **Never show student phone numbers or emails on public pages.**
-8. Matiks brand: primary colour `#______`, accent `#______`, font `______` (fill in).
+8. Matiks brand: primary colour `TODO` (`--brand-primary`), accent `TODO` (`--brand-accent`), font `TODO`.
+   Placeholders live in `src/app/globals.css` and `src/app/layout.tsx`; fill them in there and here.
 9. Before saying a task is done: run `npm run build` and fix every error and type error.
 10. Keep each change small and focused; explain what you changed at the end in a short list.
 11. **DB types are hand-written.** The Supabase CLI is not linked, so `src/lib/database.types.ts` is written by hand
