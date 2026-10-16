@@ -56,6 +56,7 @@ export function AddCollegeDialog({ leagueId, leagueName }: { leagueId: string; l
     if (errors[key]) setErrors((e) => Object.fromEntries(Object.entries(e).filter(([k]) => k !== key)));
   }
 
+  /** Focuses the first invalid field in screen order (zod lists the college refine last). */
   function focusFirst(keys: string[]) {
     const ids: Record<string, string> = {
       collegeId: "college-search",
@@ -66,7 +67,7 @@ export function AddCollegeDialog({ leagueId, leagueName }: { leagueId: string; l
       "poc.phone": "poc-phone",
       "poc.email": "poc-email",
     };
-    const id = keys.map((k) => ids[k]).find(Boolean);
+    const id = Object.entries(ids).find(([key]) => keys.includes(key))?.[1];
     if (id) document.getElementById(id)?.focus();
   }
 

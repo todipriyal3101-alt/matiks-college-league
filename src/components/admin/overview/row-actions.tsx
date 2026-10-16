@@ -68,7 +68,13 @@ export function RowActions({
             <MoreHorizontalIcon />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuContent
+          align="end"
+          className="w-56"
+          // Opening a dialog: don't hand focus back to ⋯ when the menu finishes closing, or it pulls focus
+          // out of the dialog's field mid-typing.
+          onCloseAutoFocus={(e) => (confirmOpen || invite !== null) && e.preventDefault()}
+        >
           <DropdownMenuItem asChild>
             <Link href={href}>
               <Settings2Icon /> Manage
@@ -170,7 +176,13 @@ export function DeleteRegistrationDialog({
         onOpenChange(o);
       }}
     >
-      <AlertDialogContent>
+      <AlertDialogContent
+        // Alert dialogs focus Cancel by default; here the next step is typing the name.
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          document.getElementById(`confirm-${registrationId}`)?.focus();
+        }}
+      >
         <AlertDialogHeader>
           <AlertDialogTitle>Delete {collegeName} from this season?</AlertDialogTitle>
           <AlertDialogDescription>
@@ -187,7 +199,6 @@ export function DeleteRegistrationDialog({
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
             autoComplete="off"
-            autoFocus
           />
         </div>
         <AlertDialogFooter>

@@ -91,6 +91,7 @@ export function EditorTopBar({
             collegeId={registration.colleges.id}
             collegeName={registration.colleges.name}
             onInvite={() => setInvite("invite")}
+            inviteOpen={invite !== null}
           />
         )}
       </div>
@@ -237,11 +238,13 @@ function AdminMenu({
   collegeId,
   collegeName,
   onInvite,
+  inviteOpen,
 }: {
   registrationId: string;
   collegeId: string;
   collegeName: string;
   onInvite: () => void;
+  inviteOpen: boolean;
 }) {
   const router = useRouter();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -254,7 +257,11 @@ function AdminMenu({
             <MoreHorizontalIcon />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent
+          align="end"
+          // Opening a dialog: keep focus in it (see RowActions).
+          onCloseAutoFocus={(e) => (confirmOpen || mergeOpen || inviteOpen) && e.preventDefault()}
+        >
           <CollegeShareItems registrationId={registrationId} collegeName={collegeName} />
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={onInvite}>

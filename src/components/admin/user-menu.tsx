@@ -19,7 +19,7 @@ export function UserMenu({ profile }: { profile: AdminProfile }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-2">
+        <Button variant="ghost" size="sm" className="gap-2" aria-label="Account">
           <UserIcon />
           <span className="hidden max-w-40 truncate sm:inline">{profile.name ?? profile.email}</span>
         </Button>

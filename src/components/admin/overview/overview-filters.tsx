@@ -47,8 +47,9 @@ export function OverviewFilters({ filters, sources }: { filters: Filters; source
   const active = filters.q || filters.review !== "all" || filters.stage !== "all" || filters.source !== "all";
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="relative min-w-0 flex-1 basis-full sm:basis-64">
+    // Phones: search on its own row, then the four selects two by two so their labels fit.
+    <div className="grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
+      <div className="relative col-span-2 min-w-0 sm:flex-1 sm:basis-64">
         <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={q}
@@ -114,7 +115,7 @@ function FilterSelect({
 }) {
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="h-9 min-w-0 flex-1 sm:w-auto sm:flex-none" aria-label={label}>
+      <SelectTrigger className="h-9 w-full min-w-0 sm:w-auto" aria-label={label}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

@@ -49,17 +49,17 @@ async function Overview({ searchParams }: Pick<PageProps<"/admin">, "searchParam
   }
 
   const supabase = await createClient();
-  const [rows, emails] = await Promise.all([
+  const filters = parseOverviewFilters(params);
+  const [rows, emails, people] = await Promise.all([
     getOverview(league.id),
     // Not in registration_overview: only needed for the "Invite POC" default.
     supabase.from("registrations").select("id, poc_email").eq("league_id", league.id),
+    // The search box also finds winners and contacts by name or phone; the row then says who matched.
+    filters.q ? getSeasonPeople(league.id).then((all) => matchPeople(all, filters.q)) : [],
   ]);
   const pocEmails = Object.fromEntries((emails.data ?? []).map((r) => [r.id, r.poc_email]));
-  const filters = parseOverviewFilters(params);
   const insights = params.tab === "insights";
   const stats = overviewStats(rows);
-  // The search box also finds winners and contacts by name or phone; the row then says who matched.
-  const people = filters.q ? matchPeople(await getSeasonPeople(league.id), filters.q) : [];
   const matches: Record<string, string[]> = {};
   for (const p of people) (matches[p.registrationId] ??= []).push(`${p.name || p.phone} (${p.detail})`);
   const visible = filterOverview(rows, filters, new Set(Object.keys(matches)));

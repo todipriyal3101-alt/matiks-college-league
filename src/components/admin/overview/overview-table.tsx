@@ -39,12 +39,15 @@ import type { OverviewRow } from "@/lib/data/league-ops";
 import { REVIEW_LABELS, STAGE_LABELS, STAGES, type ReviewStatus, type Stage } from "@/lib/league";
 import { cn } from "@/lib/utils";
 
-// Fewer columns on smaller desktops: the rest is one click away in the college.
+// Fewer columns on smaller desktops (the rest is one click away in the college), so the table fits
+// without sideways scrolling. The ⋯ column is pinned to the right edge in case it still doesn't.
 const COLUMN_CLASS: Record<string, string> = {
-  participants: "hidden xl:table-cell",
-  poc: "hidden lg:table-cell",
-  merch: "hidden xl:table-cell",
-  source: "hidden xl:table-cell",
+  participants: "hidden 2xl:table-cell",
+  poc: "hidden xl:table-cell",
+  winners: "hidden xl:table-cell",
+  merch: "hidden 2xl:table-cell",
+  source: "hidden 2xl:table-cell",
+  actions: "sticky right-0 bg-card",
 };
 
 type Patch = { ids: string[]; status?: ReviewStatus; stage?: Stage };
@@ -137,7 +140,7 @@ export function OverviewTable({
       id: "college",
       header: "College",
       cell: ({ row: { original: r } }) => (
-        <div className="min-w-44">
+        <div className="min-w-40">
           <Link href={`/admin/colleges/${r.registration_id}`} className="font-medium hover:text-primary">
             {r.college_name}
           </Link>
@@ -256,7 +259,7 @@ export function OverviewTable({
       />
 
       {/* Desktop table */}
-      <div className="relative hidden overflow-x-auto rounded-2xl border bg-card md:block">
+      <div className="relative hidden overflow-x-auto rounded-2xl border bg-card lg:block">
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-xs tracking-wider text-muted-foreground uppercase">
             {table.getHeaderGroups().map((hg) => (
@@ -288,8 +291,8 @@ export function OverviewTable({
         </table>
       </div>
 
-      {/* Mobile cards */}
-      <ul className="space-y-3 md:hidden">
+      {/* Cards on phones and tablets */}
+      <ul className="space-y-3 lg:hidden">
         {table.getRowModel().rows.map((row) => {
           const r = row.original;
           return (

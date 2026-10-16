@@ -50,7 +50,8 @@ export function CommandPalette({ isWriter }: { isWriter: boolean }) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === "k" && (e.metaKey || e.ctrlKey)) {
+      // e.key is undefined for some synthetic keydowns (e.g. Chrome autofill).
+      if (e.key?.toLowerCase() === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setOpen((o) => !o);
       }
