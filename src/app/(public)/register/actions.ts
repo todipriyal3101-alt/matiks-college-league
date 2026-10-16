@@ -53,7 +53,7 @@ export async function submitRegistration(input: unknown): Promise<RegistrationRe
       email: poc.email,
       phone: poc.phone,
       year: poc.year,
-      course: poc.course,
+      course: poc.course || null,
       matiks_username: poc.matiksUsername,
     },
     p_participants: team.teammates.map((t) => ({

@@ -8,6 +8,7 @@ type TurnstileApi = {
     el: HTMLElement,
     options: {
       sitekey: string;
+      theme?: "light" | "dark" | "auto";
       callback: (token: string) => void;
       "expired-callback": () => void;
       "error-callback": () => void;
@@ -39,6 +40,7 @@ export function Turnstile({ onToken }: { onToken: (token: string) => void }) {
     if (!ready || !siteKey || !ref.current || !window.turnstile) return;
     const id = window.turnstile.render(ref.current, {
       sitekey: siteKey,
+      theme: "dark",
       callback: (token) => onTokenRef.current(token),
       "expired-callback": () => onTokenRef.current(""),
       "error-callback": () => onTokenRef.current(""),

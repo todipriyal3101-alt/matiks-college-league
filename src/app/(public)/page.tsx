@@ -1,123 +1,119 @@
-import { CalendarIcon, TrophyIcon, UsersIcon } from "lucide-react";
+import { ArrowRightIcon, CalendarDaysIcon, GraduationCapIcon, SwordsIcon, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { Mascot } from "@/components/league/mascot";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { getActiveLeague } from "@/lib/data/leagues";
 
 import { LANDING } from "./content";
 
-const dateFormat = new Intl.DateTimeFormat("en-IN", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  timeZone: "Asia/Kolkata",
-});
+const dateFormat = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
 
+// One hero, three fact cards, FAQ collapsed: only what helps someone decide to register.
 export default async function HomePage() {
   const league = await getActiveLeague();
   const leagueName = league?.name ?? LANDING.fallbackLeagueName;
-
-  const timeline = LANDING.timeline.map((item, i) =>
-    i === 0 && league?.registration_deadline
-      ? { ...item, date: dateFormat.format(new Date(league.registration_deadline)) }
-      : item,
-  );
+  const deadline = league?.registration_deadline ? dateFormat.format(new Date(league.registration_deadline)) : null;
+  const dates = LANDING.timeline.map((item, i) => (i === 0 && deadline ? { ...item, date: deadline } : item));
 
   return (
-    <div className="space-y-14 pb-8">
+    <div className="space-y-10 pb-24 sm:space-y-14 sm:pb-6">
       {/* Hero */}
-      <section className="relative isolate space-y-5 pt-6 text-center sm:pt-12">
-        <div
-          aria-hidden
-          className="bg-aurora pointer-events-none absolute -top-24 -bottom-16 left-1/2 -z-10 w-[min(100vw,72rem)] -translate-x-1/2 opacity-70 [mask-image:radial-gradient(ellipse_at_center,black_35%,transparent_75%)]"
-        />
-        <p className="text-xs font-medium tracking-[0.2em] text-primary uppercase">Matiks College League</p>
-        <h1 className="font-display text-5xl font-bold sm:text-7xl">{leagueName}</h1>
-        <p className="mx-auto max-w-xl text-lg text-muted-foreground">{LANDING.tagline}</p>
-        <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-sm">
-          <TrophyIcon className="size-4 text-primary" />
-          Prize pool: <strong className="font-mono">{LANDING.prizePool}</strong>
+      <section className="grid items-center gap-6 pt-2 sm:grid-cols-[1fr_auto] sm:pt-6">
+        <div className="space-y-5 text-center sm:text-left">
+          <p className="text-xs font-bold tracking-[0.2em] text-primary uppercase">Matiks College League</p>
+          <h1 className="text-[64px] sm:text-[112px]">{leagueName}</h1>
+          <p className="mx-auto max-w-md text-lg text-muted-foreground sm:mx-0">{LANDING.tagline}</p>
+          <dl className="mx-auto flex max-w-sm justify-center gap-3 sm:mx-0 sm:justify-start">
+            <HeroFact label="Prize pool" value={LANDING.prizePool} />
+            {deadline && <HeroFact label="Register by" value={deadline} />}
+          </dl>
+          <div className="hidden sm:block">
+            <RegisterButton />
+          </div>
         </div>
-        <div>
-          <RegisterButton />
-        </div>
+        <Mascot priority className="mx-auto size-40 sm:size-72" />
       </section>
 
-      {/* Format */}
-      <section className="space-y-4">
-        <h2 className="font-display text-2xl font-bold">Format</h2>
-        <ul className="grid gap-3 sm:grid-cols-3">
-          {LANDING.format.map((point) => (
-            <li key={point} className="rounded-xl border bg-card p-4 text-sm">
-              {point}
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {/* Timeline */}
-      <section className="space-y-4">
-        <h2 className="font-display text-2xl font-bold">Key dates</h2>
-        <ol className="space-y-3">
-          {timeline.map((item) => (
-            <li key={item.label} className="flex items-center gap-3 rounded-xl border bg-card p-4">
-              <CalendarIcon className="size-5 shrink-0 text-primary" />
-              <div>
-                <p className="font-medium">{item.label}</p>
-                <p className="font-mono text-sm text-muted-foreground">{item.date}</p>
+      {/* Facts */}
+      <section className="grid gap-3 sm:grid-cols-3">
+        <FactCard icon={SwordsIcon} title="Format">
+          <ul className="space-y-1">
+            {LANDING.format.map((f) => (
+              <li key={f}>{f}</li>
+            ))}
+          </ul>
+        </FactCard>
+        <FactCard icon={CalendarDaysIcon} title="Dates">
+          <dl className="space-y-1">
+            {dates.map((d) => (
+              <div key={d.label} className="flex justify-between gap-3">
+                <dt>{d.label}</dt>
+                <dd className="font-mono text-foreground">{d.date}</dd>
               </div>
-            </li>
-          ))}
-        </ol>
+            ))}
+          </dl>
+        </FactCard>
+        <FactCard icon={GraduationCapIcon} title="Who can join">
+          <ul className="space-y-1">
+            {LANDING.whoCanJoin.map((w) => (
+              <li key={w}>{w}</li>
+            ))}
+          </ul>
+        </FactCard>
       </section>
 
-      {/* Who can join */}
-      <section className="space-y-4">
-        <h2 className="font-display text-2xl font-bold">Who can join</h2>
-        <ul className="space-y-2">
-          {LANDING.whoCanJoin.map((line) => (
-            <li key={line} className="flex gap-3 text-sm">
-              <UsersIcon className="size-4 shrink-0 translate-y-0.5 text-primary" />
-              {line}
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {/* TODO: "Past highlights" section (SPEC) once we have photos/results from earlier seasons. */}
-
-      {/* FAQ */}
-      <section className="space-y-4">
-        <h2 className="font-display text-2xl font-bold">FAQ</h2>
-        <Accordion type="single" collapsible className="rounded-xl border bg-card px-4">
+      {/* FAQ, collapsed */}
+      <section className="space-y-3">
+        <h2 className="text-4xl">FAQ</h2>
+        <Accordion type="single" collapsible className="rounded-2xl border bg-card px-4">
           {LANDING.faq.map((item, i) => (
             <AccordionItem key={item.q} value={`faq-${i}`}>
-              <AccordionTrigger className="text-left">{item.q}</AccordionTrigger>
+              <AccordionTrigger className="py-4 text-left text-base">{item.q}</AccordionTrigger>
               <AccordionContent className="text-muted-foreground">{item.a}</AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>
       </section>
 
-      {/* Closing CTA */}
-      <section className="glow space-y-4 rounded-2xl border border-primary/30 bg-card p-6 text-center">
-        <h2 className="font-display text-2xl font-bold">Ready to represent your college?</h2>
+      {/* Phones: the Register button stays in reach. */}
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border/60 bg-background/90 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:hidden">
         <RegisterButton />
-      </section>
+      </div>
+    </div>
+  );
+}
+
+function HeroFact({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 flex-1 rounded-2xl border bg-card px-4 py-3 sm:flex-none">
+      <dt className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">{label}</dt>
+      <dd className="truncate font-display text-3xl text-primary">{value}</dd>
+    </div>
+  );
+}
+
+function FactCard({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-3 rounded-3xl border bg-card p-5">
+      <div className="flex items-center gap-3">
+        <span className="grid size-9 place-items-center rounded-xl bg-olive text-primary">
+          <Icon className="size-5" />
+        </span>
+        <h2 className="text-3xl">{title}</h2>
+      </div>
+      <div className="text-sm text-muted-foreground">{children}</div>
     </div>
   );
 }
 
 function RegisterButton() {
   return (
-    <Button asChild size="lg" className="glow h-12 w-full px-8 text-base sm:w-auto">
-      <Link href="/register">Register your college</Link>
+    <Button asChild size="lg" className="h-12 w-full px-8 text-base tracking-wide uppercase sm:w-auto">
+      <Link href="/register">
+        Register your college <ArrowRightIcon />
+      </Link>
     </Button>
   );
 }

@@ -10,7 +10,7 @@ import { LoginForm } from "./login-form";
 export const metadata: Metadata = { title: "Sign in" };
 
 const ERRORS: Record<string, string> = {
-  link_expired: "That link has expired or was already used. Request a new one below.",
+  link_expired: "That link expired or was already used. Get a new one below.",
   auth_failed: "Sign-in failed. Please try again.",
 };
 
@@ -44,8 +44,8 @@ async function LoginContent({ searchParams }: Pick<PageProps<"/login">, "searchP
       <LoginForm next={nextPath} />
       <p className="text-center text-xs text-muted-foreground">
         {nextPath?.startsWith("/college")
-          ? "Registered your college? You'll get an email invite once your college is approved. Sign in here after that."
-          : "Access is invite-only. Registered a college? You'll get an email invite once it's approved."}
+          ? "Registered a college? You'll get an email invite once it's approved."
+          : "Invite only. Registered a college? You'll get an email invite once it's approved."}
       </p>
     </>
   );

@@ -35,7 +35,7 @@ export function Logo({
   }
   return (
     <span className={cn("flex items-center gap-2.5", className)}>
-      <span aria-hidden className="h-[22px] w-[73px] shrink-0 bg-primary" style={wordmark} />
+      <span aria-hidden className="h-[26px] w-[86px] shrink-0 bg-primary" style={wordmark} />
       <span className="leading-none">
         <span className="sr-only">Matiks </span>
         <span className="block font-display text-[19px] tracking-wide text-foreground uppercase">College League</span>

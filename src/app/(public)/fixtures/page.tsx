@@ -17,15 +17,15 @@ export default async function FixturesPage() {
   return (
     <div className="space-y-8">
       <div>
-        <p className="text-xs tracking-[0.2em] text-primary uppercase">{league?.name ?? "Matiks College League"}</p>
-        <h1 className="font-display text-3xl font-bold">Fixtures &amp; results</h1>
+        <p className="text-xs font-bold tracking-[0.2em] text-primary uppercase">{league?.name ?? "Matiks College League"}</p>
+        <h1 className="text-5xl sm:text-6xl">Fixtures</h1>
       </div>
       {fixtures.length === 0 ? (
-        <EmptyState icon={SwordsIcon} title="Fixtures coming soon" description="Matches are announced once registrations close. Check back here." />
+        <EmptyState mascot icon={SwordsIcon} title="Fixtures soon" description="Matches are announced after registrations close." />
       ) : (
         rounds.map((round) => (
           <section key={round} className="space-y-3">
-            <h2 className="font-display text-xl font-bold">{round}</h2>
+            <h2 className="text-3xl">{round}</h2>
             <ul className="space-y-2">
               {fixtures
                 .filter((f) => f.round === round)
@@ -43,7 +43,7 @@ export default async function FixturesPage() {
 function FixtureCard({ f }: { f: Fixture }) {
   const played = f.score_a != null && f.score_b != null;
   return (
-    <li className="rounded-xl border bg-card p-4">
+    <li className="rounded-2xl border bg-card p-4">
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
         <Team name={f.a.short_name ?? f.a.name} winner={f.winner_id === f.a.id} />
         <span className="font-mono text-lg tabular-nums">{played ? `${f.score_a} – ${f.score_b}` : "vs"}</span>

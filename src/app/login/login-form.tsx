@@ -78,7 +78,7 @@ export function LoginForm({ next }: { next?: string }) {
   if (sent) {
     return (
       <div className="space-y-4 text-center">
-        <div className="mx-auto flex size-11 items-center justify-center rounded-full bg-accent text-primary">
+        <div className="mx-auto flex size-11 items-center justify-center rounded-xl bg-olive text-primary">
           <MailIcon className="size-5" />
         </div>
         <p className="text-sm">{sent}</p>
@@ -99,7 +99,7 @@ export function LoginForm({ next }: { next?: string }) {
       <FieldGroup>
         <Field>
           <FieldLabel htmlFor="email">Email</FieldLabel>
-          <Input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
+          <Input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-12" />
         </Field>
         {mode === "password" ? (
           <>
@@ -110,20 +110,20 @@ export function LoginForm({ next }: { next?: string }) {
                   Forgot password?
                 </button>
               </div>
-              <Input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} className="h-11" />
+              <Input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} className="h-12" />
             </Field>
             {error && <FieldError>{error}</FieldError>}
-            <Button type="submit" className="h-11" disabled={pending !== null}>
+            <Button type="submit" className="h-12" disabled={pending !== null}>
               {pending === "password" && <Loader2Icon className="animate-spin" />}
               Sign in
             </Button>
             <FieldSeparator>or</FieldSeparator>
-            <Button type="button" variant="outline" className="h-11" disabled={pending !== null} onClick={magicLink}>
+            <Button type="button" variant="outline" className="h-12" disabled={pending !== null} onClick={magicLink}>
               {pending === "magic" ? <Loader2Icon className="animate-spin" /> : <MailIcon />}
               Email me a login link
             </Button>
             {GOOGLE_LOGIN_ENABLED && (
-              <Button type="button" variant="outline" className="h-11" disabled={pending !== null} onClick={google}>
+              <Button type="button" variant="outline" className="h-12" disabled={pending !== null} onClick={google}>
                 {pending === "google" && <Loader2Icon className="animate-spin" />}
                 Continue with Google
               </Button>
@@ -133,7 +133,7 @@ export function LoginForm({ next }: { next?: string }) {
           <>
             <FieldDescription>We&apos;ll email you a link to choose a new password.</FieldDescription>
             {error && <FieldError>{error}</FieldError>}
-            <Button type="submit" className="h-11" disabled={pending !== null}>
+            <Button type="submit" className="h-12" disabled={pending !== null}>
               {pending === "reset" && <Loader2Icon className="animate-spin" />}
               Send reset link
             </Button>

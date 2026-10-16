@@ -17,6 +17,7 @@ export function CollegeSearch({
   onQueryChange,
   id = "college-search",
   placeholder = "Start typing your college name",
+  autoFocus,
 }: {
   selectedId: string | null;
   selectedLabel: string;
@@ -25,6 +26,7 @@ export function CollegeSearch({
   onQueryChange?: (query: string) => void;
   id?: string;
   placeholder?: string;
+  autoFocus?: boolean;
 }) {
   const [query, setQuery] = useState(selectedLabel);
   const [results, setResults] = useState<CollegeSearchResult[]>([]);
@@ -71,8 +73,9 @@ export function CollegeSearch({
           }}
           placeholder={placeholder}
           autoComplete="off"
+          autoFocus={autoFocus}
           aria-invalid={invalid}
-          className="h-11 pl-9 text-base"
+          className="h-12 pl-9 text-base"
         />
         {loading && (
           <Loader2Icon className="absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
@@ -80,7 +83,7 @@ export function CollegeSearch({
       </div>
 
       {showResults && searched && (
-        <ul className="divide-y rounded-lg border">
+        <ul className="divide-y overflow-hidden rounded-xl border bg-card">
           {results.length === 0 && !loading && (
             <li className="px-3 py-3 text-sm text-muted-foreground">No matching colleges yet.</li>
           )}
@@ -92,7 +95,7 @@ export function CollegeSearch({
                   setQuery(c.name);
                   onSelect(c);
                 }}
-                className="flex w-full items-start justify-between gap-3 px-3 py-3 text-left hover:bg-muted/50"
+                className="flex min-h-12 w-full items-start justify-between gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/50"
               >
                 <span>
                   <span className="block text-sm font-medium">{c.name}</span>

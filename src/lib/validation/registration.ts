@@ -70,7 +70,8 @@ export const pocStepSchema = z.object({
     .transform((v) => v.replace(/[\s-]/g, "").replace(/^(\+91|0)/, ""))
     .pipe(z.string().regex(/^[6-9]\d{9}$/, "Enter a 10-digit Indian mobile number")),
   year: z.enum(YEARS, "Select your year"),
-  course: required("Course", 80),
+  // Optional on the public form (2-step registration); the POC can add it later in the college portal.
+  course: text(80),
   matiksUsername,
 });
 

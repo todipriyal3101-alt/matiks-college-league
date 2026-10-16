@@ -5,6 +5,7 @@ import { Suspense } from "react";
 
 import { RegistrationForm } from "@/components/register/registration-form";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getActiveLeague, isRegistrationOpen } from "@/lib/data/leagues";
 
 export const metadata: Metadata = { title: "Register your college" };
@@ -12,8 +13,8 @@ export const metadata: Metadata = { title: "Register your college" };
 export default function RegisterPage() {
   return (
     <div className="mx-auto max-w-xl">
-      <h1 className="mb-6 font-display text-3xl font-bold">Register your college</h1>
-      <Suspense fallback={<p className="text-sm text-muted-foreground">Loading…</p>}>
+      <h1 className="mb-5 text-5xl sm:text-6xl">Register your college</h1>
+      <Suspense fallback={<FormSkeleton />}>
         <RegisterContent />
       </Suspense>
     </div>
@@ -28,13 +29,13 @@ async function RegisterContent() {
 
   if (!league || !isRegistrationOpen(league)) {
     return (
-      <div className="space-y-4 rounded-xl border bg-card p-5">
-        <h2 className="text-lg font-semibold">Registrations closed</h2>
+      <div className="space-y-4 rounded-3xl border bg-card p-6">
+        <h2 className="text-3xl">Registrations closed</h2>
         <p className="text-sm text-muted-foreground">
           {league
             ? `Registrations for ${league.name} aren't open right now.`
             : "There's no league open for registration right now."}{" "}
-          Follow Matiks on social media to hear when the next season opens.
+          Follow Matiks to hear when the next season opens.
           {/* TODO: link Matiks Instagram / WhatsApp channel. */}
         </p>
         <Button asChild variant="outline" className="h-11">
@@ -45,4 +46,16 @@ async function RegisterContent() {
   }
 
   return <RegistrationForm leagueName={league.name} />;
+}
+
+/** Same shape as step 1, so nothing jumps when the form arrives. */
+function FormSkeleton() {
+  return (
+    <div className="space-y-5" aria-hidden>
+      <Skeleton className="h-8 w-full" />
+      {Array.from({ length: 5 }, (_, i) => (
+        <Skeleton key={i} className="h-[76px] w-full rounded-xl" />
+      ))}
+    </div>
+  );
 }

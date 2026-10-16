@@ -22,16 +22,16 @@ export default async function CollegesPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs tracking-[0.2em] text-primary uppercase">{league?.name ?? "Matiks College League"}</p>
-          <h1 className="font-display text-3xl font-bold">Colleges in the league</h1>
+          <p className="text-xs font-bold tracking-[0.2em] text-primary uppercase">{league?.name ?? "Matiks College League"}</p>
+          <h1 className="text-5xl sm:text-6xl">Colleges</h1>
           {colleges.length > 0 && (
             <p className="mt-1 text-sm text-muted-foreground">
-              <span className="font-mono text-foreground">{colleges.length}</span> college{colleges.length === 1 ? "" : "s"} confirmed
+              <span className="font-mono text-primary">{colleges.length}</span> confirmed
             </p>
           )}
         </div>
         {open && (
-          <Button asChild>
+          <Button asChild className="h-11 uppercase">
             <Link href="/register">
               Register your college <ArrowRightIcon />
             </Link>
@@ -42,8 +42,9 @@ export default async function CollegesPage() {
       {colleges.length === 0 ? (
         <EmptyState
           icon={SchoolIcon}
-          title="No colleges confirmed yet"
-          description={open ? "Be the first: register your college and it appears here once approved." : "Colleges appear here once they're approved. Check back soon."}
+          mascot
+          title="No colleges yet"
+          description={open ? "Register yours and it shows up here once approved." : "Approved colleges show up here."}
         />
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -64,13 +65,13 @@ function CollegeCard({ college: c }: { college: WallCollege }) {
     .map((w) => w[0]!.toUpperCase())
     .join("");
   return (
-    <li className="flex items-center gap-3 rounded-xl border bg-card p-4">
+    <li className="flex items-center gap-3 rounded-2xl border bg-card p-4">
       {c.logo_url ? (
         // Logos can live on any host; a plain img avoids allow-listing each one for next/image.
         // eslint-disable-next-line @next/next/no-img-element
         <img src={c.logo_url} alt="" loading="lazy" referrerPolicy="no-referrer" className="size-11 shrink-0 rounded-lg bg-muted object-contain" />
       ) : (
-        <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-lg bg-primary/15 font-display text-sm font-bold text-primary">
+        <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-xl bg-olive font-display text-lg text-primary">
           {initials || "?"}
         </span>
       )}
