@@ -5,6 +5,7 @@ import { AmbassadorsList } from "@/components/admin/ambassadors/ambassadors-list
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireAdmin } from "@/lib/auth/admin";
 import { getSelectedLeague } from "@/lib/data/admin-leagues";
+import { siteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Ambassadors" };
@@ -56,7 +57,7 @@ async function Ambassadors() {
   return (
     <AmbassadorsList
       ambassadors={rows}
-      siteUrl={(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "")}
+      siteUrl={siteUrl}
       seasonName={league?.name ?? "this season"}
       isWriter={isWriter}
     />

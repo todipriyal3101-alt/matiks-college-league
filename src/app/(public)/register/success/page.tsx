@@ -8,6 +8,7 @@ import { ShareButtons } from "@/components/register/share-buttons";
 import { Mascot } from "@/components/league/mascot";
 import { Button } from "@/components/ui/button";
 import { getActiveLeague } from "@/lib/data/leagues";
+import { siteUrl } from "@/lib/site-url";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata: Metadata = { title: "Registration received" };
@@ -51,7 +52,6 @@ async function SuccessContent({ searchParams }: Pick<PageProps<"/register/succes
   }
 
   const leagueName = league?.name ?? "Brumble 2.0";
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const message = `${registration.collegeName} is in ${leagueName}, the 7-day online college league by Matiks. Play it smart. Get your college in:`;
 
   return (
