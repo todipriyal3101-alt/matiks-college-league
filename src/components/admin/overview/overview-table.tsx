@@ -31,7 +31,16 @@ import { cn } from "@/lib/utils";
 
 type Patch = { ids: string[]; status?: ReviewStatus; stage?: Stage };
 
-export function OverviewTable({ rows, isWriter }: { rows: OverviewRow[]; isWriter: boolean }) {
+export function OverviewTable({
+  rows,
+  isWriter,
+  pocEmails,
+}: {
+  rows: OverviewRow[];
+  isWriter: boolean;
+  /** registration id → the email the college registered with (admin-only data). */
+  pocEmails: Record<string, string>;
+}) {
   // Optimistic overrides on top of the server rows; cleared whenever fresh rows arrive (refresh()).
   const [overrides, setOverrides] = useState<Patch[]>([]);
   const [seenRows, setSeenRows] = useState(rows);
@@ -146,6 +155,7 @@ export function OverviewTable({ rows, isWriter }: { rows: OverviewRow[]; isWrite
             registrationId={r.registration_id!}
             collegeName={r.college_name!}
             reviewStatus={r.review_status!}
+            pocEmail={pocEmails[r.registration_id!] ?? ""}
             isWriter={isWriter}
             onReview={(status) => change({ ids: [r.registration_id!], status })}
           />
@@ -253,6 +263,7 @@ export function OverviewTable({ rows, isWriter }: { rows: OverviewRow[]; isWrite
                   registrationId={r.registration_id!}
                   collegeName={r.college_name!}
                   reviewStatus={r.review_status!}
+                  pocEmail={pocEmails[r.registration_id!] ?? ""}
                   isWriter={isWriter}
                   onReview={(status) => change({ ids: [r.registration_id!], status })}
                 />

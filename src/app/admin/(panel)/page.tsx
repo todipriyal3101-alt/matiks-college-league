@@ -15,6 +15,7 @@ import { requireAdmin } from "@/lib/auth/admin";
 import { getSelectedLeague } from "@/lib/data/admin-leagues";
 import { filterOverview, getOverview, overviewSources, overviewStats } from "@/lib/data/league-ops";
 import { formatINR } from "@/lib/league";
+import { createClient } from "@/lib/supabase/server";
 import { parseOverviewFilters } from "@/lib/validation/league-ops";
 
 export const metadata: Metadata = { title: "League Overview" };
@@ -45,7 +46,13 @@ async function Overview({ searchParams }: Pick<PageProps<"/admin">, "searchParam
     );
   }
 
-  const rows = await getOverview(league.id);
+  const supabase = await createClient();
+  const [rows, emails] = await Promise.all([
+    getOverview(league.id),
+    // Not in registration_overview: only needed for the "Invite POC" default.
+    supabase.from("registrations").select("id, poc_email").eq("league_id", league.id),
+  ]);
+  const pocEmails = Object.fromEntries((emails.data ?? []).map((r) => [r.id, r.poc_email]));
   const filters = parseOverviewFilters(params);
   const stats = overviewStats(rows);
   const visible = filterOverview(rows, filters);
@@ -97,7 +104,7 @@ async function Overview({ searchParams }: Pick<PageProps<"/admin">, "searchParam
           <p className="text-xs text-muted-foreground">
             Showing {visible.length} of {rows.length} colleges
           </p>
-          <OverviewTable rows={visible} isWriter={isWriter} />
+          <OverviewTable rows={visible} isWriter={isWriter} pocEmails={pocEmails} />
         </section>
       )}
     </div>

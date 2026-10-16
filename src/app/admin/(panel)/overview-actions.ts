@@ -4,6 +4,7 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 
 import { requireAdminWriter } from "@/lib/auth/admin";
+import { findOrInviteUser, grantPocAccess } from "@/lib/auth/invite";
 import { REVIEW_STATUSES, STAGES, type ReviewStatus, type Stage } from "@/lib/league";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -169,4 +170,38 @@ export async function addCollege(input: AddCollegeInput): Promise<ActionResult<{
 
   refresh();
   return { ok: true, registrationId };
+}
+
+/** "Invite POC" / "Approve + invite POC": gives the registration's POC (or another email) a login for this college. */
+export async function invitePoc(
+  registrationId: string,
+  options: { approve: boolean; email?: string },
+): Promise<ActionResult<{ message: string }>> {
+  const { profile } = await requireAdminWriter();
+  const parsed = z
+    .object({ id: z.uuid(), approve: z.boolean(), email: z.email("Enter a valid email").trim().toLowerCase().optional() })
+    .safeParse({ id: registrationId, ...options, email: options.email || undefined });
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid request." };
+
+  const supabase = await createClient();
+  const { data: registration } = await supabase.from("registrations").select("poc_email, status").eq("id", parsed.data.id).maybeSingle();
+  if (!registration) return { ok: false, error: "Registration not found." };
+  const email = parsed.data.email ?? registration.poc_email.toLowerCase();
+
+  if (parsed.data.approve && registration.status !== "approved") {
+    const { error } = await supabase
+      .from("registrations")
+      .update({ status: "approved", reviewed_by: profile.user_id, reviewed_at: new Date().toISOString() })
+      .eq("id", parsed.data.id);
+    if (error) return { ok: false, error: error.message };
+  }
+
+  const user = await findOrInviteUser(email, "poc");
+  if (!user.ok) return user;
+  const granted = await grantPocAccess(user.userId, parsed.data.id, profile.user_id);
+  if (!granted.ok) return { ok: false, error: granted.error };
+
+  refresh();
+  const prefix = parsed.data.approve ? "Approved. " : "";
+  return { ok: true, message: `${prefix}${user.invited ? `Invite sent to ${email}.` : `${email} can now sign in to this college.`}` };
 }

@@ -3,6 +3,7 @@
 import {
   CheckIcon,
   ClockIcon,
+  MailPlusIcon,
   LinkIcon,
   MoreHorizontalIcon,
   Settings2Icon,
@@ -14,6 +15,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { deleteRegistration } from "@/app/admin/(panel)/overview-actions";
+import { InvitePocDialog } from "@/components/admin/overview/invite-poc-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,16 +41,19 @@ export function RowActions({
   registrationId,
   collegeName,
   reviewStatus,
+  pocEmail,
   isWriter,
   onReview,
 }: {
   registrationId: string;
   collegeName: string;
   reviewStatus: ReviewStatus;
+  pocEmail: string;
   isWriter: boolean;
   onReview: (status: ReviewStatus) => void;
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [invite, setInvite] = useState<"invite" | "approve" | null>(null);
   const href = `/admin/colleges/${registrationId}`;
 
   async function copyLink() {
@@ -91,6 +96,15 @@ export function RowActions({
                 <XIcon /> Reject
               </DropdownMenuItem>
               <DropdownMenuSeparator />
+              {reviewStatus !== "approved" && (
+                <DropdownMenuItem onSelect={() => setInvite("approve")}>
+                  <MailPlusIcon /> Approve + invite POC
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onSelect={() => setInvite("invite")}>
+                <MailPlusIcon /> Invite POC
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onSelect={() => setConfirmOpen(true)}>
                 <Trash2Icon /> Delete
               </DropdownMenuItem>
@@ -98,6 +112,16 @@ export function RowActions({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+      {isWriter && (
+        <InvitePocDialog
+          open={invite !== null}
+          onOpenChange={(o) => !o && setInvite(null)}
+          registrationId={registrationId}
+          collegeName={collegeName}
+          pocEmail={pocEmail}
+          approve={invite === "approve"}
+        />
+      )}
       {isWriter && (
         <DeleteRegistrationDialog
           open={confirmOpen}

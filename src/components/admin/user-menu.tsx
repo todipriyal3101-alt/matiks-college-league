@@ -2,7 +2,7 @@
 
 import { LogOutIcon, UserIcon } from "lucide-react";
 
-import { logout } from "@/app/admin/(panel)/actions";
+import { logout } from "@/lib/auth/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {

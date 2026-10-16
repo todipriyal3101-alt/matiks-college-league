@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
     return [
       { source: "/admin/registrations", destination: "/admin", permanent: false },
       { source: "/admin/colleges", destination: "/admin", permanent: false },
+      // Phase 9: one login page for admins and POCs.
+      { source: "/admin/login", destination: "/login", permanent: false },
+      // Phase 10: the POC portal replaced "My registration".
+      { source: "/my", destination: "/college", permanent: false },
     ];
   },
   partialPrefetching: true,

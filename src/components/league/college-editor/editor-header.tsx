@@ -1,11 +1,12 @@
 "use client";
 
-import { ArrowRightIcon, LinkIcon, MoreHorizontalIcon, Trash2Icon } from "lucide-react";
+import { ArrowRightIcon, LinkIcon, MailPlusIcon, MoreHorizontalIcon, Trash2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
+import { InvitePocDialog } from "@/components/admin/overview/invite-poc-dialog";
 import { DeleteRegistrationDialog } from "@/components/admin/overview/row-actions";
 import { ReviewBadge, StageBadge } from "@/components/league/badges";
 import { Money } from "@/components/league/money";
@@ -74,7 +75,14 @@ export function EditorHeader({
             <StageBadge stage={stage} />
           </div>
         </div>
-        {canAdminWrite && <AdminMenu registrationId={registration.id} collegeName={registration.colleges.name} />}
+        {canAdminWrite && (
+          <AdminMenu
+            registrationId={registration.id}
+            collegeName={registration.colleges.name}
+            pocEmail={registration.poc_email}
+            approved={reviewStatus === "approved"}
+          />
+        )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -156,9 +164,20 @@ export function EditorHeader({
   );
 }
 
-function AdminMenu({ registrationId, collegeName }: { registrationId: string; collegeName: string }) {
+function AdminMenu({
+  registrationId,
+  collegeName,
+  pocEmail,
+  approved,
+}: {
+  registrationId: string;
+  collegeName: string;
+  pocEmail: string;
+  approved: boolean;
+}) {
   const router = useRouter();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [invite, setInvite] = useState<"invite" | "approve" | null>(null);
   return (
     <>
       <DropdownMenu>
@@ -180,12 +199,28 @@ function AdminMenu({ registrationId, collegeName }: { registrationId: string; co
           >
             <LinkIcon /> Copy link
           </DropdownMenuItem>
+          {!approved && (
+            <DropdownMenuItem onSelect={() => setInvite("approve")}>
+              <MailPlusIcon /> Approve + invite POC
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem onSelect={() => setInvite("invite")}>
+            <MailPlusIcon /> Invite POC
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onSelect={() => setConfirmOpen(true)}>
             <Trash2Icon /> Delete from this season
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      <InvitePocDialog
+        open={invite !== null}
+        onOpenChange={(o) => !o && setInvite(null)}
+        registrationId={registrationId}
+        collegeName={collegeName}
+        pocEmail={pocEmail}
+        approve={invite === "approve"}
+      />
       <DeleteRegistrationDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}

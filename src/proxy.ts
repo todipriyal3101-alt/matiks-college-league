@@ -8,27 +8,25 @@ import {
 } from "@/lib/attribution";
 import { updateSession } from "@/lib/supabase/proxy";
 
-const ADMIN_LOGIN_PATH = "/admin/login";
-
 export async function proxy(request: NextRequest) {
   const { response, supabase, claims } = await updateSession(request);
   const { pathname } = request.nextUrl;
+  const next = pathname + request.nextUrl.search;
 
-  // Admin guard: every /admin/* route except the login page needs a user with an admin_profiles row.
+  // /admin/* needs a user with an admin_profiles row; /college needs a login (RLS decides what they see).
   const isAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
-  if (isAdminRoute && pathname !== ADMIN_LOGIN_PATH) {
-    if (!claims) {
-      return redirectToLogin(request, response, { next: pathname + request.nextUrl.search });
-    }
+  const isCollegeRoute = pathname === "/college" || pathname.startsWith("/college/");
+  if ((isAdminRoute || isCollegeRoute) && !claims) {
+    return redirectTo(request, response, "/login", { next });
+  }
+  if (isAdminRoute) {
     // RLS lets a user read their own admin_profiles row.
     const { data: profile } = await supabase
       .from("admin_profiles")
       .select("user_id")
-      .eq("user_id", claims.sub)
+      .eq("user_id", claims!.sub)
       .maybeSingle();
-    if (!profile) {
-      return redirectToLogin(request, response, { error: "no_access" });
-    }
+    if (!profile) return redirectTo(request, response, "/no-access", {});
   }
 
   // UTM params are first-touch: only the first landing with params sets them.
@@ -56,13 +54,14 @@ export async function proxy(request: NextRequest) {
   return response;
 }
 
-/** Redirect to /admin/login, keeping any refreshed Supabase session cookies. */
-function redirectToLogin(
+/** Redirect, keeping any refreshed Supabase session cookies. */
+function redirectTo(
   request: NextRequest,
   response: NextResponse,
+  path: string,
   params: Record<string, string>,
 ) {
-  const url = new URL(ADMIN_LOGIN_PATH, request.url);
+  const url = new URL(path, request.url);
   for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
   const redirect = NextResponse.redirect(url);
   response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));

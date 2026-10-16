@@ -37,7 +37,7 @@ export const getAdmin = cache(async (): Promise<AdminContext | null> => {
 /** For admin server components and actions: any admin (admin or viewer), else redirect to login. */
 export async function requireAdmin(): Promise<AdminContext> {
   const admin = await getAdmin();
-  if (!admin) redirect("/admin/login");
+  if (!admin) redirect("/login?next=/admin");
   return admin;
 }
 
