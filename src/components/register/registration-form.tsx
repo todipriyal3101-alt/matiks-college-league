@@ -334,7 +334,7 @@ export function RegistrationForm({ leagueName }: { leagueName: string }) {
       {step === 2 && (
         <FieldGroup>
           <FieldDescription>
-            Optional. You can add or change teammates later from &ldquo;My registration&rdquo;.
+            Optional. Add the teammates you know now; the Matiks team can update the list later.
           </FieldDescription>
           <Field data-invalid={!!errors.team?.teamName}>
             <FieldLabel htmlFor="team-name">Team name</FieldLabel>

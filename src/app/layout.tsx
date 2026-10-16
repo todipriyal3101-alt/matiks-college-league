@@ -36,7 +36,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex min-h-full flex-col overflow-x-clip">
         <TooltipProvider>{children}</TooltipProvider>
-        <Toaster theme="dark" closeButton />
+        {/* Lifted above the sticky "Unsaved changes · Save" bar so toasts never cover the Save button. */}
+        <Toaster theme="dark" closeButton offset={{ bottom: 88 }} mobileOffset={{ bottom: 88 }} />
       </body>
     </html>
   );

@@ -67,7 +67,7 @@ async function SuccessContent({ searchParams }: Pick<PageProps<"/register/succes
         <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
           <li>Our team reviews your registration (status: pending).</li>
           <li>We&apos;ll contact you on WhatsApp/email once it&apos;s approved.</li>
-          <li>Add or update teammates any time before the deadline from &ldquo;My registration&rdquo;.</li>
+          <li>Sign in to your college portal any time to update your contacts and, later, your winners.</li>
         </ol>
       </div>
 
@@ -77,7 +77,7 @@ async function SuccessContent({ searchParams }: Pick<PageProps<"/register/succes
       </div>
 
       <Button asChild variant="outline" className="h-11 w-full sm:w-auto">
-        <Link href="/my">Go to My registration</Link>
+        <Link href="/college">Go to your college portal</Link>
       </Button>
     </div>
   );

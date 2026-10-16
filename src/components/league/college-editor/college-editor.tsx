@@ -41,7 +41,7 @@ const NO_OVERRIDES: Overrides = { winners: {}, contacts: {} };
  * (review, stage, paid, merch) save immediately with an Undo toast. The database enforces every rule.
  */
 export function CollegeEditor({
-  detail,
+  detail: serverDetail,
   mode,
   readOnly = false,
   me,
@@ -55,6 +55,8 @@ export function CollegeEditor({
   adminNames: Record<string, string>;
 }) {
   const isAdmin = mode === "admin";
+  // Latest known data: from the server (props), or from a save's response (saves don't re-render the page).
+  const [detail, setDetail] = useState(serverDetail);
   const registrationId = detail.registration.id;
   const form = useForm<EditorFormValues>({
     resolver: zodResolver(isAdmin ? adminEditorSchema : editorSchema) as unknown as Resolver<EditorFormValues>,
@@ -66,9 +68,10 @@ export function CollegeEditor({
 
   // Optimistic toggle state; cleared whenever fresh data arrives from the server.
   const [overrides, setOverrides] = useState<Overrides>(NO_OVERRIDES);
-  const [seen, setSeen] = useState(detail);
-  if (seen !== detail) {
-    setSeen(detail);
+  const [seen, setSeen] = useState(serverDetail);
+  if (seen !== serverDetail) {
+    setSeen(serverDetail);
+    setDetail(serverDetail);
     setOverrides(NO_OVERRIDES);
   }
 
@@ -94,6 +97,7 @@ export function CollegeEditor({
           toast.error(res.error);
           return;
         }
+        setDetail(res.detail);
         form.reset(toFormValues(res.detail));
         toast.success("Saved");
       }),

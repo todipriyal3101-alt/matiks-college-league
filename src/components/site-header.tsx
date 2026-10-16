@@ -18,7 +18,7 @@ export function SiteHeader() {
             Colleges
           </Link>
           <Link
-            href="/my"
+            href="/college"
             className="hidden rounded-md px-3 py-2 text-muted-foreground hover:bg-accent hover:text-foreground sm:inline"
           >
             My college

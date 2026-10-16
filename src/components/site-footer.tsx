@@ -9,7 +9,7 @@ export function SiteFooter() {
           <Link href="/colleges" className="hover:text-foreground">
             Colleges
           </Link>
-          <Link href="/my" className="hover:text-foreground">
+          <Link href="/college" className="hover:text-foreground">
             My college
           </Link>
           <Link href="/register" className="hover:text-foreground">

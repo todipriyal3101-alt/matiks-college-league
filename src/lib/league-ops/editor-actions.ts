@@ -170,9 +170,10 @@ export async function saveEditor(
     }
   }
 
+  // No refresh(): re-rendering the whole page kept the save "pending" for seconds and blocked the next save.
+  // The editor applies this fresh detail itself.
   const detail = await fetchRegistrationDetail(registrationId);
   if (!detail) return { ok: false, error: "College not found." };
-  refresh();
   return { ok: true, detail };
 }
 
