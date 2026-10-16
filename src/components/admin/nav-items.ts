@@ -1,6 +1,4 @@
 import {
-  ClipboardListIcon,
-  GraduationCapIcon,
   LayoutDashboardIcon,
   MegaphoneIcon,
   ShieldIcon,
@@ -11,9 +9,7 @@ import {
 } from "lucide-react";
 
 export const ADMIN_NAV = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboardIcon },
-  { href: "/admin/registrations", label: "Registrations", icon: ClipboardListIcon },
-  { href: "/admin/colleges", label: "Colleges", icon: GraduationCapIcon },
+  { href: "/admin", label: "Overview", icon: LayoutDashboardIcon },
   { href: "/admin/participants", label: "Participants", icon: UsersIcon },
   { href: "/admin/ambassadors", label: "Ambassadors", icon: MegaphoneIcon },
   { href: "/admin/leagues", label: "Leagues", icon: TrophyIcon },
