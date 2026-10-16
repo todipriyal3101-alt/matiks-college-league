@@ -82,7 +82,11 @@ export async function submitRegistration(input: unknown): Promise<RegistrationRe
         message: "Someone is registering this college right now. Please try again in a minute.",
       };
     }
-    console.error("submitRegistration:", error);
+    console.error(
+      `submitRegistration: [${error.code}] ${error.message}`,
+      error.details ?? "",
+      error.hint ?? "",
+    );
     return { status: "error", message: "Something went wrong. Please try again." };
   }
 
