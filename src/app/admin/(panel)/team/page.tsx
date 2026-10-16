@@ -16,10 +16,8 @@ export default function TeamPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-3xl font-bold">Manage Access</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Invite admins, viewers and college POCs. Each POC sees only the college they&apos;re invited to.
-        </p>
+        <h1 className="text-5xl">Team</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Admins, viewers and college POCs.</p>
       </div>
       <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>
         <Team />
@@ -84,7 +82,7 @@ async function Team() {
         />
       )}
       <section className="space-y-3">
-        <h2 className="font-display text-lg font-semibold">People with access ({entries.length})</h2>
+        <h2 className="text-2xl">People with access ({entries.length})</h2>
         <AccessList entries={entries} canWrite={isWriter} />
         <p className="text-xs text-muted-foreground">
           A college&apos;s registration email can also sign in to that college without an invite.

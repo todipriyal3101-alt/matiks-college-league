@@ -59,7 +59,7 @@ export function RowActions({
   async function copyLink() {
     try {
       await navigator.clipboard.writeText(new URL(href, window.location.origin).toString());
-      toast.success("Link copied");
+      toast.success("Copied");
     } catch {
       toast.error("Couldn't copy the link.");
     }
@@ -194,7 +194,7 @@ export function DeleteRegistrationDialog({
                   toast.error(res.error);
                   return;
                 }
-                toast.success(`${collegeName} deleted from this season`);
+                toast.success("Deleted");
                 onOpenChange(false);
                 onDeleted?.();
               });

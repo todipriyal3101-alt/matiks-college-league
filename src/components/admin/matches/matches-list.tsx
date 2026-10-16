@@ -64,8 +64,8 @@ export function MatchesList({
       ) : (
         rounds.map((round) => (
           <section key={round} className="space-y-2">
-            <h2 className="font-display text-lg font-semibold">{round}</h2>
-            <ul className="divide-y divide-border/60 rounded-xl border bg-card">
+            <h2 className="text-2xl">{round}</h2>
+            <ul className="divide-y divide-border/60 rounded-2xl border bg-card">
               {matches
                 .filter((m) => m.round === round)
                 .map((m) => (
@@ -144,7 +144,7 @@ export function MatchesList({
                 setToDelete(null);
                 startTransition(async () => {
                   const res = await deleteMatch(m.id);
-                  if (res.ok) toast.success("Match deleted");
+                  if (res.ok) toast.success("Deleted");
                   else toast.error(res.error);
                 });
               }}

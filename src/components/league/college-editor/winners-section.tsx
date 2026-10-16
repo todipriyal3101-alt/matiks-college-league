@@ -50,7 +50,7 @@ export function WinnersSection({
   isAdmin,
   readOnly,
   status,
-  onMarkPaid,
+  onRequestPay,
   onMarkUnpaid,
   onMerchSent,
 }: {
@@ -58,7 +58,8 @@ export function WinnersSection({
   isAdmin: boolean;
   readOnly: boolean;
   status: (winnerId: string) => WinnerStatus;
-  onMarkPaid: (winnerId: string, utr: string) => Promise<string | null>;
+  /** Opens the "Mark paid" (UTR) dialog, owned by the editor so the top bar can open it too. */
+  onRequestPay: (winnerId: string) => void;
   onMarkUnpaid: (winnerId: string) => void;
   onMerchSent: (winnerId: string, sent: boolean) => void;
 }) {
@@ -66,13 +67,11 @@ export function WinnersSection({
   const { fields, append, remove } = useFieldArray({ control, name: "winners", keyName: "key" });
   const [expanded, setExpanded] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<number | null>(null);
-  const [payFor, setPayFor] = useState<string | null>(null);
 
   return (
     <section>
       <SectionHeader
         title="Winners"
-        subtitle={isAdmin ? "Add any number of winners. Payment and merch are tracked per winner." : "Add your college's winners and their payout details."}
         action={
           !readOnly ? (
             <Button
@@ -93,10 +92,10 @@ export function WinnersSection({
         <EmptyState
           icon={TrophyIcon}
           title="No winners yet"
-          description={readOnly ? "Winners will appear here once they're added." : "Add the 1st place winner once results are in."}
+          description={readOnly ? "Added winners show up here." : "Add winners once results are in."}
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border bg-card">
+        <div className="overflow-hidden rounded-2xl border bg-card">
           <div className={cn(GRID, "hidden bg-muted/40 px-4 py-2.5 text-xs tracking-wider text-muted-foreground uppercase md:grid")}>
             <span>Position</span>
             <span>Name</span>
@@ -126,7 +125,7 @@ export function WinnersSection({
                   expanded={expanded === rowKey}
                   onToggleExpand={() => setExpanded(expanded === rowKey ? null : rowKey)}
                   onDelete={() => setToDelete(i)}
-                  onPaidChange={(paid) => (paid ? setPayFor(stored!.id) : onMarkUnpaid(stored!.id))}
+                  onPaidChange={(paid) => (paid ? onRequestPay(stored!.id) : onMarkUnpaid(stored!.id))}
                   onMerchSent={(sent) => onMerchSent(stored!.id, sent)}
                 />
               );
@@ -158,15 +157,6 @@ export function WinnersSection({
         </AlertDialogContent>
       </AlertDialog>
 
-      <MarkPaidDialog
-        winner={saved.find((w) => w.id === payFor) ?? null}
-        onClose={() => setPayFor(null)}
-        onConfirm={async (utr) => {
-          const error = await onMarkPaid(payFor!, utr);
-          if (!error) setPayFor(null);
-          return error;
-        }}
-      />
     </section>
   );
 }
@@ -369,7 +359,7 @@ function NotSavedHint() {
   return <span className="text-xs text-muted-foreground italic">save first</span>;
 }
 
-function MarkPaidDialog({
+export function MarkPaidDialog({
   winner,
   onClose,
   onConfirm,

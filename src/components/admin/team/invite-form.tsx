@@ -29,7 +29,7 @@ export function InviteForm({ colleges, seasonName }: { colleges: { id: string; n
   return (
     <Card className="gap-4 p-5 sm:p-6">
       <div>
-        <h2 className="font-display text-lg font-semibold">Invite someone</h2>
+        <h2 className="text-2xl">Invite someone</h2>
         <p className="text-sm text-muted-foreground">New people get an email invite; existing accounts get access straight away.</p>
       </div>
       <form

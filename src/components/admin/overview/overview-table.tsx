@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-table";
 import { CheckIcon, ChevronDownIcon, Loader2Icon, MailPlusIcon, SearchXIcon, XIcon } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -38,6 +39,14 @@ import type { OverviewRow } from "@/lib/data/league-ops";
 import { REVIEW_LABELS, STAGE_LABELS, STAGES, type ReviewStatus, type Stage } from "@/lib/league";
 import { cn } from "@/lib/utils";
 
+// Fewer columns on smaller desktops: the rest is one click away in the college.
+const COLUMN_CLASS: Record<string, string> = {
+  participants: "hidden xl:table-cell",
+  poc: "hidden lg:table-cell",
+  merch: "hidden xl:table-cell",
+  source: "hidden xl:table-cell",
+};
+
 type Patch = { ids: string[]; status?: ReviewStatus; stage?: Stage };
 
 export function OverviewTable({
@@ -58,6 +67,7 @@ export function OverviewTable({
     setOverrides([]);
   }
   const optimisticRows = useMemo(() => overrides.reduce(applyPatch, rows), [rows, overrides]);
+  const router = useRouter();
   const [selection, setSelection] = useState<RowSelectionState>({});
   const [bulkApprove, setBulkApprove] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -75,7 +85,7 @@ export function OverviewTable({
         return;
       }
       setSelection({});
-      toast.success(`${what} → ${label}`, {
+      toast.success(patch.ids.length === 1 ? label : `${what}: ${label}`, {
         action: {
           label: "Undo",
           onClick: () =>
@@ -186,12 +196,18 @@ export function OverviewTable({
 
   const selectedIds = Object.keys(selection).filter((id) => selection[id]);
 
+  /** Row click opens the college, unless the click was on a control inside the row. */
+  function openRow(e: React.MouseEvent, registrationId: string) {
+    if ((e.target as HTMLElement).closest("a, button, input, label, [role=checkbox], [role=menu], [role=menuitem], [data-slot=dialog-content]")) return;
+    router.push(`/admin/colleges/${registrationId}`);
+  }
+
   if (rows.length === 0) {
     return (
       <EmptyState
         icon={SearchXIcon}
         title="No colleges match these filters"
-        description="Try a different search, or clear the filters to see every college this season."
+        description="Try another search or clear the filters."
       />
     );
   }
@@ -225,13 +241,13 @@ export function OverviewTable({
       />
 
       {/* Desktop table */}
-      <div className="relative hidden overflow-x-auto rounded-xl border bg-card md:block">
+      <div className="relative hidden overflow-x-auto rounded-2xl border bg-card md:block">
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-xs tracking-wider text-muted-foreground uppercase">
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id}>
                 {hg.headers.map((h) => (
-                  <th key={h.id} className="px-4 py-3 text-left font-medium whitespace-nowrap">
+                  <th key={h.id} className={cn("px-3 py-2.5 text-left font-semibold whitespace-nowrap", COLUMN_CLASS[h.column.id])}>
                     {flexRender(h.column.columnDef.header, h.getContext())}
                   </th>
                 ))}
@@ -243,10 +259,11 @@ export function OverviewTable({
               <tr
                 key={row.id}
                 data-state={row.getIsSelected() ? "selected" : undefined}
-                className="border-t border-border/60 hover:bg-accent/30 data-[state=selected]:bg-accent/40"
+                onClick={(e) => openRow(e, row.original.registration_id!)}
+                className="cursor-pointer border-t border-border/60 transition-colors hover:bg-accent/40 data-[state=selected]:bg-accent/50"
               >
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-4 py-3 align-middle">
+                  <td key={cell.id} className={cn("px-3 py-2 align-middle", COLUMN_CLASS[cell.column.id])}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}
@@ -263,7 +280,8 @@ export function OverviewTable({
           return (
             <li
               key={row.id}
-              className={cn("rounded-xl border bg-card p-4", row.getIsSelected() && "border-primary/50 bg-accent/30")}
+              onClick={(e) => openRow(e, r.registration_id!)}
+              className={cn("cursor-pointer rounded-2xl border bg-card p-4 transition-colors active:bg-accent/40", row.getIsSelected() && "border-primary/50 bg-accent/30")}
             >
               <div className="flex items-start gap-3">
                 {isWriter && (

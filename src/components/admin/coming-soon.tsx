@@ -5,7 +5,7 @@ export async function ComingSoon({ title, phase }: { title: string; phase: numbe
   await requireAdmin();
   return (
     <div className="space-y-2">
-      <h1 className="font-display text-3xl font-bold">{title}</h1>
+      <h1 className="text-5xl">{title}</h1>
       <p className="text-sm text-muted-foreground">Coming in phase {phase}.</p>
     </div>
   );

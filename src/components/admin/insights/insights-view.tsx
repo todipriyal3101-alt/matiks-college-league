@@ -16,7 +16,7 @@ export async function InsightsView({ leagueId }: { leagueId: string }) {
       <InsightsCharts insights={insights} />
       <Card className="gap-3 p-5">
         <div>
-          <h2 className="font-display text-lg font-semibold">Top referral codes</h2>
+          <h2 className="text-2xl">Top referral codes</h2>
           <p className="text-sm text-muted-foreground">Registrations credited to each ambassador link this season.</p>
         </div>
         {insights.topReferrals.length === 0 ? (

@@ -41,7 +41,7 @@ export function ContactsSection({
     <section>
       <SectionHeader
         title="Points of contact"
-        subtitle="1 primary contact, up to 2 more."
+        subtitle="Up to 3"
         action={
           !readOnly && fields.length < 3 ? (
             <Button type="button" size="sm" variant="outline" onClick={() => append(EMPTY_CONTACT)}>

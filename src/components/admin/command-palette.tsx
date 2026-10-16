@@ -182,7 +182,7 @@ export function CommandPalette({ isWriter }: { isWriter: boolean }) {
                       await navigator.clipboard.writeText(
                         `${window.location.origin}/register`,
                       );
-                      toast.success("Registration link copied");
+                      toast.success("Copied");
                     } catch {
                       toast.error("Couldn't copy the link.");
                     }

@@ -195,10 +195,10 @@ export async function addCollege(input: AddCollegeInput): Promise<ActionResult<{
   if (approveError) return { ok: false, error: `Added, but approving failed: ${approveError.message}` };
   updateTag(CACHE_TAGS.colleges);
 
-  let message = "College added and approved.";
+  let message = "Added";
   if (parsed.data.invitePoc) {
     const invited = await inviteOne(profile, registrationId, { approve: false });
-    message = invited.ok ? `College added. ${invited.message}` : `College added, but the invite failed: ${invited.error}`;
+    message = invited.ok ? `Added · ${invited.message}` : `Added, but the invite failed: ${invited.error}`;
   }
   refresh();
   return { ok: true, registrationId, message };
@@ -234,7 +234,7 @@ export async function approveAndInvite(registrationIds: string[]): Promise<Actio
   return {
     ok: true,
     failed,
-    message: `Approved and invited ${done} POC${done === 1 ? "" : "s"}${failed.length ? `; ${failed.length} failed` : ""}.`,
+    message: `Approved + invited ${done}${failed.length ? ` · ${failed.length} failed` : ""}`,
   };
 }
 
@@ -274,9 +274,9 @@ async function inviteOne(
   if (!granted.ok) return { ok: false, error: `${who}: ${granted.error}` };
   const emailed = !user.invited && (await emailAccessGranted(email, "poc", context));
 
-  const prefix = parsed.data.approve ? "Approved. " : "";
+  const prefix = parsed.data.approve ? "Approved · " : "";
   return {
     ok: true,
-    message: `${prefix}${user.invited ? `Invite sent to ${email}.` : `${email} can now sign in to this college${emailed ? " (emailed)" : ""}.`}`,
+    message: `${prefix}${user.invited ? `invite sent to ${email}` : `${email} has access${emailed ? " (emailed)" : ""}`}`,
   };
 }

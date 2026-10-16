@@ -15,7 +15,7 @@ function ChartCard({ title, subtitle, children, table }: { title: string; subtit
   return (
     <Card className="gap-4 p-5">
       <div>
-        <h2 className="font-display text-lg font-semibold">{title}</h2>
+        <h2 className="text-2xl">{title}</h2>
         <p className="text-sm text-muted-foreground">{subtitle}</p>
       </div>
       {children}

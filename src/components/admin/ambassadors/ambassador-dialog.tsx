@@ -43,7 +43,7 @@ export function AmbassadorDialog({ initial, onClose }: { initial: AmbassadorForm
                 referralCode: v.referralCode,
               });
               if (!res.ok) return setError(res.error);
-              toast.success(v.id ? "Ambassador saved" : `${v.name} added · code ${res.code}`);
+              toast.success(v.id ? "Saved" : `Added · ${res.code}`);
               onClose();
             });
           }}

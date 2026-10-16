@@ -81,7 +81,7 @@ export function MatchDialog({
             startTransition(async () => {
               const res = await saveMatch({ ...v, leagueId });
               if (!res.ok) return setError(res.error);
-              toast.success(v.id ? "Match saved" : "Fixture added");
+              toast.success(v.id ? "Saved" : "Added");
               onClose();
             });
           }}

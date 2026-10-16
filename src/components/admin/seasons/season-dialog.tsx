@@ -61,7 +61,7 @@ export function SeasonDialog({
             startTransition(async () => {
               const res = await saveSeason(v);
               if (!res.ok) return setError(res.error);
-              toast.success(v.id ? "Season saved" : `${v.name} created`);
+              toast.success(v.id ? "Saved" : "Created");
               onOpenChange(false);
             });
           }}

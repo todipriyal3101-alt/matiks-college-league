@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2Icon, UsersIcon } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { FormProvider, useForm, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
@@ -9,6 +10,7 @@ import { toast } from "sonner";
 import { restoreRegistrations, setReviewStatus, setStage } from "@/app/admin/(panel)/overview-actions";
 import { EmptyState } from "@/components/league/empty-state";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { RegistrationDetail } from "@/lib/data/league-ops";
 import { REVIEW_LABELS, STAGE_LABELS, type ReviewStatus, type Stage } from "@/lib/league";
 import {
@@ -22,10 +24,13 @@ import { adminEditorSchema, editorSchema } from "@/lib/validation/league-ops";
 
 import { ActivityTimeline } from "./activity-timeline";
 import { ContactsSection } from "./contacts-section";
-import { EditorHeader } from "./editor-header";
+import { EditorTopBar, OverviewPanel } from "./editor-header";
+import { PocChecklist } from "./poc-checklist";
 import { toFormValues, type EditorFormValues } from "./form-values";
-import { SectionHeader } from "./section-header";
-import { WinnersSection, type WinnerStatus } from "./winners-section";
+import { MarkPaidDialog, WinnersSection, type WinnerStatus } from "./winners-section";
+
+export const EDITOR_TABS = ["overview", "contacts", "winners", "participants", "activity"] as const;
+export type EditorTab = (typeof EDITOR_TABS)[number];
 
 type Overrides = {
   reviewStatus?: ReviewStatus;
@@ -68,6 +73,20 @@ export function CollegeEditor({
 
   // Optimistic toggle state; cleared whenever fresh data arrives from the server.
   const [overrides, setOverrides] = useState<Overrides>(NO_OVERRIDES);
+  const [payFor, setPayFor] = useState<string | null>(null);
+
+  // The tab lives in the URL (?tab=winners) so links and the POC checklist can open it directly. Switching uses
+  // history.replaceState: instant, no server round trip (Next keeps useSearchParams in sync).
+  const searchParams = useSearchParams();
+  const urlTab = searchParams.get("tab");
+  const tab: EditorTab = (EDITOR_TABS as readonly string[]).includes(urlTab ?? "") ? (urlTab as EditorTab) : "overview";
+  function openTab(next: EditorTab) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === "overview") params.delete("tab");
+    else params.set("tab", next);
+    const qs = params.toString();
+    window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
+  }
   const [seen, setSeen] = useState(serverDetail);
   if (seen !== serverDetail) {
     setSeen(serverDetail);
@@ -102,11 +121,13 @@ export function CollegeEditor({
         toast.success("Saved");
       }),
     () => {
-      // Errors can be in a collapsed winner row or off-screen: say so and jump to the first one.
-      toast.error("Some details need fixing before you can save.");
-      requestAnimationFrame(() =>
-        document.querySelector<HTMLElement>("[data-invalid=true] input, [data-invalid=true] textarea")?.focus(),
-      );
+      // The first error may be in another tab or a collapsed winner row: open that tab, then focus it.
+      const first = document.querySelector<HTMLElement>("[data-invalid=true] input, [data-invalid=true] textarea");
+      const panel = first?.closest<HTMLElement>("[data-editor-tab]")?.dataset.editorTab as EditorTab | undefined;
+      if (panel) openTab(panel);
+      toast.error("Fix the highlighted fields");
+      // Focus once the tab switch has rendered (a hidden panel can't take focus).
+      setTimeout(() => first?.focus(), 80);
     },
   );
 
@@ -139,7 +160,7 @@ export function CollegeEditor({
         return;
       }
       const label = patch.reviewStatus ? REVIEW_LABELS[patch.reviewStatus] : STAGE_LABELS[patch.stage!];
-      undoToast(`${patch.reviewStatus ? "Review" : "Stage"} → ${label}`, () => restoreRegistrations(res.previous));
+      undoToast(label, () => restoreRegistrations(res.previous));
     });
   }
 
@@ -165,7 +186,7 @@ export function CollegeEditor({
     if (!res.ok) return res.error;
     setWinnerOverride(winnerId, { paid: true, reference: utr.toUpperCase() });
     const w = detail.winners.find((x) => x.id === winnerId);
-    undoToast(`${w?.position ?? "Winner"} marked paid`, () => restoreWinnerPayment(winnerId, res.previous));
+    undoToast(`${w?.position ?? "Winner"} paid`, () => restoreWinnerPayment(winnerId, res.previous));
     return null;
   }
 
@@ -179,7 +200,7 @@ export function CollegeEditor({
         toast.error(res.error);
         return;
       }
-      undoToast("Marked unpaid", () => restoreWinnerPayment(winnerId, res.previous));
+      undoToast("Unpaid", () => restoreWinnerPayment(winnerId, res.previous));
     });
   }
 
@@ -194,9 +215,18 @@ export function CollegeEditor({
         toast.error(res.error);
         return;
       }
-      undoToast(sent ? "Merch marked sent" : "Merch marked not sent", () => setMerchSent(target, id, !sent));
+      undoToast(sent ? "Merch sent" : "Merch not sent", () => setMerchSent(target, id, !sent));
     });
   }
+
+  const unpaid = detail.winners
+    .filter((w) => !winnerStatus(w.id).paid)
+    .map((w) => ({ id: w.id, label: [w.position, w.name].filter(Boolean).join(" · ") }));
+  const counts: Partial<Record<EditorTab, number>> = {
+    contacts: detail.contacts.length,
+    winners: detail.winners.length,
+    participants: detail.participants.length,
+  };
 
   return (
     <FormProvider {...form}>
@@ -205,49 +235,65 @@ export function CollegeEditor({
           e.preventDefault();
           void save();
         }}
-        className={isDirty ? "space-y-10 pb-24" : "space-y-10"}
+        className={isDirty ? "space-y-5 pb-24" : "space-y-5"}
       >
-        <EditorHeader
+        <EditorTopBar
           detail={detail}
           mode={mode}
           readOnly={readOnly}
           reviewStatus={reviewStatus}
           stage={stage}
+          unpaid={unpaid}
           onReviewStatus={(s) => changeRegistration({ reviewStatus: s })}
           onStage={(s) => changeRegistration({ stage: s })}
+          onMarkPaid={setPayFor}
         />
 
-        <ContactsSection
-          saved={detail.contacts}
-          isAdmin={isAdmin}
-          readOnly={readOnly}
-          merchSent={(id) => overrides.contacts[id] ?? detail.contacts.find((c) => c.id === id)?.merch_sent ?? false}
-          onMerchSent={(id, sent) => onMerch("contact", id, sent)}
-        />
+        {!isAdmin && !readOnly && <PocChecklist detail={detail} stage={stage} status={winnerStatus} onOpen={openTab} />}
 
-        <WinnersSection
-          saved={detail.winners}
-          isAdmin={isAdmin}
-          readOnly={readOnly}
-          status={winnerStatus}
-          onMarkPaid={onMarkPaid}
-          onMarkUnpaid={onMarkUnpaid}
-          onMerchSent={(id, sent) => onMerch("winner", id, sent)}
-        />
+        <Tabs id="editor-tabs" value={tab} onValueChange={(v) => openTab(v as EditorTab)} className="scroll-mt-40">
+          <div className="-mx-4 overflow-x-auto px-4 pb-1.5 sm:mx-0 sm:px-0">
+            <TabsList variant="line" className="h-11 w-max min-w-full justify-start border-b border-border/60 sm:min-w-0 sm:border-0">
+              {EDITOR_TABS.map((t) => (
+                <TabsTrigger key={t} value={t} className="h-10 flex-none px-3 capitalize">
+                  {t}
+                  {counts[t] !== undefined && <span className="font-mono text-xs text-muted-foreground">{counts[t]}</span>}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
 
-        <div className="grid gap-10 lg:grid-cols-2">
-          <section>
-            <SectionHeader title="Participants" subtitle={`${detail.participants.length} registered players`} />
+          {/* Panels stay mounted (hidden when inactive) so unsaved edits and their errors survive tab switches. */}
+          <TabsContent forceMount value="overview" data-editor-tab="overview" className="fade-in pt-4 data-[state=inactive]:hidden">
+            <OverviewPanel mode={mode} readOnly={readOnly} participantCount={detail.registration.participant_count} />
+          </TabsContent>
+          <TabsContent forceMount value="contacts" data-editor-tab="contacts" className="fade-in pt-4 data-[state=inactive]:hidden">
+            <ContactsSection
+              saved={detail.contacts}
+              isAdmin={isAdmin}
+              readOnly={readOnly}
+              merchSent={(id) => overrides.contacts[id] ?? detail.contacts.find((c) => c.id === id)?.merch_sent ?? false}
+              onMerchSent={(id, sent) => onMerch("contact", id, sent)}
+            />
+          </TabsContent>
+          <TabsContent forceMount value="winners" data-editor-tab="winners" className="fade-in pt-4 data-[state=inactive]:hidden">
+            <WinnersSection
+              saved={detail.winners}
+              isAdmin={isAdmin}
+              readOnly={readOnly}
+              status={winnerStatus}
+              onRequestPay={setPayFor}
+              onMarkUnpaid={onMarkUnpaid}
+              onMerchSent={(id, sent) => onMerch("winner", id, sent)}
+            />
+          </TabsContent>
+          <TabsContent forceMount value="participants" data-editor-tab="participants" className="fade-in pt-4 data-[state=inactive]:hidden">
             {detail.participants.length === 0 ? (
-              <EmptyState
-                icon={UsersIcon}
-                title="No players listed"
-                description={isAdmin ? "Players added on the registration form appear here." : "Teammates you added when registering appear here."}
-              />
+              <EmptyState icon={UsersIcon} title="No players yet" description="Teammates added when registering show up here." />
             ) : (
-              <ul className="divide-y divide-border/60 rounded-xl border bg-card">
+              <ul className="divide-y divide-border/60 rounded-2xl border bg-card">
                 {detail.participants.map((p) => (
-                  <li key={p.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                  <li key={p.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
                     <span className="min-w-0 truncate">{p.name}</span>
                     <span className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
                       {p.year && <span>{p.year}</span>}
@@ -257,21 +303,32 @@ export function CollegeEditor({
                 ))}
               </ul>
             )}
-          </section>
-          <section>
-            <SectionHeader title="Activity" />
+          </TabsContent>
+          <TabsContent forceMount value="activity" data-editor-tab="activity" className="fade-in pt-4 data-[state=inactive]:hidden">
             <ActivityTimeline entries={detail.activity} me={me} mode={mode} adminNames={adminNames} />
-          </section>
-        </div>
+          </TabsContent>
+        </Tabs>
+
+        {isAdmin && (
+          <MarkPaidDialog
+            winner={detail.winners.find((w) => w.id === payFor) ?? null}
+            onClose={() => setPayFor(null)}
+            onConfirm={async (utr) => {
+              const error = await onMarkPaid(payFor!, utr);
+              if (!error) setPayFor(null);
+              return error;
+            }}
+          />
+        )}
 
         {isDirty && !readOnly && (
           <div className="fixed inset-x-0 bottom-0 z-40 border-t border-primary/40 bg-card/95 backdrop-blur">
-            <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
-              <span className="mr-auto text-sm font-medium">Unsaved changes</span>
+            <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <span className="mr-auto text-sm font-semibold">Unsaved changes</span>
               <Button type="button" variant="ghost" onClick={() => form.reset()} disabled={saving}>
                 Discard
               </Button>
-              <Button type="submit" disabled={saving}>
+              <Button type="submit" className="h-10 px-5" disabled={saving}>
                 {saving && <Loader2Icon className="animate-spin" />}
                 Save
               </Button>

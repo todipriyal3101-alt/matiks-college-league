@@ -13,8 +13,8 @@ export default function AmbassadorsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-3xl font-bold">Ambassadors</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Referral links and QR codes for campus ambassadors, and the colleges each one brought in.</p>
+        <h1 className="text-5xl">Ambassadors</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Referral links, QR codes and signups.</p>
       </div>
       <Suspense fallback={<Skeleton className="h-64 w-full rounded-xl" />}>
         <Ambassadors />

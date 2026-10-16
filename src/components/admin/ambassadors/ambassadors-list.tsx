@@ -70,7 +70,7 @@ export function AmbassadorsList({
           description="Add campus ambassadors to give each one a referral link and QR code, and see who brings in colleges."
         />
       ) : (
-        <ul className="divide-y divide-border/60 rounded-xl border bg-card">
+        <ul className="divide-y divide-border/60 rounded-2xl border bg-card">
           {ambassadors.map((a) => {
             const active = activeOverride[a.id] ?? a.active;
             return (

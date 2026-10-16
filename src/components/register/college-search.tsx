@@ -83,7 +83,7 @@ export function CollegeSearch({
       </div>
 
       {showResults && searched && (
-        <ul className="divide-y overflow-hidden rounded-xl border bg-card">
+        <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
           {results.length === 0 && !loading && (
             <li className="px-3 py-3 text-sm text-muted-foreground">No matching colleges yet.</li>
           )}

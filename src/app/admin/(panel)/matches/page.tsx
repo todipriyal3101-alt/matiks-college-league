@@ -14,8 +14,8 @@ export default function MatchesPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-3xl font-bold">Matches</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Fixtures and results for the selected season. Shown publicly at /fixtures.</p>
+        <h1 className="text-5xl">Matches</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Public at /fixtures.</p>
       </div>
       <Suspense fallback={<Skeleton className="h-64 w-full rounded-xl" />}>
         <Matches />

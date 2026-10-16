@@ -52,7 +52,7 @@ export function SeasonsList({ seasons, isWriter }: { seasons: Season[]; isWriter
         toast.error(res.error);
         return;
       }
-      toast.success(`${s.name}: registration ${open ? "opened" : "closed"}`, {
+      toast.success(open ? "Registration open" : "Registration closed", {
         action: { label: "Undo", onClick: () => toggleOpen(s, !open) },
       });
     });
@@ -82,7 +82,7 @@ export function SeasonsList({ seasons, isWriter }: { seasons: Season[]; isWriter
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-xs tracking-wider text-muted-foreground uppercase">Season {s.season}</p>
-                    <h2 className="font-display text-xl font-bold">{s.name}</h2>
+                    <h2 className="text-3xl">{s.name}</h2>
                     <p className="font-mono text-xs text-muted-foreground">/{s.slug}</p>
                   </div>
                   <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium capitalize", STATUS_STYLE[s.status])}>{s.status}</span>

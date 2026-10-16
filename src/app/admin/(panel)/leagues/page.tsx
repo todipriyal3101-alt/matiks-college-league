@@ -12,8 +12,8 @@ export default function SeasonsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-3xl font-bold">Seasons</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Create seasons, set dates and caps, and open or close registration.</p>
+        <h1 className="text-5xl">Seasons</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Dates, caps and registration.</p>
       </div>
       <Suspense fallback={<Skeleton className="h-64 w-full rounded-xl" />}>
         <Seasons />

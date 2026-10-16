@@ -32,8 +32,8 @@ function SidebarLinks({ pathname }: { pathname: string | null }) {
           key={href}
           href={href}
           className={cn(
-            "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground",
-            pathname && isActive(pathname, href) && "bg-accent font-medium text-foreground",
+            "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground",
+            pathname && isActive(pathname, href) && "bg-sidebar-accent font-semibold text-foreground [&_svg]:text-primary",
           )}
         >
           <Icon className="size-4" />

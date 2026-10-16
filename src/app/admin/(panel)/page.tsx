@@ -60,13 +60,11 @@ async function Overview({ searchParams }: Pick<PageProps<"/admin">, "searchParam
   const visible = filterOverview(rows, filters);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl font-bold">League Overview</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {league.name} · colleges, prize pools and payout progress.
-          </p>
+          <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">{league.name}</p>
+          <h1 className="text-5xl">Overview</h1>
         </div>
         {isWriter && (
           <div className="flex gap-2">
@@ -105,19 +103,20 @@ async function Overview({ searchParams }: Pick<PageProps<"/admin">, "searchParam
       ) : rows.length === 0 ? (
         <EmptyState
           icon={BuildingIcon}
-          title="No colleges registered yet"
-          description={
-            isWriter
-              ? "Share the registration link (/register) on your channels, or add a college yourself."
-              : "Colleges appear here as soon as they register."
-          }
+          title="No colleges yet"
+          description={isWriter ? "Share /register or add a college." : "Colleges show up as they register."}
           action={isWriter ? <AddCollegeDialog leagueId={league.id} leagueName={league.name} /> : undefined}
         />
       ) : (
         <section className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <QuickFilter href="/admin" active={filters.review === "all"} label="All" count={rows.length} />
+            <QuickFilter href="/admin?review=pending" active={filters.review === "pending"} label="Pending review" count={stats.pendingReview} highlight />
+            <QuickFilter href="/admin?review=approved" active={filters.review === "approved"} label="Approved" count={stats.approved} />
+          </div>
           <OverviewFilters filters={filters} sources={overviewSources(rows)} />
           <p className="text-xs text-muted-foreground">
-            Showing {visible.length} of {rows.length} colleges
+            {visible.length} of {rows.length}
           </p>
           <OverviewTable rows={visible} isWriter={isWriter} pocEmails={pocEmails} />
         </section>
@@ -126,12 +125,26 @@ async function Overview({ searchParams }: Pick<PageProps<"/admin">, "searchParam
   );
 }
 
+/** One-tap review filters (the most used is Pending review). */
+function QuickFilter({ href, active, label, count, highlight }: { href: string; active: boolean; label: string; count: number; highlight?: boolean }) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={`inline-flex h-9 items-center gap-2 rounded-full border px-3.5 text-sm font-semibold transition-colors ${active ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card hover:bg-muted"}`}
+    >
+      {label}
+      <span className={`font-mono text-xs ${active ? "" : highlight && count ? "text-status-pending-fg" : "text-muted-foreground"}`}>{count}</span>
+    </Link>
+  );
+}
+
 function TabLink({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
   return (
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`-mb-px border-b-2 px-3 py-2 text-sm ${active ? "border-primary font-medium text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+      className={`-mb-px border-b-2 px-3 py-2 text-sm font-semibold ${active ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
     >
       {children}
     </Link>
@@ -140,7 +153,7 @@ function TabLink({ href, active, children }: { href: string; active: boolean; ch
 
 function OverviewSkeleton() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <Skeleton className="h-9 w-64" />
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         {Array.from({ length: 5 }, (_, i) => (
