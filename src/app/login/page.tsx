@@ -12,6 +12,7 @@ export const metadata: Metadata = { title: "Sign in" };
 const ERRORS: Record<string, string> = {
   link_expired: "That link expired or was already used. Get a new one below.",
   reset_expired: "That reset link expired or was already used. Enter your email to get a new one.",
+  other_browser: "Open the link in the same browser you asked for it from, or get a new link here.",
   auth_failed: "Sign-in failed. Please try again.",
 };
 

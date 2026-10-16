@@ -42,6 +42,8 @@ export function LoginForm({ next, initialMode = "password" }: { next?: string; i
 
   const passwordLogin = () =>
     run("password", async () => {
+      if (!EMAIL_RE.test(email.trim())) return "Enter a valid email address.";
+      if (!password) return "Enter your password.";
       const { error } = await createClient().auth.signInWithPassword({ email: email.trim(), password });
       if (error) return error.message === "Invalid login credentials" ? "Wrong email or password." : friendly(error.message);
       // Full navigation so src/proxy.ts and the role routing see the new session cookies.
@@ -55,6 +57,7 @@ export function LoginForm({ next, initialMode = "password" }: { next?: string; i
   const magicLink = () =>
     run("magic", async () => {
       if (!email.trim()) return "Enter your email first.";
+      if (!EMAIL_RE.test(email.trim())) return "Enter a valid email address.";
       const { error } = await createClient().auth.signInWithOtp({
         email: email.trim(),
         options: { shouldCreateUser: false, emailRedirectTo: callback() },
@@ -103,6 +106,8 @@ export function LoginForm({ next, initialMode = "password" }: { next?: string; i
 
   return (
     <form
+      // Our own checks show friendly inline messages instead of the browser's bubbles.
+      noValidate
       onSubmit={(e) => {
         e.preventDefault();
         void (mode === "password" ? passwordLogin() : resetPassword());

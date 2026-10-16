@@ -31,8 +31,13 @@ export async function GET(request: NextRequest) {
   const next = type === "recovery" ? "/reset-password" : safeNext(searchParams.get("next"), "/auth/continue");
   if (error) {
     console.error("auth/callback:", error.message);
-    // A dead reset link goes back to "Forgot password" with its own message.
-    const reason = next === "/reset-password" ? "reset_expired" : "link_expired";
+    // A dead reset link goes back to "Forgot password" with its own message. A link opened in another
+    // browser than the one that asked for it (PKCE) isn't expired: say so.
+    const reason = /code verifier/i.test(error.message)
+      ? "other_browser"
+      : next === "/reset-password"
+        ? "reset_expired"
+        : "link_expired";
     return NextResponse.redirect(new URL(`/login?error=${reason}`, origin));
   }
 
