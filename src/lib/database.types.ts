@@ -13,6 +13,59 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      activity_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          created_at: string
+          entity: string
+          entity_id: string
+          field: string | null
+          id: number
+          meta: Json | null
+          new_value: string | null
+          old_value: string | null
+          registration_id: string
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          entity: string
+          entity_id: string
+          field?: string | null
+          id?: never
+          meta?: Json | null
+          new_value?: string | null
+          old_value?: string | null
+          registration_id: string
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          entity?: string
+          entity_id?: string
+          field?: string | null
+          id?: never
+          meta?: Json | null
+          new_value?: string | null
+          old_value?: string | null
+          registration_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_log_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_profiles: {
         Row: {
           created_at: string
@@ -84,6 +137,38 @@ export type Database = {
           },
         ]
       }
+      college_access: {
+        Row: {
+          created_at: string
+          invited_by: string | null
+          registration_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          invited_by?: string | null
+          registration_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          invited_by?: string | null
+          registration_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "college_access_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       colleges: {
         Row: {
           city: string | null
@@ -126,41 +211,62 @@ export type Database = {
       }
       contacts: {
         Row: {
+          address: string | null
           course: string | null
           created_at: string
           email: string
           id: string
+          is_primary: boolean
           matiks_username: string | null
+          merch_description: string | null
+          merch_sent: boolean
+          merch_sent_at: string | null
           name: string
           phone: string | null
+          pincode: string | null
           registration_id: string
           role: Database["public"]["Enums"]["contact_role"]
+          tshirt_size: Database["public"]["Enums"]["tshirt_size"] | null
           updated_at: string
           year: string | null
         }
         Insert: {
+          address?: string | null
           course?: string | null
           created_at?: string
           email: string
           id?: string
+          is_primary?: boolean
           matiks_username?: string | null
+          merch_description?: string | null
+          merch_sent?: boolean
+          merch_sent_at?: string | null
           name: string
           phone?: string | null
+          pincode?: string | null
           registration_id: string
           role?: Database["public"]["Enums"]["contact_role"]
+          tshirt_size?: Database["public"]["Enums"]["tshirt_size"] | null
           updated_at?: string
           year?: string | null
         }
         Update: {
+          address?: string | null
           course?: string | null
           created_at?: string
           email?: string
           id?: string
+          is_primary?: boolean
           matiks_username?: string | null
+          merch_description?: string | null
+          merch_sent?: boolean
+          merch_sent_at?: string | null
           name?: string
           phone?: string | null
+          pincode?: string | null
           registration_id?: string
           role?: Database["public"]["Enums"]["contact_role"]
+          tshirt_size?: Database["public"]["Enums"]["tshirt_size"] | null
           updated_at?: string
           year?: string | null
         }
@@ -338,10 +444,13 @@ export type Database = {
           created_at: string
           id: string
           league_id: string
+          participant_count: number
           poc_email: string
+          prize_pool_override: number | null
           referral_code: string | null
           reviewed_at: string | null
           reviewed_by: string | null
+          stage: Database["public"]["Enums"]["registration_stage"]
           status: Database["public"]["Enums"]["registration_status"]
           team_name: string | null
           updated_at: string
@@ -356,10 +465,13 @@ export type Database = {
           created_at?: string
           id?: string
           league_id: string
+          participant_count?: number
           poc_email: string
+          prize_pool_override?: number | null
           referral_code?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          stage?: Database["public"]["Enums"]["registration_stage"]
           status?: Database["public"]["Enums"]["registration_status"]
           team_name?: string | null
           updated_at?: string
@@ -374,10 +486,13 @@ export type Database = {
           created_at?: string
           id?: string
           league_id?: string
+          participant_count?: number
           poc_email?: string
+          prize_pool_override?: number | null
           referral_code?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          stage?: Database["public"]["Enums"]["registration_stage"]
           status?: Database["public"]["Enums"]["registration_status"]
           team_name?: string | null
           updated_at?: string
@@ -403,14 +518,152 @@ export type Database = {
           },
         ]
       }
+      winners: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string | null
+          id: string
+          matiks_username: string | null
+          merch_description: string | null
+          merch_sent: boolean
+          merch_sent_at: string | null
+          name: string | null
+          paid_at: string | null
+          payment_reference: string | null
+          payment_status: Database["public"]["Enums"]["payment_status"]
+          phone: string | null
+          pincode: string | null
+          position: string
+          prize_amount: number
+          prize_type: Database["public"]["Enums"]["prize_type"]
+          registration_id: string
+          tshirt_size: Database["public"]["Enums"]["tshirt_size"] | null
+          updated_at: string
+          upi_id: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          matiks_username?: string | null
+          merch_description?: string | null
+          merch_sent?: boolean
+          merch_sent_at?: string | null
+          name?: string | null
+          paid_at?: string | null
+          payment_reference?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          phone?: string | null
+          pincode?: string | null
+          position: string
+          prize_amount?: number
+          prize_type?: Database["public"]["Enums"]["prize_type"]
+          registration_id: string
+          tshirt_size?: Database["public"]["Enums"]["tshirt_size"] | null
+          updated_at?: string
+          upi_id?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          matiks_username?: string | null
+          merch_description?: string | null
+          merch_sent?: boolean
+          merch_sent_at?: string | null
+          name?: string | null
+          paid_at?: string | null
+          payment_reference?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          phone?: string | null
+          pincode?: string | null
+          position?: string
+          prize_amount?: number
+          prize_type?: Database["public"]["Enums"]["prize_type"]
+          registration_id?: string
+          tshirt_size?: Database["public"]["Enums"]["tshirt_size"] | null
+          updated_at?: string
+          upi_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "winners_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      registration_overview: {
+        Row: {
+          auto_prize_pool: number | null
+          city: string | null
+          college_id: string | null
+          college_name: string | null
+          contacts_merch_sent: number | null
+          contacts_total: number | null
+          created_at: string | null
+          league_id: string | null
+          participant_count: number | null
+          primary_poc_name: string | null
+          prize_paid_amount: number | null
+          prize_pool: number | null
+          prize_pool_override: number | null
+          referral_code: string | null
+          registration_id: string | null
+          review_status: Database["public"]["Enums"]["registration_status"] | null
+          stage: Database["public"]["Enums"]["registration_stage"] | null
+          state: string | null
+          team_name: string | null
+          updated_at: string | null
+          utm_source: string | null
+          winners_paid: number | null
+          winners_total: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registrations_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registrations_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      calc_prize_pool: { Args: { p_count: number }; Returns: number }
+      find_user_id_by_email: { Args: { p_email: string }; Returns: string }
       is_admin: { Args: never; Returns: boolean }
       is_admin_writer: { Args: never; Returns: boolean }
+      is_non_admin_user: { Args: never; Returns: boolean }
       is_registration_poc: { Args: { reg_id: string }; Returns: boolean }
+      log_activity: {
+        Args: {
+          p_action: string
+          p_entity: string
+          p_entity_id: string
+          p_field: string
+          p_meta: Json
+          p_new: string
+          p_old: string
+          p_registration_id: string
+        }
+        Returns: undefined
+      }
       register_college: {
         Args: {
           p_college_city?: string
@@ -443,7 +696,15 @@ export type Database = {
         | "other"
       contact_role: "poc" | "captain" | "faculty"
       league_status: "draft" | "upcoming" | "live" | "completed"
+      payment_status: "pending" | "paid"
+      prize_type: "cash" | "cash_plus_merch" | "merch_only"
+      registration_stage:
+        | "registration_phase"
+        | "live"
+        | "ended_prize_pending"
+        | "ended_prize_sent"
       registration_status: "pending" | "approved" | "waitlisted" | "rejected"
+      tshirt_size: "XS" | "S" | "M" | "L" | "XL" | "XXL"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -566,7 +827,16 @@ export const Constants = {
       ],
       contact_role: ["poc", "captain", "faculty"],
       league_status: ["draft", "upcoming", "live", "completed"],
+      payment_status: ["pending", "paid"],
+      prize_type: ["cash", "cash_plus_merch", "merch_only"],
+      registration_stage: [
+        "registration_phase",
+        "live",
+        "ended_prize_pending",
+        "ended_prize_sent",
+      ],
       registration_status: ["pending", "approved", "waitlisted", "rejected"],
+      tshirt_size: ["XS", "S", "M", "L", "XL", "XXL"],
     },
   },
 } as const
