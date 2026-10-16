@@ -53,9 +53,12 @@ export function OverviewTable({
   rows,
   isWriter,
   pocEmails,
+  matches = {},
 }: {
   rows: OverviewRow[];
   isWriter: boolean;
+  /** registration id → winners/contacts that matched the search. */
+  matches?: Record<string, string[]>;
   /** registration id → the email the college registered with (admin-only data). */
   pocEmails: Record<string, string>;
 }) {
@@ -66,7 +69,12 @@ export function OverviewTable({
     setSeenRows(rows);
     setOverrides([]);
   }
-  const optimisticRows = useMemo(() => overrides.reduce(applyPatch, rows), [rows, overrides]);
+  // Deleted rows disappear at once, before the refreshed server rows arrive.
+  const [removed, setRemoved] = useState<string[]>([]);
+  const optimisticRows = useMemo(
+    () => overrides.reduce(applyPatch, rows).filter((r) => !removed.includes(r.registration_id!)),
+    [rows, overrides, removed],
+  );
   const router = useRouter();
   const [selection, setSelection] = useState<RowSelectionState>({});
   const [bulkApprove, setBulkApprove] = useState(false);
@@ -96,6 +104,11 @@ export function OverviewTable({
         },
       });
     });
+  }
+
+  function remove(id: string) {
+    setRemoved((ids) => [...ids, id]);
+    setSelection((sel) => Object.fromEntries(Object.entries(sel).filter(([key]) => key !== id)));
   }
 
   const columns: ColumnDef<OverviewRow>[] = [
@@ -129,6 +142,7 @@ export function OverviewTable({
             {r.college_name}
           </Link>
           <div className="text-xs text-muted-foreground">{[r.city, r.state].filter(Boolean).join(", ")}</div>
+          <PeopleMatch names={matches[r.registration_id!]} />
         </div>
       ),
     },
@@ -178,6 +192,7 @@ export function OverviewTable({
             pocEmail={pocEmails[r.registration_id!] ?? ""}
             isWriter={isWriter}
             onReview={(status) => change({ ids: [r.registration_id!], status })}
+            onDeleted={() => remove(r.registration_id!)}
           />
         </div>
       ),
@@ -299,6 +314,7 @@ export function OverviewTable({
                   <div className="text-xs text-muted-foreground">
                     {[r.city, r.state].filter(Boolean).join(", ")} · {r.primary_poc_name ?? "no POC"}
                   </div>
+                  <PeopleMatch names={matches[r.registration_id!]} />
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     <ReviewBadge status={r.review_status!} />
                     <StageBadge stage={r.stage!} />
@@ -311,6 +327,7 @@ export function OverviewTable({
                   pocEmail={pocEmails[r.registration_id!] ?? ""}
                   isWriter={isWriter}
                   onReview={(status) => change({ ids: [r.registration_id!], status })}
+                  onDeleted={() => remove(r.registration_id!)}
                 />
               </div>
               <dl className="mt-3 grid grid-cols-3 gap-2 border-t border-border/60 pt-3 text-xs">
@@ -331,6 +348,11 @@ export function OverviewTable({
       </ul>
     </div>
   );
+}
+
+function PeopleMatch({ names }: { names?: string[] }) {
+  if (!names?.length) return null;
+  return <div className="mt-0.5 text-xs text-primary">Matches {names.join(", ")}</div>;
 }
 
 function applyPatch(rows: OverviewRow[], patch: Patch): OverviewRow[] {

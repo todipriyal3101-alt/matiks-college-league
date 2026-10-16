@@ -7,6 +7,7 @@ import {
   LinkIcon,
   MoreHorizontalIcon,
   Settings2Icon,
+  Share2Icon,
   Trash2Icon,
   XIcon,
 } from "lucide-react";
@@ -36,6 +37,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import type { ReviewStatus } from "@/lib/league";
+import { absoluteUrl, copyLink, shareLink } from "@/lib/share";
 
 export function RowActions({
   registrationId,
@@ -44,6 +46,7 @@ export function RowActions({
   pocEmail,
   isWriter,
   onReview,
+  onDeleted,
 }: {
   registrationId: string;
   collegeName: string;
@@ -51,39 +54,30 @@ export function RowActions({
   pocEmail: string;
   isWriter: boolean;
   onReview: (status: ReviewStatus) => void;
+  onDeleted?: () => void;
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [invite, setInvite] = useState<"invite" | "approve" | null>(null);
   const href = `/admin/colleges/${registrationId}`;
 
-  async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(new URL(href, window.location.origin).toString());
-      toast.success("Copied");
-    } catch {
-      toast.error("Couldn't copy the link.");
-    }
-  }
-
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="size-8" aria-label={`Actions for ${collegeName}`}>
+          <Button variant="outline" size="icon" className="size-9 shrink-0" aria-label={`Actions for ${collegeName}`}>
             <MoreHorizontalIcon />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuItem asChild>
             <Link href={href}>
               <Settings2Icon /> Manage
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={copyLink}>
-            <LinkIcon /> Copy link
-          </DropdownMenuItem>
+          {/* Viewers see Manage only. */}
           {isWriter && (
             <>
+              <CollegeShareItems registrationId={registrationId} collegeName={collegeName} />
               <DropdownMenuSeparator />
               {/* The current status is shown disabled rather than hidden. */}
               {/* Approving goes through the invite dialog (it also offers "Approve only"): sign-ups are off,
@@ -129,8 +123,23 @@ export function RowActions({
           onOpenChange={setConfirmOpen}
           registrationId={registrationId}
           collegeName={collegeName}
+          onDeleted={onDeleted}
         />
       )}
+    </>
+  );
+}
+
+/** "Share" (the college's admin link: share sheet on phones, else copy) and "Share registration link". */
+export function CollegeShareItems({ registrationId, collegeName }: { registrationId: string; collegeName: string }) {
+  return (
+    <>
+      <DropdownMenuItem onSelect={() => void shareLink(absoluteUrl(`/admin/colleges/${registrationId}`), collegeName)}>
+        <Share2Icon /> Share
+      </DropdownMenuItem>
+      <DropdownMenuItem onSelect={() => void copyLink(absoluteUrl("/register"))}>
+        <LinkIcon /> Share registration link
+      </DropdownMenuItem>
     </>
   );
 }
@@ -194,7 +203,7 @@ export function DeleteRegistrationDialog({
                   toast.error(res.error);
                   return;
                 }
-                toast.success("Deleted");
+                toast.success(`Deleted · ${collegeName}`);
                 onOpenChange(false);
                 onDeleted?.();
               });

@@ -5,7 +5,6 @@ import {
   BanknoteIcon,
   CheckIcon,
   GitMergeIcon,
-  LinkIcon,
   MailPlusIcon,
   MoreHorizontalIcon,
   Trash2Icon,
@@ -13,10 +12,9 @@ import {
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
-import { toast } from "sonner";
 
 import { InvitePocDialog } from "@/components/admin/overview/invite-poc-dialog";
-import { DeleteRegistrationDialog } from "@/components/admin/overview/row-actions";
+import { CollegeShareItems, DeleteRegistrationDialog } from "@/components/admin/overview/row-actions";
 import { ReviewBadge, StageBadge } from "@/components/league/badges";
 import { Money } from "@/components/league/money";
 import { Button } from "@/components/ui/button";
@@ -257,18 +255,8 @@ function AdminMenu({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem
-            onSelect={async () => {
-              try {
-                await navigator.clipboard.writeText(window.location.href);
-                toast.success("Copied");
-              } catch {
-                toast.error("Couldn't copy the link.");
-              }
-            }}
-          >
-            <LinkIcon /> Copy link
-          </DropdownMenuItem>
+          <CollegeShareItems registrationId={registrationId} collegeName={collegeName} />
+          <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={onInvite}>
             <MailPlusIcon /> Invite POC
           </DropdownMenuItem>
