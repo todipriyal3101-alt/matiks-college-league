@@ -10,7 +10,7 @@ import { sendLater, statusChangedEmail } from "@/lib/email";
 import { REVIEW_STATUSES, STAGES, type ReviewStatus, type Stage } from "@/lib/league";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { COLLEGE_TYPES } from "@/lib/validation/registration";
+import { addCollegeSchema, type AddCollegeInput } from "@/lib/validation/league-ops";
 
 // League Overview actions. Writes use the admin's own session (RLS + activity log record who did it);
 // only register_college needs the service role.
@@ -132,39 +132,16 @@ export async function deleteRegistration(registrationId: string, typedName: stri
   return { ok: true };
 }
 
-const addCollegeSchema = z
-  .object({
-    leagueId: z.uuid(),
-    collegeId: z.uuid().nullable(),
-    newCollege: z
-      .object({
-        name: z.string().trim().min(3, "Enter the college's full name").max(200),
-        city: z.string().trim().min(1, "City is required").max(80),
-        state: z.string().trim().min(1, "State is required").max(80),
-        type: z.enum(COLLEGE_TYPES),
-      })
-      .nullable(),
-    /** Email the POC an invite (default). Sign-ups are off, so without one the POC can't log in. */
-    invitePoc: z.boolean().default(true),
-    poc: z.object({
-      name: z.string().trim().min(1, "POC name is required").max(80),
-      email: z.email("Enter a valid email").trim().toLowerCase().max(120),
-      phone: z
-        .string()
-        .trim()
-        .transform((v) => v.replace(/[\s-]/g, "").replace(/^(\+91|0)/, ""))
-        .pipe(z.string().regex(/^[6-9]\d{9}$/, "Enter a 10-digit Indian mobile number")),
-    }),
-  })
-  .refine((v) => v.collegeId || v.newCollege, { message: "Pick a college or add a new one", path: ["collegeId"] });
-
-export type AddCollegeInput = z.input<typeof addCollegeSchema>;
-
 /** "Add college": registers a college for this season (approved) with its primary POC. */
-export async function addCollege(input: AddCollegeInput): Promise<ActionResult<{ registrationId: string; message: string }>> {
+export async function addCollege(
+  input: AddCollegeInput,
+): Promise<ActionResult<{ registrationId: string; message: string }> & { field?: string }> {
   const { profile } = await requireAdminWriter();
   const parsed = addCollegeSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid request." };
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    return { ok: false, error: issue?.message ?? "Invalid request.", field: issue?.path.join(".") };
+  }
   const { leagueId, collegeId, newCollege, poc } = parsed.data;
 
   // register_college is EXECUTE-able by the service role only (migration 0002).
@@ -177,11 +154,13 @@ export async function addCollege(input: AddCollegeInput): Promise<ActionResult<{
           p_college_name: newCollege!.name,
           p_college_city: newCollege!.city,
           p_college_state: newCollege!.state,
-          p_college_type: newCollege!.type,
+          p_college_type: "other",
         }),
   });
   if (error) {
-    if (error.code === "23505") return { ok: false, error: "This college is already registered for this season." };
+    if (error.code === "23505") {
+      return { ok: false, error: "This college is already registered for this season.", field: "collegeId" };
+    }
     console.error("addCollege:", error.code, error.message);
     return { ok: false, error: "Couldn't add the college. Please try again." };
   }
@@ -195,10 +174,10 @@ export async function addCollege(input: AddCollegeInput): Promise<ActionResult<{
   if (approveError) return { ok: false, error: `Added, but approving failed: ${approveError.message}` };
   updateTag(CACHE_TAGS.colleges);
 
-  let message = "Added";
+  let message = "";
   if (parsed.data.invitePoc) {
     const invited = await inviteOne(profile, registrationId, { approve: false });
-    message = invited.ok ? `Added · ${invited.message}` : `Added, but the invite failed: ${invited.error}`;
+    message = invited.ok ? invited.message : `The invite failed: ${invited.error}`;
   }
   refresh();
   return { ok: true, registrationId, message };

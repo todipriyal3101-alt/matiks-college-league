@@ -152,3 +152,31 @@ export function parseOverviewFilters(params: Record<string, string | string[] | 
     sort: pick("sort") ?? "college",
   });
 }
+
+/** Admin "Add college" (overview dialog + addCollege action). */
+export const addCollegeSchema = z
+  .object({
+    leagueId: z.uuid(),
+    collegeId: z.uuid().nullable(),
+    newCollege: z
+      .object({
+        name: z.string().trim().min(3, "Enter the college's full name").max(200),
+        city: z.string().trim().min(1, "City is required").max(80),
+        state: z.string().trim().min(1, "State is required").max(80),
+      })
+      .nullable(),
+    /** Email the POC a portal invite (default). Sign-ups are off, so without one the POC can't log in. */
+    invitePoc: z.boolean().default(true),
+    poc: z.object({
+      name: z.string().trim().min(1, "POC name is required").max(80),
+      phone: z
+        .string()
+        .trim()
+        .transform((v) => v.replace(/[\s-]/g, "").replace(/^(\+91|0)/, ""))
+        .pipe(z.string().regex(/^[6-9]\d{9}$/, "Enter a 10-digit Indian mobile number")),
+      email: z.email("Enter a valid email (needed for the portal invite)").trim().toLowerCase().max(120),
+    }),
+  })
+  .refine((v) => v.collegeId || v.newCollege, { message: "Pick a college or add a new one", path: ["collegeId"] });
+
+export type AddCollegeInput = z.input<typeof addCollegeSchema>;
