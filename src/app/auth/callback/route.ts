@@ -28,11 +28,13 @@ export async function GET(request: NextRequest) {
     error = { message: "missing code" };
   }
 
+  const next = type === "recovery" ? "/reset-password" : safeNext(searchParams.get("next"), "/auth/continue");
   if (error) {
     console.error("auth/callback:", error.message);
-    return NextResponse.redirect(new URL("/login?error=link_expired", origin));
+    // A dead reset link goes back to "Forgot password" with its own message.
+    const reason = next === "/reset-password" ? "reset_expired" : "link_expired";
+    return NextResponse.redirect(new URL(`/login?error=${reason}`, origin));
   }
 
-  const next = type === "recovery" ? "/reset-password" : safeNext(searchParams.get("next"), "/auth/continue");
   return NextResponse.redirect(new URL(next, origin));
 }

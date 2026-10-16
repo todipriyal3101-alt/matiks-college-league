@@ -14,8 +14,17 @@ const GOOGLE_LOGIN_ENABLED = process.env.NEXT_PUBLIC_ENABLE_GOOGLE_LOGIN === "tr
 
 type Mode = "password" | "forgot";
 
-export function LoginForm({ next }: { next?: string }) {
-  const [mode, setMode] = useState<Mode>("password");
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Supabase auth errors in plain words. */
+function friendly(message: string) {
+  if (/rate limit|security purposes|too many/i.test(message)) return "Too many tries. Wait a minute, then try again.";
+  if (/invalid.*email|unable to validate email/i.test(message)) return "Enter a valid email address.";
+  return message;
+}
+
+export function LoginForm({ next, initialMode = "password" }: { next?: string; initialMode?: Mode }) {
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState<"password" | "magic" | "reset" | "google" | null>(null);
@@ -34,7 +43,7 @@ export function LoginForm({ next }: { next?: string }) {
   const passwordLogin = () =>
     run("password", async () => {
       const { error } = await createClient().auth.signInWithPassword({ email: email.trim(), password });
-      if (error) return error.message === "Invalid login credentials" ? "Wrong email or password." : error.message;
+      if (error) return error.message === "Invalid login credentials" ? "Wrong email or password." : friendly(error.message);
       // Full navigation so src/proxy.ts and the role routing see the new session cookies.
       // Full page load on purpose: /auth/continue is a route handler redirect, and the new
       // session cookies must reach the proxy.
@@ -53,7 +62,7 @@ export function LoginForm({ next }: { next?: string }) {
       if (error) {
         return /signups not allowed|not found/i.test(error.message)
           ? "There's no account for this email yet. If you registered a college, you'll get an email invite once it's approved."
-          : error.message;
+          : friendly(error.message);
       }
       setSent(`We've emailed a login link to ${email.trim()}. Open it on any device.`);
       return null;
@@ -61,11 +70,13 @@ export function LoginForm({ next }: { next?: string }) {
 
   const resetPassword = () =>
     run("reset", async () => {
+      if (!EMAIL_RE.test(email.trim())) return "Enter a valid email address.";
       const { error } = await createClient().auth.resetPasswordForEmail(email.trim(), {
         redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
       });
-      if (error) return error.message;
-      setSent(`If ${email.trim()} has an account, a reset link is on its way.`);
+      if (error) return friendly(error.message);
+      // Same message whether or not the account exists, so this form can't be used to probe emails.
+      setSent(`If ${email.trim()} has an account, we've sent a link to choose a new password. It works once and expires in 1 hour.`);
       return null;
     });
 
@@ -81,7 +92,8 @@ export function LoginForm({ next }: { next?: string }) {
         <div className="mx-auto flex size-11 items-center justify-center rounded-xl bg-olive text-primary">
           <MailIcon className="size-5" />
         </div>
-        <p className="text-sm">{sent}</p>
+        <h2 className="text-3xl">Check your email</h2>
+        <p className="text-sm text-muted-foreground">{sent}</p>
         <Button type="button" variant="ghost" size="sm" onClick={() => { setSent(null); setMode("password"); }}>
           <ArrowLeftIcon /> Back to sign in
         </Button>
@@ -104,13 +116,18 @@ export function LoginForm({ next }: { next?: string }) {
         {mode === "password" ? (
           <>
             <Field>
-              <div className="flex items-center justify-between">
-                <FieldLabel htmlFor="password">Password</FieldLabel>
-                <button type="button" className="text-xs text-primary hover:underline" onClick={() => { setMode("forgot"); setError(null); }}>
-                  Forgot password?
-                </button>
-              </div>
+              <FieldLabel htmlFor="password">Password</FieldLabel>
               <Input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} className="h-12" />
+              <button
+                type="button"
+                className="self-end py-1 text-sm font-semibold text-primary underline-offset-4 hover:underline"
+                onClick={() => {
+                  setMode("forgot");
+                  setError(null);
+                }}
+              >
+                Forgot password?
+              </button>
             </Field>
             {error && <FieldError>{error}</FieldError>}
             <Button type="submit" className="h-12" disabled={pending !== null}>
@@ -131,7 +148,7 @@ export function LoginForm({ next }: { next?: string }) {
           </>
         ) : (
           <>
-            <FieldDescription>We&apos;ll email you a link to choose a new password.</FieldDescription>
+            <FieldDescription>Enter your email and we&apos;ll send you a link to choose a new password.</FieldDescription>
             {error && <FieldError>{error}</FieldError>}
             <Button type="submit" className="h-12" disabled={pending !== null}>
               {pending === "reset" && <Loader2Icon className="animate-spin" />}

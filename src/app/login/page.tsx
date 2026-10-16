@@ -11,6 +11,7 @@ export const metadata: Metadata = { title: "Sign in" };
 
 const ERRORS: Record<string, string> = {
   link_expired: "That link expired or was already used. Get a new one below.",
+  reset_expired: "That reset link expired or was already used. Enter your email to get a new one.",
   auth_failed: "Sign-in failed. Please try again.",
 };
 
@@ -25,7 +26,7 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
 }
 
 async function LoginContent({ searchParams }: Pick<PageProps<"/login">, "searchParams">) {
-  const { error, next } = await searchParams;
+  const { error, next, mode } = await searchParams;
   const nextPath = typeof next === "string" ? next : undefined;
 
   // Already signed in: go home (or to `next`).
@@ -41,7 +42,7 @@ async function LoginContent({ searchParams }: Pick<PageProps<"/login">, "searchP
           {message}
         </p>
       )}
-      <LoginForm next={nextPath} />
+      <LoginForm next={nextPath} initialMode={mode === "forgot" || error === "reset_expired" ? "forgot" : "password"} />
       <p className="text-center text-xs text-muted-foreground">
         {nextPath?.startsWith("/college")
           ? "Registered a college? You'll get an email invite once it's approved."
