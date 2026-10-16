@@ -1,19 +1,31 @@
 import { ArrowRightIcon, CalendarDaysIcon, GraduationCapIcon, SwordsIcon, type LucideIcon } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Mascot } from "@/components/league/mascot";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { getActiveLeague } from "@/lib/data/leagues";
+import { BRAND, brandedSeason, seasonShortName } from "@/lib/league";
 
 import { LANDING } from "./content";
 
 const dateFormat = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
 
+export async function generateMetadata(): Promise<Metadata> {
+  const league = await getActiveLeague();
+  return { title: { absolute: brandedSeason(league?.name) } };
+}
+
 // One hero, three fact cards, FAQ collapsed: only what helps someone decide to register.
 export default async function HomePage() {
   const league = await getActiveLeague();
-  const leagueName = league?.name ?? LANDING.fallbackLeagueName;
+  // The headline is always the brand; the season (from the database) is a small label above it.
+  const seasonLabel = league
+    ? [seasonShortName(league.name), league.registration_open ? "Registrations open" : "Registrations closed"]
+        .filter(Boolean)
+        .join(" · ")
+    : null;
   const fmt = (d: string | null | undefined) => (d ? dateFormat.format(new Date(d)) : null);
   const deadline = fmt(league?.registration_deadline);
   // Only dates the season actually has; the card hides when there are none.
@@ -28,8 +40,8 @@ export default async function HomePage() {
       {/* Hero */}
       <section className="grid items-center gap-6 pt-2 sm:grid-cols-[1fr_auto] sm:pt-6">
         <div className="space-y-5 text-center sm:text-left">
-          <p className="text-xs font-bold tracking-[0.2em] text-primary uppercase">Matiks College League</p>
-          <h1 className="text-[64px] sm:text-[112px]">{leagueName}</h1>
+          {seasonLabel && <p className="text-xs font-bold tracking-[0.2em] text-primary uppercase">{seasonLabel}</p>}
+          <h1 className="text-[60px] leading-[0.9] sm:text-[96px]">{BRAND}</h1>
           <p className="mx-auto max-w-md text-lg text-muted-foreground sm:mx-0">{LANDING.tagline}</p>
           <dl className="mx-auto flex max-w-sm justify-center gap-3 sm:mx-0 sm:justify-start">
             <HeroFact label="Prize pool" value={LANDING.prizePool} />

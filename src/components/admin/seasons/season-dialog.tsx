@@ -77,7 +77,7 @@ export function SeasonDialog({
                 <Input
                   id="s-name"
                   value={v.name}
-                  placeholder="Brumble 3.0"
+                  placeholder="Matiks College League – Season 2"
                   onChange={(e) => {
                     set("name", e.target.value);
                     if (!slugTouched) set("slug", slugify(e.target.value));

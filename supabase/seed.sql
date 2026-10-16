@@ -4,7 +4,7 @@
 -- =============================================================
 
 insert into public.leagues (name, slug, season, start_date, end_date, registration_deadline, registration_open, max_colleges, status)
-values ('Brumble 2.0', 'brumble-2', 2, '2026-12-01', '2027-02-28', '2026-11-30 23:59:00+05:30', true, 200, 'upcoming')
+values ('Matiks College League – Season 1', 'mcl-s1', 1, '2026-12-01', '2027-02-28', '2026-11-30 23:59:00+05:30', true, 200, 'upcoming')
 on conflict (slug) do nothing;
 
 insert into public.colleges (name, short_name, city, state, college_type) values

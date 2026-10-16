@@ -5,6 +5,7 @@ import { ImageResponse } from "next/og";
 
 import { LANDING } from "@/app/(public)/content";
 import { getActiveLeague } from "@/lib/data/leagues";
+import { BRAND, seasonShortName } from "@/lib/league";
 
 // Shared Open Graph card (1200×630) for / and /register, in the matiks.com look: #1a1a1a grid, Bebas Neue,
 // lime highlights, the Matiks mascot. League name, prize pool and deadline come from the active league.
@@ -22,7 +23,9 @@ const assets = () =>
 
 export async function leagueOgImage({ eyebrow, cta }: { eyebrow: string; cta: string }) {
   const [league, [bebas, mascot, icon]] = await Promise.all([getActiveLeague(), assets()]);
-  const name = league?.name ?? LANDING.fallbackLeagueName;
+  // Brand first; the season name (from the database) only in the small line above it.
+  const season = seasonShortName(league?.name);
+  const kicker = [season, eyebrow].filter(Boolean).join(" · ");
   const deadline = league?.registration_deadline ? date.format(new Date(league.registration_deadline)) : null;
   const src = (buf: Buffer) => `data:image/png;base64,${buf.toString("base64")}`;
 
@@ -47,11 +50,11 @@ export async function leagueOgImage({ eyebrow, cta }: { eyebrow: string; cta: st
           <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 40, letterSpacing: 1 }}>
             {/* eslint-disable-next-line @next/next/no-img-element -- Satori renders plain img */}
             <img src={src(icon)} width={56} height={56} style={{ borderRadius: 12 }} alt="" />
-            MATIKS COLLEGE LEAGUE
+            MATIKS
           </div>
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <div style={{ fontSize: 40, color: "#b1fa63", letterSpacing: 2 }}>{eyebrow.toUpperCase()}</div>
-            <div style={{ fontSize: 150, lineHeight: 0.95, letterSpacing: 2 }}>{name.toUpperCase()}</div>
+            <div style={{ fontSize: 40, color: "#b1fa63", letterSpacing: 2 }}>{kicker.toUpperCase()}</div>
+            <div style={{ fontSize: 112, lineHeight: 0.92, letterSpacing: 2 }}>{BRAND.toUpperCase()}</div>
             <div style={{ display: "flex", gap: 56, marginTop: 24 }}>
               <Fact label="Prize pool" value={LANDING.prizePool} />
               {deadline && <Fact label="Registration closes" value={deadline} />}

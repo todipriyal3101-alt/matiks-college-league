@@ -8,6 +8,7 @@ import { ShareButtons } from "@/components/register/share-buttons";
 import { Mascot } from "@/components/league/mascot";
 import { Button } from "@/components/ui/button";
 import { getActiveLeague } from "@/lib/data/leagues";
+import { brandedSeason } from "@/lib/league";
 import { siteUrl } from "@/lib/site-url";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -51,8 +52,7 @@ async function SuccessContent({ searchParams }: Pick<PageProps<"/register/succes
     );
   }
 
-  const leagueName = league?.name ?? "Brumble 2.0";
-  const message = `${registration.collegeName} is in ${leagueName}, the 7-day online college league by Matiks. Play it smart. Get your college in:`;
+  const message = `${registration.collegeName} is in ${brandedSeason(league?.name)}, the 7-day online college league by Matiks. Play it smart. Get your college in:`;
 
   return (
     <div className="space-y-6 text-center">

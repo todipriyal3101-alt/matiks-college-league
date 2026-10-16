@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/league/empty-state";
 import { Button } from "@/components/ui/button";
 import { getActiveLeague } from "@/lib/data/leagues";
 import { getApprovedColleges, type WallCollege } from "@/lib/data/wall";
+import { brandedSeason } from "@/lib/league";
 
 export const metadata: Metadata = {
   title: "Colleges",
@@ -22,7 +23,7 @@ export default async function CollegesPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-bold tracking-[0.2em] text-primary uppercase">{league?.name ?? "Matiks College League"}</p>
+          <p className="text-xs font-bold tracking-[0.2em] text-primary uppercase">{brandedSeason(league?.name)}</p>
           <h1 className="text-5xl sm:text-6xl">Colleges</h1>
           {colleges.length > 0 && (
             <p className="mt-1 text-sm text-muted-foreground">

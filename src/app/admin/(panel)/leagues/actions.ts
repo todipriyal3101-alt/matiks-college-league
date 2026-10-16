@@ -21,7 +21,7 @@ const seasonSchema = z
       .string()
       .trim()
       .toLowerCase()
-      .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "Lowercase letters, numbers and dashes, e.g. brumble-3"),
+      .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "Lowercase letters, numbers and dashes, e.g. mcl-s2"),
     season: z.coerce.number().int().min(1).max(1000),
     startDate: date,
     endDate: date,

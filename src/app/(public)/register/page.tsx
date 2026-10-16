@@ -7,8 +7,12 @@ import { RegistrationForm } from "@/components/register/registration-form";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getActiveLeague, isRegistrationOpen } from "@/lib/data/leagues";
+import { brandedSeason } from "@/lib/league";
 
-export const metadata: Metadata = { title: "Register your college" };
+export async function generateMetadata(): Promise<Metadata> {
+  const league = await getActiveLeague();
+  return { title: { absolute: `Register your college · ${brandedSeason(league?.name)}` } };
+}
 
 export default function RegisterPage() {
   return (
@@ -33,7 +37,7 @@ async function RegisterContent() {
         <h2 className="text-3xl">Registrations closed</h2>
         <p className="text-sm text-muted-foreground">
           {league
-            ? `Registrations for ${league.name} aren't open right now.`
+            ? `Registrations for ${brandedSeason(league.name)} aren't open right now.`
             : "There's no league open for registration right now."}{" "}
           Follow{" "}
           <a href="https://www.matiks.com" target="_blank" rel="noopener" className="text-primary underline-offset-4 hover:underline">
@@ -48,7 +52,7 @@ async function RegisterContent() {
     );
   }
 
-  return <RegistrationForm leagueName={league.name} />;
+  return <RegistrationForm leagueName={brandedSeason(league.name)} />;
 }
 
 /** Same shape as step 1, so nothing jumps when the form arrives. */

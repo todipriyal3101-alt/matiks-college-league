@@ -2,7 +2,7 @@
 
 # Matiks College League Portal
 
-Website for Matiks' inter-college mind sports league (Brumble and future seasons).
+Website for Matiks' inter-college mind sports league (one league, run season by season).
 Two panels, one Next.js app, one Supabase database:
 
 - **Student panel (public)** — landing page, 4-step college registration form, success page,

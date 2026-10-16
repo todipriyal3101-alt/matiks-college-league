@@ -3,6 +3,7 @@ import "server-only";
 import { after } from "next/server";
 import { Resend } from "resend";
 
+import { brandedSeason } from "@/lib/league";
 import { siteUrl } from "@/lib/site-url";
 
 // Transactional emails via Resend (PROMPTS Phase 12). Server only.
@@ -95,17 +96,17 @@ const mono = (s: string) => `<span style="font-family:'Space Mono',Menlo,monospa
 export function registrationReceivedEmail(to: string, d: { collegeName: string; leagueName: string; registrationId: string }): Email {
   return {
     to,
-    subject: `We've got ${d.collegeName}'s registration for ${d.leagueName}`,
+    subject: `We've got ${d.collegeName}'s registration for ${brandedSeason(d.leagueName)}`,
     html: layout({
       preheader: "What happens next with your registration.",
       heading: "Registration received 🎉",
       body:
-        p(`Thanks for registering <strong>${esc(d.collegeName)}</strong> for ${esc(d.leagueName)}.`) +
+        p(`Thanks for registering <strong>${esc(d.collegeName)}</strong> for ${esc(brandedSeason(d.leagueName))}.`) +
         p(`Our team reviews every registration. <strong>You'll get an email invite once your college is approved</strong>; it lets you sign in to your college portal and add your team's contacts and, later, your winners.`) +
         p(`${muted("Registration ID")}<br>${mono(d.registrationId)}`),
       cta: { label: "See the colleges in the league", href: `${SITE}/colleges` },
     }),
-    text: `Thanks for registering ${d.collegeName} for ${d.leagueName}.\n\nOur team reviews every registration. You'll get an email invite once your college is approved.\n\nRegistration ID: ${d.registrationId}\n\n${SITE}/colleges`,
+    text: `Thanks for registering ${d.collegeName} for ${brandedSeason(d.leagueName)}.\n\nOur team reviews every registration. You'll get an email invite once your college is approved.\n\nRegistration ID: ${d.registrationId}\n\n${SITE}/colleges`,
   };
 }
 
@@ -135,9 +136,9 @@ export function statusChangedEmail(to: string, d: { collegeName: string; leagueN
     html: layout({
       preheader: copy.line,
       heading: copy.heading,
-      body: p(`<strong>${esc(d.collegeName)}</strong> · ${esc(d.leagueName)}`) + p(copy.line),
+      body: p(`<strong>${esc(d.collegeName)}</strong> · ${esc(brandedSeason(d.leagueName))}`) + p(copy.line),
     }),
-    text: `${d.collegeName} · ${d.leagueName}\n\n${copy.line}`,
+    text: `${d.collegeName} · ${brandedSeason(d.leagueName)}\n\n${copy.line}`,
   };
 }
 
@@ -179,11 +180,11 @@ export function winnerPaidEmail(
       preheader: `UTR ${d.utr}`,
       heading: "Your prize is on its way 💸",
       body:
-        p(`Congratulations ${esc(d.winnerName)}! Your prize (${esc(d.position)}) for <strong>${esc(d.collegeName)}</strong> (${esc(d.leagueName)}) has been paid${d.amount ? `: <strong>${esc(d.amount)}</strong>` : ""}.`) +
+        p(`Congratulations ${esc(d.winnerName)}! Your prize (${esc(d.position)}) for <strong>${esc(d.collegeName)}</strong> (${esc(brandedSeason(d.leagueName))}) has been paid${d.amount ? `: <strong>${esc(d.amount)}</strong>` : ""}.`) +
         p(`${muted("UTR / transaction reference")}<br>${mono(d.utr)}`) +
         p("It can take a few hours to show in your bank account. Reply to this email if it hasn't arrived in 2 working days."),
     }),
-    text: `Congratulations ${d.winnerName}! Your prize (${d.position}) for ${d.collegeName} (${d.leagueName}) has been paid${d.amount ? `: ${d.amount}` : ""}.\n\nUTR: ${d.utr}`,
+    text: `Congratulations ${d.winnerName}! Your prize (${d.position}) for ${d.collegeName} (${brandedSeason(d.leagueName)}) has been paid${d.amount ? `: ${d.amount}` : ""}.\n\nUTR: ${d.utr}`,
   };
 }
 

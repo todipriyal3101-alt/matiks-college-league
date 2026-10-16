@@ -8,7 +8,6 @@ const tiers = PRIZE_TIERS.map((t) => (t.min > 0 ? `${t.min}+ players: ${formatIN
 export const SUPPORT_EMAIL = "satish@matiks.com";
 
 export const LANDING = {
-  fallbackLeagueName: "Brumble 2.0",
   tagline: "Play it smart.",
   prizePool: `Up to ${formatINR(PRIZE_TIERS[0].amount)}`,
   prizeNote: "Bigger college turnout = bigger prize",

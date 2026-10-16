@@ -16,7 +16,7 @@ select t.run('merge', 'service', 'merged registration now points at the kept col
   $c$ select college_id::text from public.registrations where id = '20000000-0000-0000-0000-0000000000d1' $c$);
 select t.run('merge', 'service', 'refuses when both registered for the same season (names the season)',
   $q$ select public.merge_colleges('11000000-0000-0000-0000-0000000000a2', '11000000-0000-0000-0000-0000000000d2')::text $q$,
-  'ERROR P0001: Both colleges are registered for Brumble 2.0.');
+  'ERROR P0001: Both colleges are registered for Matiks College League – Season 1.');
 select t.run('merge', 'service', 'refuses when they played each other',
   $q$ select public.merge_colleges('11000000-0000-0000-0000-0000000000a3', '11000000-0000-0000-0000-0000000000d3')::text $q$,
   'ERROR P0001: These colleges have a match against each other');

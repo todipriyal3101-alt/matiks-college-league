@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { EmptyState } from "@/components/league/empty-state";
 import { getFixtures, type Fixture } from "@/lib/data/fixtures";
 import { getActiveLeague } from "@/lib/data/leagues";
+import { brandedSeason } from "@/lib/league";
 import { istDateTime } from "@/lib/ist";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +18,7 @@ export default async function FixturesPage() {
   return (
     <div className="space-y-8">
       <div>
-        <p className="text-xs font-bold tracking-[0.2em] text-primary uppercase">{league?.name ?? "Matiks College League"}</p>
+        <p className="text-xs font-bold tracking-[0.2em] text-primary uppercase">{brandedSeason(league?.name)}</p>
         <h1 className="text-5xl sm:text-6xl">Fixtures</h1>
       </div>
       {fixtures.length === 0 ? (

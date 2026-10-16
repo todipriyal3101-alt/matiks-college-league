@@ -20,7 +20,7 @@ A **college** exists once and **registers** separately for each **league** (seas
 
 | Table | Purpose | Key fields |
 | --- | --- | --- |
-| leagues | One row per season (e.g. Brumble 2.0) | name, slug, season, start_date, end_date, registration_deadline, registration_open, max_colleges, status |
+| leagues | One row per season (e.g. Matiks College League – Season 1) | name, slug, season, start_date, end_date, registration_deadline, registration_open, max_colleges, status |
 | colleges | One clean record per college | name, short_name, normalized_name (unique), city, state, college_type, website, logo_url |
 | registrations | A college's entry into one league | league_id, college_id, status, team_name, poc_email, utm_source, utm_medium, utm_campaign, utm_content, referral_code, admin_notes, reviewed_by, reviewed_at |
 | contacts | POC / captain / faculty for a registration | registration_id, role, name, email, phone, year, course, matiks_username |
@@ -103,7 +103,7 @@ Every table: "Export to Excel" and "Export CSV" of the current filtered view (ad
 
 ## Social tracking
 
-Links per channel: `/register?utm_source=instagram&utm_campaign=brumble-s2`, `linkedin`, `whatsapp`, `x`,
+Links per channel: `/register?utm_source=instagram&utm_campaign=mcl-s1`, `linkedin`, `whatsapp`, `x`,
 `matiks_app`, `creator` (+ `utm_content=creatorname`). Ambassadors: `/register?ref=CODE`.
 
 - Capture UTM + ref on first visit into a cookie (30 days), attach to registration on submit

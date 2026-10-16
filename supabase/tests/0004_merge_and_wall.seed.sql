@@ -5,14 +5,14 @@ insert into public.admin_profiles (user_id, name, email, role) values
   ('00000000-0000-0000-0000-0000000000a1', 'Ananya Admin', 'admin@matiks.test', 'admin');
 
 insert into public.leagues (id, name, slug, season, status, registration_open) values
-  ('10000000-0000-0000-0000-000000000001', 'Brumble 2.0', 'brumble-2', 2, 'upcoming', true),
+  ('10000000-0000-0000-0000-000000000001', 'Matiks College League – Season 1', 'mcl-s1', 1, 'upcoming', true),
   ('10000000-0000-0000-0000-000000000009', 'Draft Season', 'draft-s', 9, 'draft', false);
 
 insert into public.colleges (id, name, short_name, city, state, website, college_type) values
   -- Pair 1: clean merge (keep has no city/website; duplicate has them)
   ('11000000-0000-0000-0000-0000000000a1', 'IIT Bombay', 'IITB', null, null, null, 'other'),
   ('11000000-0000-0000-0000-0000000000d1', 'Indian Institute of Technology Bombay', null, 'Mumbai', 'Maharashtra', 'https://iitb.ac.in', 'iit'),
-  -- Pair 2: both registered in Brumble 2.0
+  -- Pair 2: both registered in Season 1
   ('11000000-0000-0000-0000-0000000000a2', 'NIT Trichy', null, 'Tiruchirappalli', 'Tamil Nadu', null, 'nit'),
   ('11000000-0000-0000-0000-0000000000d2', 'National Institute of Technology Tiruchirappalli', null, 'Tiruchirappalli', 'Tamil Nadu', null, 'nit'),
   -- Pair 3: played each other

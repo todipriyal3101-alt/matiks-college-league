@@ -8,7 +8,7 @@ insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-0000000000a6', 'stranger@gmail.test');
 
 insert into public.leagues (id, name, slug, season, registration_open, status)
-values ('10000000-0000-0000-0000-000000000001', 'Brumble 2.0', 'brumble-2', 2, true, 'upcoming');
+values ('10000000-0000-0000-0000-000000000001', 'Matiks College League – Season 1', 'mcl-s1', 1, true, 'upcoming');
 
 insert into public.colleges (id, name, city, state) values
   ('11000000-0000-0000-0000-000000000001', 'IIT Bombay', 'Mumbai', 'Maharashtra'),

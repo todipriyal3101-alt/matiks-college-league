@@ -1,5 +1,22 @@
 // League operations constants and helpers shared by server and client (SPEC "League operations").
 
+/** The product name. Event names come only from the database (leagues.name), never from code. */
+export const BRAND = "Matiks College League";
+
+const BRAND_PREFIX = /^\s*matiks college league\s*[-–—·:|,]?\s*/i;
+
+/** The season's own part of its name: "Matiks College League – Season 1" → "Season 1"; others unchanged. */
+export function seasonShortName(name: string | null | undefined): string {
+  const trimmed = name?.trim() ?? "";
+  return trimmed.replace(BRAND_PREFIX, "") || "";
+}
+
+/** "Matiks College League · Season 1" for titles, emails and share text (never repeats the brand). */
+export function brandedSeason(name: string | null | undefined): string {
+  const short = seasonShortName(name);
+  return short ? `${BRAND} · ${short}` : BRAND;
+}
+
 /** Stage of a registration within its season. Values match the registration_stage enum (migration 0003). */
 export const STAGES = ["registration_phase", "live", "ended_prize_pending", "ended_prize_sent"] as const;
 export type Stage = (typeof STAGES)[number];
