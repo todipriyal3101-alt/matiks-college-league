@@ -1,40 +1,39 @@
-import { LogOutIcon } from "lucide-react";
-import Link from "next/link";
 import { Suspense } from "react";
 
-import { Logo } from "@/components/league/logo";
-import { Button } from "@/components/ui/button";
-import { logout } from "@/lib/auth/actions";
-import { createClient } from "@/lib/supabase/server";
+import { NavFallback } from "@/components/panel/nav-fallback";
+import { NotificationBell } from "@/components/panel/notification-bell";
+import { PocAccountMenu } from "@/components/panel/account-menu";
+import { PanelNav } from "@/components/panel/panel-nav";
+import { Skeleton } from "@/components/ui/skeleton";
+import { getPocContext } from "@/lib/data/poc";
 
-/** POC portal shell: phone-first, just the college and sign out. */
+/** POC panel: Register · Chat · Winners, the bell and the account menu. Phone-first (CLAUDE.md rule 6). */
 export default function CollegeLayout({ children }: LayoutProps<"/college">) {
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4">
-          <Link href="/college" aria-label="Your college">
-            <Logo subtitle="College portal" />
-          </Link>
-          <div className="flex items-center gap-2">
-            <Suspense>
-              <Email />
-            </Suspense>
-            <form action={logout}>
-              <Button type="submit" variant="ghost" className="h-10" aria-label="Sign out">
-                <LogOutIcon /> <span className="hidden sm:inline">Sign out</span>
-              </Button>
-            </form>
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">{children}</main>
+      <Suspense fallback={<NavFallback />}>
+        <PocNav />
+      </Suspense>
+      <main className="mx-auto w-full max-w-4xl flex-1 px-4 pt-8 pb-28 sm:px-6 md:pb-14">
+        <Suspense fallback={<Skeleton className="h-10 w-56" />}>{children}</Suspense>
+      </main>
     </div>
   );
 }
 
-async function Email() {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  return <span className="hidden max-w-48 truncate text-xs text-muted-foreground md:inline">{data?.claims.email}</span>;
+async function PocNav() {
+  // src/proxy.ts already requires a login for /college.
+  const ctx = await getPocContext();
+  if (!ctx) return <NavFallback />;
+  return (
+    <PanelNav
+      panel="poc"
+      actions={
+        <>
+          <NotificationBell userId={ctx.userId} />
+          <PocAccountMenu name={ctx.name || ctx.email.split("@")[0]} email={ctx.email} />
+        </>
+      }
+    />
+  );
 }

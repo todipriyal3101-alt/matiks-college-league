@@ -3,7 +3,7 @@ import { createPublicClient } from "@/lib/supabase/public";
 
 export type CollegeSearchResult = Pick<
   Tables<"colleges">,
-  "id" | "name" | "short_name" | "city" | "state"
+  "id" | "name" | "short_name" | "city" | "state" | "country"
 >;
 
 const MIN_QUERY_LENGTH = 2;
@@ -23,7 +23,7 @@ export async function searchColleges(
   const supabase = createPublicClient();
   const { data, error } = await supabase
     .from("colleges")
-    .select("id, name, short_name, city, state")
+    .select("id, name, short_name, city, state, country")
     .or(`name.ilike.%${term}%,short_name.ilike.%${term}%`)
     .order("name")
     .limit(MAX_RESULTS);
