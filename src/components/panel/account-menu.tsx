@@ -23,9 +23,12 @@ function Trigger({ name, badge }: { name: string; badge?: string }) {
   return (
     <DropdownMenuTrigger
       className="flex h-11 items-center gap-2 rounded-full bg-white/7 py-1 pr-1 pl-1 text-sm font-semibold shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)] outline-none hover:bg-white/12 focus-visible:ring-3 focus-visible:ring-ring/50 sm:pr-3"
-      aria-label={`Account: ${name}`}
+      // The spoken name starts with what's visible (the first name); the initials are decorative.
+      aria-label={`${name.split(" ")[0]}, account menu`}
     >
-      <span className="grid size-9 place-items-center rounded-full bg-lilac text-[13px] font-bold text-background">{initials(name)}</span>
+      <span aria-hidden className="grid size-9 place-items-center rounded-full bg-lilac text-[13px] font-bold text-background">
+        {initials(name)}
+      </span>
       <span className="hidden max-w-32 truncate sm:inline">{name.split(" ")[0]}</span>
       {badge && <RoleBadge role={badge} className="hidden lg:inline" />}
       <ChevronDownIcon className="hidden size-4 text-muted-foreground sm:block" />

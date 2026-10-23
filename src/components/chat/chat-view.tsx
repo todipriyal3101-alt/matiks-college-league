@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Glass } from "@/components/glass";
 import { CollegeLogo } from "@/components/league/college-logo";
+import { EmptyStateSticker } from "@/components/stickers";
 import { CHAT_READ_EVENT } from "@/components/panel/use-chat-unread";
 import { Button } from "@/components/ui/button";
 import type { Tables } from "@/lib/database.types";
@@ -137,9 +138,10 @@ export function ChatView({
             <Loader2Icon className="animate-spin" aria-label="Loading" />
           </div>
         ) : messages.length === 0 ? (
-          <p className="grid h-full place-items-center px-6 text-center text-sm text-muted-foreground">
-            No messages yet. {canPost ? "Say hello 👋" : ""}
-          </p>
+          <div className="grid h-full place-content-center gap-3 px-6 text-center text-sm text-muted-foreground">
+            <EmptyStateSticker name="streak" />
+            <p>No messages yet. {canPost ? "Say hello 👋" : ""}</p>
+          </div>
         ) : (
           <ol className="space-y-3">
             {messages.map((m, i) => {

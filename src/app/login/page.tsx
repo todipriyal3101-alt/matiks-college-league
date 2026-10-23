@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { AuthCard } from "@/components/auth-card";
+import { Sticker } from "@/components/stickers";
 import { createClient } from "@/lib/supabase/server";
 
 import { LoginForm } from "./login-form";
@@ -18,11 +19,15 @@ const ERRORS: Record<string, string> = {
 
 export default function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
-    <AuthCard subtitle="Sign in or create account">
-      <Suspense>
-        <LoginContent searchParams={searchParams} />
-      </Suspense>
-    </AuthCard>
+    <>
+      {/* Decorative, desktop only: the one sticker allowed here. */}
+      <Sticker name="game-modes" className="login-sticker sticker-float" style={{ "--tilt": "6deg" } as React.CSSProperties} />
+      <AuthCard subtitle="Sign in or create account">
+        <Suspense>
+          <LoginContent searchParams={searchParams} />
+        </Suspense>
+      </AuthCard>
+    </>
   );
 }
 

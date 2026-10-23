@@ -4,6 +4,7 @@ import { NavFallback } from "@/components/panel/nav-fallback";
 import { NotificationBell } from "@/components/panel/notification-bell";
 import { PocAccountMenu } from "@/components/panel/account-menu";
 import { PanelNav } from "@/components/panel/panel-nav";
+import { PanelStickers } from "@/components/stickers";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getPocContext } from "@/lib/data/poc";
 
@@ -11,6 +12,8 @@ import { getPocContext } from "@/lib/data/poc";
 export default function CollegeLayout({ children }: LayoutProps<"/college">) {
   return (
     <div className="flex min-h-full flex-1 flex-col">
+      {/* Decorative, wide screens only; must stay a direct child here so position: fixed isn't trapped. */}
+      <PanelStickers panel="poc" />
       <Suspense fallback={<NavFallback />}>
         <PocNav />
       </Suspense>

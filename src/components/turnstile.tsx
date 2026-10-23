@@ -91,7 +91,7 @@ export function Turnstile({
         onReady={() => setReady(true)}
       />
       {/* Reserve the widget's height so the buttons below don't jump when it appears. */}
-      <div ref={el} className="min-h-[65px]" aria-label="Security check" />
+      <div ref={el} role="group" aria-label="Security check" className="min-h-[65px]" />
     </>
   );
 }

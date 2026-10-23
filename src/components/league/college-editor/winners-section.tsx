@@ -90,6 +90,7 @@ export function WinnersSection({
 
       {fields.length === 0 ? (
         <EmptyState
+          sticker="trophy"
           icon={TrophyIcon}
           title="No winners yet"
           description={readOnly ? "Added winners show up here." : "Add winners once results are in."}

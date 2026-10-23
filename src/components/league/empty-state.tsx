@@ -1,15 +1,20 @@
 import type { LucideIcon } from "lucide-react";
 
 import { Mascot } from "@/components/league/mascot";
+import { EmptyStateSticker, type StickerName } from "@/components/stickers";
 import { cn } from "@/lib/utils";
 
-/** Empty state that always says what to do next (SPEC "UX rules"). `mascot`: public pages only. */
+/**
+ * Empty state that always says what to do next (SPEC "UX rules"). `mascot`: public pages only.
+ * `sticker`: a small decorative Matiks sticker instead of the icon (panels: no chats yet, no winners yet).
+ */
 export function EmptyState({
   icon: Icon,
   title,
   description,
   action,
   mascot,
+  sticker,
   className,
 }: {
   icon: LucideIcon;
@@ -17,6 +22,7 @@ export function EmptyState({
   description: React.ReactNode;
   action?: React.ReactNode;
   mascot?: boolean;
+  sticker?: StickerName;
   className?: string;
 }) {
   return (
@@ -29,6 +35,8 @@ export function EmptyState({
       {mascot ? (
         // Usually the largest thing on screen: load it straight away.
         <Mascot eager className="size-28" />
+      ) : sticker ? (
+        <EmptyStateSticker name={sticker} />
       ) : (
         <div className="flex size-11 items-center justify-center rounded-xl bg-olive text-primary">
           <Icon className="size-5" />

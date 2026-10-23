@@ -247,3 +247,98 @@
     backdrop-filter: none !important;
   }
 }
+
+/* ---------- Panel stickers (src/components/stickers.tsx) ----------
+ * Decorative stickers in the empty side gutters, fixed while scrolling, never over content, nav or dialogs (they sit
+ * behind everything, z-index -1). Each is sized to its gutter: gutter = (viewport - content width) / 2, minus a 1rem
+ * margin each side, divided by 1.2 because the tilt widens the footprint; capped at 220px. Shown only where that
+ * leaves >= ~110px. Admin content is 72rem wide, POC 56rem.
+ */
+.panel-stickers {
+  --content-max: 72rem;
+  --gutter: calc((100vw - var(--content-max)) / 2);
+  --sticker-w: min(220px, calc((var(--gutter) - 2rem) / 1.2));
+  display: none;
+}
+.panel-stickers[data-panel="poc"] {
+  --content-max: 56rem;
+}
+.panel-sticker {
+  position: fixed;
+  z-index: -1;
+  top: clamp(8.5rem, 26vh, 15rem);
+  width: var(--sticker-w);
+  height: auto;
+}
+.panel-sticker[data-side="left"] {
+  left: calc((var(--gutter) - var(--sticker-w)) / 2);
+}
+.panel-sticker[data-side="right"] {
+  right: calc((var(--gutter) - var(--sticker-w)) / 2);
+  top: clamp(14rem, 44vh, 24rem);
+}
+/* Admin: both from 1480px (gutter leaves >= 110px). */
+@media (min-width: 1480px) {
+  .panel-stickers[data-panel="admin"] {
+    display: block;
+  }
+}
+/* POC: both from 1280px; between 1200 and 1279px only the right one, smaller. */
+@media (min-width: 1280px) {
+  .panel-stickers[data-panel="poc"] {
+    display: block;
+  }
+}
+@media (min-width: 1200px) and (max-width: 1279.98px) {
+  .panel-stickers[data-panel="poc"] {
+    --sticker-w: min(130px, calc((var(--gutter) - 2rem) / 1.2));
+    display: block;
+  }
+  .panel-stickers[data-panel="poc"] .panel-sticker[data-side="left"] {
+    display: none;
+  }
+}
+
+/* Sticker feel: tilted, soft drop shadow, ~90% opacity, a gentle slow float (none with reduced motion). */
+.sticker {
+  opacity: 0.9;
+  filter: drop-shadow(0 12px 18px rgb(0 0 0 / 0.45)) drop-shadow(0 2px 3px rgb(0 0 0 / 0.35));
+  transform: rotate(var(--tilt, 0deg));
+}
+.panel-sticker,
+.sticker-float {
+  animation: sticker-float 7s ease-in-out infinite alternate;
+}
+.panel-sticker[data-side="right"] {
+  animation-delay: -3.5s;
+}
+@keyframes sticker-float {
+  from {
+    transform: rotate(var(--tilt, 0deg)) translateY(0);
+  }
+  to {
+    transform: rotate(var(--tilt, 0deg)) translateY(-6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel-sticker,
+  .sticker-float {
+    animation: none !important;
+  }
+}
+
+/* /login: the card sits alone in a lot of empty space on desktop, so one sticker beside it (>= 1280px only). */
+.login-sticker {
+  position: fixed;
+  z-index: -1;
+  display: none;
+  width: 200px;
+  height: auto;
+  top: calc(50% - 120px);
+  left: calc(50% + 15rem);
+}
+@media (min-width: 1280px) {
+  .login-sticker {
+    display: block;
+  }
+}

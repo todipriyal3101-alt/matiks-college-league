@@ -7,6 +7,7 @@ import { Glass } from "@/components/glass";
 import { StageBadge } from "@/components/league/badges";
 import { CollegeLogo } from "@/components/league/college-logo";
 import { EmptyState } from "@/components/league/empty-state";
+import { EmptyStateSticker } from "@/components/stickers";
 import { EditDetailsForm } from "@/components/portal/edit-details-form";
 import { RegisterForm } from "@/components/portal/register-form";
 import { Button } from "@/components/ui/button";
@@ -148,7 +149,10 @@ const STATUS = {
 function StatusCard({ row }: { row: OverviewRow }) {
   const s = STATUS[row.review_status!];
   return (
-    <Glass className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:p-6">
+    <Glass className="relative flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:p-6">
+      {row.review_status === "pending" && (
+        <EmptyStateSticker name="vault" className="absolute -top-3 right-3 mx-0 w-20 sm:static sm:order-last sm:w-24" />
+      )}
       <CollegeLogo url={row.college_logo_url} name={row.college_name ?? "?"} className="size-14" />
       <div className="min-w-0 flex-1 space-y-1.5">
         <div className="flex flex-wrap items-center gap-2">
