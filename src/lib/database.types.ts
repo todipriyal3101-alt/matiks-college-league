@@ -137,6 +137,105 @@ export type Database = {
           },
         ]
       }
+      chat_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          sender_id: string | null
+          sender_name: string
+          sender_role: string
+          thread_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          sender_id?: string | null
+          sender_name?: string
+          sender_role?: string
+          thread_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          sender_id?: string | null
+          sender_name?: string
+          sender_role?: string
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "chat_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_reads: {
+        Row: {
+          last_read_at: string
+          thread_id: string
+          user_id: string
+        }
+        Insert: {
+          last_read_at?: string
+          thread_id: string
+          user_id: string
+        }
+        Update: {
+          last_read_at?: string
+          thread_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_reads_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "chat_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_threads: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          last_message_at: string | null
+          registration_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          last_message_at?: string | null
+          registration_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          last_message_at?: string | null
+          registration_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_threads_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: true
+            referencedRelation: "registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       college_access: {
         Row: {
           created_at: string
@@ -173,6 +272,7 @@ export type Database = {
         Row: {
           city: string | null
           college_type: Database["public"]["Enums"]["college_type"]
+          country: Database["public"]["Enums"]["country"]
           created_at: string
           id: string
           logo_url: string | null
@@ -186,6 +286,7 @@ export type Database = {
         Insert: {
           city?: string | null
           college_type?: Database["public"]["Enums"]["college_type"]
+          country?: Database["public"]["Enums"]["country"]
           created_at?: string
           id?: string
           logo_url?: string | null
@@ -198,6 +299,7 @@ export type Database = {
         Update: {
           city?: string | null
           college_type?: Database["public"]["Enums"]["college_type"]
+          country?: Database["public"]["Enums"]["country"]
           created_at?: string
           id?: string
           logo_url?: string | null
@@ -396,6 +498,50 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          kind: string
+          link: string | null
+          read_at: string | null
+          registration_id: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          link?: string | null
+          read_at?: string | null
+          registration_id?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          link?: string | null
+          read_at?: string | null
+          registration_id?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       participants: {
         Row: {
           created_at: string
@@ -440,17 +586,28 @@ export type Database = {
       registrations: {
         Row: {
           admin_notes: string | null
+          club_logo_url: string | null
+          club_name: string | null
+          college_email: string | null
           college_id: string
+          college_logo_url: string | null
           created_at: string
+          created_by: string | null
+          deny_reason: string | null
+          email_domain: string | null
           id: string
+          league_end: string | null
           league_id: string
+          league_start: string | null
           participant_count: number
           poc_email: string
           prize_pool_override: number | null
           referral_code: string | null
+          registration_start: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           stage: Database["public"]["Enums"]["registration_stage"]
+          stage_override: Database["public"]["Enums"]["registration_stage"] | null
           status: Database["public"]["Enums"]["registration_status"]
           team_name: string | null
           updated_at: string
@@ -461,17 +618,28 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
+          club_logo_url?: string | null
+          club_name?: string | null
+          college_email?: string | null
           college_id: string
+          college_logo_url?: string | null
           created_at?: string
+          created_by?: string | null
+          deny_reason?: string | null
+          email_domain?: string | null
           id?: string
+          league_end?: string | null
           league_id: string
+          league_start?: string | null
           participant_count?: number
           poc_email: string
           prize_pool_override?: number | null
           referral_code?: string | null
+          registration_start?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           stage?: Database["public"]["Enums"]["registration_stage"]
+          stage_override?: Database["public"]["Enums"]["registration_stage"] | null
           status?: Database["public"]["Enums"]["registration_status"]
           team_name?: string | null
           updated_at?: string
@@ -482,17 +650,28 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
+          club_logo_url?: string | null
+          club_name?: string | null
+          college_email?: string | null
           college_id?: string
+          college_logo_url?: string | null
           created_at?: string
+          created_by?: string | null
+          deny_reason?: string | null
+          email_domain?: string | null
           id?: string
+          league_end?: string | null
           league_id?: string
+          league_start?: string | null
           participant_count?: number
           poc_email?: string
           prize_pool_override?: number | null
           referral_code?: string | null
+          registration_start?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           stage?: Database["public"]["Enums"]["registration_stage"]
+          stage_override?: Database["public"]["Enums"]["registration_stage"] | null
           status?: Database["public"]["Enums"]["registration_status"]
           team_name?: string | null
           updated_at?: string
@@ -604,21 +783,40 @@ export type Database = {
         Row: {
           auto_prize_pool: number | null
           city: string | null
+          club_logo_url: string | null
+          club_name: string | null
+          college_email: string | null
           college_id: string | null
+          college_logo_url: string | null
           college_name: string | null
           contacts_merch_sent: number | null
           contacts_total: number | null
+          country: Database["public"]["Enums"]["country"] | null
           created_at: string | null
+          created_by: string | null
+          deny_reason: string | null
+          domain_mismatch: boolean | null
+          effective_stage: Database["public"]["Enums"]["registration_stage"] | null
+          email_domain: string | null
+          has_poc_access: boolean | null
+          league_end: string | null
           league_id: string | null
+          league_name: string | null
+          league_start: string | null
           participant_count: number | null
+          poc_email: string | null
+          primary_poc_email: string | null
           primary_poc_name: string | null
+          primary_poc_phone: string | null
           prize_paid_amount: number | null
           prize_pool: number | null
           prize_pool_override: number | null
           referral_code: string | null
           registration_id: string | null
+          registration_start: string | null
           review_status: Database["public"]["Enums"]["registration_status"] | null
           stage: Database["public"]["Enums"]["registration_stage"] | null
+          stage_override: Database["public"]["Enums"]["registration_stage"] | null
           state: string | null
           team_name: string | null
           updated_at: string | null
@@ -646,6 +844,31 @@ export type Database = {
     }
     Functions: {
       calc_prize_pool: { Args: { p_count: number }; Returns: number }
+      can_read_thread: { Args: { p_thread_id: string }; Returns: boolean }
+      can_write_logo: { Args: { p_name: string }; Returns: boolean }
+      create_my_registration: {
+        Args: {
+          p_club_logo_url: string | null
+          p_club_name: string | null
+          p_college_email: string | null
+          p_college_id: string | null
+          p_college_logo_url: string | null
+          p_college_name: string | null
+          p_country: Database["public"]["Enums"]["country"]
+          p_email_domain: string | null
+          p_league_end: string
+          p_league_start: string
+          p_poc_name: string
+          p_poc_phone: string
+          p_referral_code?: string | null
+          p_registration_start: string
+          p_utm_campaign?: string | null
+          p_utm_content?: string | null
+          p_utm_medium?: string | null
+          p_utm_source?: string | null
+        }
+        Returns: string
+      }
       find_user_id_by_email: { Args: { p_email: string }; Returns: string }
       is_admin: { Args: never; Returns: boolean }
       is_admin_writer: { Args: never; Returns: boolean }
@@ -664,6 +887,21 @@ export type Database = {
         }
         Returns: undefined
       }
+      my_chat_threads: {
+        Args: never
+        Returns: {
+          college_logo_url: string | null
+          college_name: string | null
+          country: Database["public"]["Enums"]["country"] | null
+          kind: string
+          last_body: string | null
+          last_message_at: string | null
+          last_sender: string | null
+          registration_id: string | null
+          thread_id: string
+          unread: number
+        }[]
+      }
       merge_colleges: {
         Args: { p_duplicate: string; p_keep: string }
         Returns: Json
@@ -678,6 +916,20 @@ export type Database = {
           short_name: string
           state: string
         }[]
+      }
+      resubmit_my_registration: {
+        Args: { p_registration_id: string }
+        Returns: undefined
+      }
+      send_poc_notification: {
+        Args: {
+          p_body: string | null
+          p_country?: Database["public"]["Enums"]["country"] | null
+          p_registration_id?: string | null
+          p_scope: string
+          p_title: string
+        }
+        Returns: { email: string; user_id: string }[]
       }
       register_college: {
         Args: {
@@ -710,6 +962,7 @@ export type Database = {
         | "private"
         | "other"
       contact_role: "poc" | "captain" | "faculty"
+      country: "india" | "usa"
       league_status: "draft" | "upcoming" | "live" | "completed"
       payment_status: "pending" | "paid"
       prize_type: "cash" | "cash_plus_merch" | "merch_only"
@@ -841,6 +1094,7 @@ export const Constants = {
         "other",
       ],
       contact_role: ["poc", "captain", "faculty"],
+      country: ["india", "usa"],
       league_status: ["draft", "upcoming", "live", "completed"],
       payment_status: ["pending", "paid"],
       prize_type: ["cash", "cash_plus_merch", "merch_only"],

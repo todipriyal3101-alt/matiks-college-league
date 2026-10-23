@@ -50,7 +50,18 @@ async function sessionFor(email: string): Promise<SupabaseClient> {
   return client;
 }
 
-const PRIVATE_TABLES = ["registrations", "contacts", "participants", "winners", "ambassadors", "admin_profiles", "college_access", "activity_log"] as const;
+const PRIVATE_TABLES = [
+  "registrations", "contacts", "participants", "winners", "ambassadors", "admin_profiles", "college_access", "activity_log",
+  "notifications", "chat_threads", "chat_messages", "chat_reads",
+] as const;
+
+// A 1×1 PNG for storage checks.
+const PNG = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="), (c) => c.charCodeAt(0));
+const upload = (c: SupabaseClient, path: string) => c.storage.from("logos").upload(path, PNG, { contentType: "image/png", upsert: false });
+
+/** The college chat thread of the test registration. */
+const regThread = async () => (await service.from("chat_threads").select("id").eq("registration_id", REG!).single()).data!.id as string;
+const adminsThread = async () => (await service.from("chat_threads").select("id").eq("kind", "admins").single()).data!.id as string;
 
 const count = async (c: SupabaseClient, table: string) => {
   const { count: n, error } = await c.from(table).select("*", { count: "exact", head: true });
@@ -93,6 +104,22 @@ async function anonChecks() {
   await check(role, "cannot update registrations", async () => {
     const { data, error } = await anon.from("registrations").update({ team_name: "x" }).eq("id", REG!).select("id");
     return denied(error, data);
+  });
+  for (const [fn, args] of [
+    ["create_my_registration", { p_college_id: null, p_college_name: "x", p_country: "india", p_college_email: null, p_email_domain: null, p_college_logo_url: null, p_club_name: null, p_club_logo_url: null, p_registration_start: "2030-01-01", p_league_start: "2030-01-02", p_league_end: "2030-01-03", p_poc_name: "x", p_poc_phone: "9999999999" }],
+    ["send_poc_notification", { p_title: "x", p_body: null, p_scope: "all" }],
+    ["resubmit_my_registration", { p_registration_id: REG! }],
+    ["my_chat_threads", {}],
+  ] as const) {
+    await check(role, `cannot call ${fn}()`, async () => {
+      const { error } = await anon.rpc(fn, args as never);
+      return error?.code === "42501" ? true : `got ${error?.code ?? "no error"}`;
+    });
+  }
+  await check(role, "cannot upload logos", async () => {
+    const { data, error } = await upload(anon, `users/anon-${Date.now()}/x.png`);
+    if (data) await service.storage.from("logos").remove([data.path]);
+    return error ? true : "uploaded";
   });
   for (const fn of ["register_college", "merge_colleges", "find_user_id_by_email"] as const) {
     await check(role, `cannot call ${fn}()`, async () => {
@@ -137,6 +164,22 @@ async function adminChecks(admin: SupabaseClient) {
       .select("id");
     return denied(error, data);
   });
+  await check(role, "cannot edit chat messages", async () => {
+    const { data, error } = await admin.from("chat_messages").update({ body: "edited" }).neq("id", "00000000-0000-0000-0000-000000000000").select("id");
+    return denied(error, data);
+  });
+  await check(role, "cannot insert notifications directly", async () => {
+    const { data: me } = await admin.auth.getUser();
+    const { data, error } = await admin.from("notifications").insert({ user_id: me.user!.id, kind: "announcement", title: "x" }).select("id");
+    if (data?.length) await service.from("notifications").delete().eq("id", data[0].id);
+    return denied(error, data);
+  });
+  await check(role, "reads only its own notifications", async () => {
+    const { data: me } = await admin.auth.getUser();
+    const { data, error } = await admin.from("notifications").select("user_id");
+    if (error) return error.message;
+    return data.every((n) => n.user_id === me.user!.id) ? true : "sees other users' notifications";
+  });
   for (const fn of ["merge_colleges", "find_user_id_by_email", "register_college"] as const) {
     await check(role, `cannot call ${fn}() (service role only)`, async () => {
       const args =
@@ -165,6 +208,20 @@ async function viewerChecks(viewer: SupabaseClient) {
     const { data, error } = await viewer.from("colleges").insert({ name: "RLS check (should fail)" }).select("id");
     if (data?.length) await service.from("colleges").delete().eq("id", data[0].id);
     return denied(error, data);
+  });
+  await check(role, "cannot post in a college chat", async () => {
+    const { data, error } = await viewer.from("chat_messages").insert({ thread_id: await regThread(), body: "rls-check" }).select("id");
+    if (data?.length) await service.from("chat_messages").delete().eq("id", data[0].id);
+    return denied(error, data);
+  });
+  await check(role, "cannot send POC notifications", async () => {
+    const { error } = await viewer.rpc("send_poc_notification", { p_title: "x", p_body: null, p_scope: "college", p_registration_id: REG! });
+    return error?.code === "42501" ? true : `got ${error?.code ?? "no error"}`;
+  });
+  await check(role, "cannot upload logos", async () => {
+    const { data, error } = await upload(viewer, `registrations/${REG}/rls-check.png`);
+    if (data) await service.storage.from("logos").remove([data.path]);
+    return error ? true : "uploaded";
   });
   await check(role, "cannot change admin_profiles", async () => {
     const { data, error } = await viewer.from("admin_profiles").update({ role: "admin" }).neq("user_id", "00000000-0000-0000-0000-000000000000").select("user_id");
@@ -228,6 +285,71 @@ async function pocChecks(poc: SupabaseClient, pocUserId: string) {
     const { data, error } = await poc.from("registrations").update({ team_name: other.team_name }).eq("id", other.id).select("id");
     return denied(error, data);
   });
+  await check(role, "chat: sees only its own college thread", async () => {
+    const { data, error } = await poc.from("chat_threads").select("registration_id, kind");
+    if (error) return error.message;
+    return data.length === 1 && data[0].registration_id === REG ? true : `sees ${data.length} threads`;
+  });
+  await check(role, "chat: posts in its own thread (sender set by the database)", async () => {
+    const { data, error } = await poc.from("chat_messages").insert({ thread_id: await regThread(), body: "rls-check" }).select("id, sender_id, sender_role");
+    if (data?.length) await service.from("chat_messages").delete().eq("id", data[0].id);
+    if (error) return error.message;
+    return data[0].sender_id === pocUserId && data[0].sender_role === "poc" ? true : `sender ${data[0].sender_id} / ${data[0].sender_role}`;
+  });
+  await check(role, "chat: cannot spoof the sender", async () => {
+    const { data, error } = await poc
+      .from("chat_messages")
+      .insert({ thread_id: await regThread(), body: "rls-check", sender_role: "admin" } as never)
+      .select("id");
+    if (data?.length) await service.from("chat_messages").delete().eq("id", data[0].id);
+    return denied(error, data);
+  });
+  await check(role, "chat: cannot post in the Matiks Admins thread", async () => {
+    const { data, error } = await poc.from("chat_messages").insert({ thread_id: await adminsThread(), body: "rls-check" }).select("id");
+    if (data?.length) await service.from("chat_messages").delete().eq("id", data[0].id);
+    return denied(error, data);
+  });
+  await check(role, "chat: cannot delete messages", async () => {
+    const { data, error } = await poc.from("chat_messages").delete().neq("id", "00000000-0000-0000-0000-000000000000").select("id");
+    return denied(error, data);
+  });
+  await check(role, "notifications: reads only its own", async () => {
+    const { data, error } = await poc.from("notifications").select("user_id");
+    if (error) return error.message;
+    return data.every((n) => n.user_id === pocUserId) ? true : "sees other users' notifications";
+  });
+  await check(role, "cannot send POC notifications", async () => {
+    const { error } = await poc.rpc("send_poc_notification", { p_title: "x", p_body: null, p_scope: "college", p_registration_id: REG! });
+    return error?.code === "42501" ? true : `got ${error?.code ?? "no error"}`;
+  });
+  await check(role, "cannot self-register a second college", async () => {
+    const { data, error } = await poc.rpc("create_my_registration", {
+      p_college_id: null, p_college_name: "RLS check college", p_country: "india", p_college_email: null, p_email_domain: null,
+      p_college_logo_url: null, p_club_name: null, p_club_logo_url: null, p_registration_start: "2030-01-01",
+      p_league_start: "2030-01-02", p_league_end: "2030-01-03", p_poc_name: "x", p_poc_phone: "9999999999",
+    });
+    if (data) await service.from("registrations").delete().eq("id", data);
+    return error?.code === "P0001" ? true : `got ${error?.code ?? "a registration"}`;
+  });
+  await check(role, "logos: uploads to its own registration's folder", async () => {
+    const { data, error } = await upload(poc, `registrations/${REG}/rls-check-${Date.now()}.png`);
+    if (data) await service.storage.from("logos").remove([data.path]);
+    return error ? error.message : true;
+  });
+  await check(role, "logos: not to another registration's folder", async () => {
+    const { data: other } = await service.from("registrations").select("id").neq("id", REG!).limit(1).maybeSingle();
+    if (!other) return true;
+    const { data, error } = await upload(poc, `registrations/${other.id}/rls-check.png`);
+    if (data) await service.storage.from("logos").remove([data.path]);
+    return error ? true : "uploaded";
+  });
+  await check(role, "logos: no SVG", async () => {
+    const { data, error } = await poc.storage
+      .from("logos")
+      .upload(`users/${pocUserId}/x.svg`, new TextEncoder().encode("<svg xmlns='http://www.w3.org/2000/svg'/>"), { contentType: "image/svg+xml" });
+    if (data) await service.storage.from("logos").remove([data.path]);
+    return error ? true : "uploaded an SVG";
+  });
   await check(role, "cannot grant itself access", async () => {
     const { data: other } = await service.from("registrations").select("id").neq("id", REG!).limit(1).maybeSingle();
     if (!other) return true;
@@ -235,6 +357,60 @@ async function pocChecks(poc: SupabaseClient, pocUserId: string) {
     if (data?.length) await service.from("college_access").delete().eq("user_id", pocUserId).eq("registration_id", other.id);
     return denied(error, data);
   });
+}
+
+// ---------- signed up, no college yet ----------
+async function strangerChecks(stranger: SupabaseClient, userId: string) {
+  const role = "new";
+  const args = (name: string) => ({
+    p_college_id: null, p_college_name: name, p_country: "usa" as const, p_college_email: "sports@rlscheck.edu",
+    p_email_domain: "rlscheck.edu", p_college_logo_url: null, p_club_name: "RLS Club", p_club_logo_url: null,
+    p_registration_start: "2030-01-01", p_league_start: "2030-01-02", p_league_end: "2030-01-03",
+    p_poc_name: "RLS Check", p_poc_phone: "9999999999",
+  });
+  await check(role, "reads nothing private", async () => {
+    for (const t of ["registrations", "contacts", "winners", "chat_threads", "chat_messages"] as const) {
+      const { n, error } = await count(stranger, t);
+      if (!error && n) return `sees ${n} ${t}`;
+    }
+    return true;
+  });
+  await check(role, "cannot insert a registration directly", async () => {
+    const { data: league } = await service.from("registrations").select("league_id, college_id").eq("id", REG!).single();
+    const { data, error } = await stranger.from("registrations").insert({ league_id: league!.league_id, college_id: league!.college_id, poc_email: "x@x" }).select("id");
+    if (data?.length) await service.from("registrations").delete().eq("id", data[0].id);
+    return denied(error, data);
+  });
+  await check(role, "logos: uploads only to its own users/ folder", async () => {
+    const own = await upload(stranger, `users/${userId}/rls-check.png`);
+    if (own.data) await service.storage.from("logos").remove([own.data.path]);
+    if (own.error) return `own folder refused: ${own.error.message}`;
+    const other = await upload(stranger, `users/00000000-0000-0000-0000-000000000000/rls-check.png`);
+    if (other.data) await service.storage.from("logos").remove([other.data.path]);
+    return other.error ? true : "uploaded to someone else's folder";
+  });
+  // Creates ONE pending registration (a throwaway USA college), checks it, then deletes it.
+  let created: { registration?: string; college?: string } = {};
+  await check(role, "creates exactly one pending registration for itself", async () => {
+    const { data, error } = await stranger.rpc("create_my_registration", args(`RLS Check College ${userId.slice(0, 8)}`));
+    if (error?.code === "P0001" && /closed/i.test(error.message)) return true; // registrations closed: nothing to create
+    if (error) return `${error.code}: ${error.message}`;
+    const { data: r } = await service.from("registrations").select("status, created_by, college_id").eq("id", data).single();
+    created = { registration: data, college: r!.college_id };
+    const { count: access } = await service.from("college_access").select("*", { count: "exact", head: true }).eq("registration_id", data).eq("user_id", userId);
+    if (r!.status !== "pending" || r!.created_by !== userId || access !== 1) return `status ${r!.status}, access ${access}`;
+    const second = await stranger.rpc("create_my_registration", args("RLS Check College 2"));
+    if (second.data) await service.from("registrations").delete().eq("id", second.data);
+    return second.error?.code === "P0001" ? true : "a second registration was allowed";
+  });
+  await check(role, "cannot approve its own registration", async () => {
+    if (!created.registration) return true;
+    await stranger.from("registrations").update({ status: "approved", stage_override: "live" }).eq("id", created.registration);
+    const { data } = await service.from("registrations").select("status, stage_override").eq("id", created.registration).single();
+    return data!.status === "pending" && data!.stage_override === null ? true : `now ${data!.status} / ${data!.stage_override}`;
+  });
+  if (created.registration) await service.from("registrations").delete().eq("id", created.registration);
+  if (created.college) await service.from("colleges").delete().eq("id", created.college);
 }
 
 // ---------- run ----------
@@ -265,8 +441,11 @@ try {
     const { error: pe } = await service.from("college_access").insert({ user_id: poc.id, registration_id: REG });
     if (pe) throw pe;
 
+    const stranger = await mk("new");
+
     await viewerChecks(await signedIn(viewer.email));
     await pocChecks(await signedIn(poc.email), poc.id);
+    await strangerChecks(await signedIn(stranger.email), stranger.id);
   }
 } finally {
   // End the minted sessions so no refresh tokens are left behind.
@@ -274,6 +453,7 @@ try {
   for (const id of temp) {
     await service.from("college_access").delete().eq("user_id", id);
     await service.from("admin_profiles").delete().eq("user_id", id);
+    await service.from("notifications").delete().eq("user_id", id);
     const { error } = await service.auth.admin.deleteUser(id);
     if (error) console.error(`Couldn't delete temp user ${id}: ${error.message}`);
   }
