@@ -37,10 +37,35 @@ Rules
 
 ---
 
-## Student panel
+## Student panel (POC panel)
+
+> Redesign (migration 0005) — supersedes the old public landing page and anonymous 4-step form.
+
+There is **no public landing page**: `/` sends admins to `/admin`, POCs to `/college`, everyone else to `/login`.
+`/colleges` and `/fixtures` still work but are not linked. Old `/register?…` links go to sign-up (attribution is kept).
 
 | Page | URL | What it does |
 | --- | --- | --- |
+| Sign in / Create account | /login | Glass card: password, magic link, forgot password, **Create account** (name, phone, email, password; email confirmation on) |
+| Register | /college | First screen for a POC with no college: the registration form. Afterwards: status (Pending / Approved / Denied + reason), edit while pending or denied, Resubmit after a denial |
+| Chat | /college/chat | Their college's chat with Matiks admins (Realtime) |
+| Winners | /college/winners | The winners editor (POC rules unchanged; paid winners locked) |
+| Profile & contacts | /college/profile | Account menu: own name/phone + the contacts editor (max 3) |
+
+Top nav: [College League] Register · Chat · Winners · 🔔 · [POC name: Profile & contacts, Log out]. Phones: glass tab bar at the bottom.
+
+### Register form
+
+College name (type-ahead over `colleges`, or "+ Add as a new college"), country (India / USA), college email ID,
+college email domain (e.g. `iitg.ac.in`, validated), college logo, "Hosted by" club name + logo, registration start,
+league start, league end (end ≥ start ≥ registration start). POC name + phone come from sign-up (asked if missing).
+
+On submit (`registerMyCollege` → `create_my_registration()`, the POC's own session): one pending registration per user,
+ever, in the active season (registration_open + deadline checked fresh); the POC becomes the primary contact with
+`college_access`; every admin gets an in-app notification; utm/ref attribution from the cookie is saved. If the POC's
+login email doesn't end with the college domain, admins see an "Email domain mismatch" flag.
+
+--- | --- | --- |
 | Landing | / | League pitch, prize pool, format, timeline, past highlights, FAQ, "Register your college" CTA |
 | Register | /register | 4-step form |
 | Success | /register/success | Registration ID, next steps, share buttons with pre-filled message |
@@ -70,7 +95,19 @@ On submit (server action):
 > Season operations (overview, college editor, access, POC portal) are specified in
 > **League operations** below, which wins where the two differ.
 
-Season picker in the top bar filters every page.
+> Redesign (migration 0005): top nav [College League] Overview · Search · Chats · POCs · 🔔 · [name + Admin badge:
+> Manage Admins, League tools (Seasons, Matches, Ambassadors), Log out]. The **India / USA** switch (cookie) filters every
+> number and list; seasons are a background grouping (picker only on Matches, Ambassadors, Manage Admins).
+>
+> | URL | Screen |
+> | --- | --- |
+> | /admin | **Overview** (summary only): India/USA switch; Total colleges · Leagues live · Leagues ended · Amount burnt (₹ or $ prize money paid) · Users gained (sum of participant counts) · Prize pending · "All registered colleges" card (total + pending badge); Add college; Export all data (one Excel: Colleges, POCs, Winners, Participants); MATIKS banner |
+> | /admin/colleges | All registered colleges: All / Pending / Approved / Denied tabs with counts, search, pending first, logos, source + ref, Approve (+ invite only if the POC has no login), Deny with optional reason, ⋯ (Manage, Share, Delete); row → college editor |
+> | /admin/search | Global search (colleges, POCs, winners by name/phone/email); also Ctrl/⌘+K |
+> | /admin/chats | "Matiks Admins" + one thread per college, unread counts, newest first, Realtime; phones: list then chat |
+> | /admin/pocs | Every POC (name, college, phone, email, status) + search; "Send notification" to all / approved / one college (in-app + email via Resend) |
+>
+> The tables below describe the original build; the Insights tab, sidebar and bulk bar were removed in the redesign.
 
 | Page | URL | What it does |
 | --- | --- | --- |
@@ -127,7 +164,7 @@ clean master record; a college can have a different stage, prize pool, contacts 
 | Axis | Column | Values (label) | Who changes it |
 | --- | --- | --- | --- |
 | Review | `registrations.status` | pending, approved, waitlisted, rejected | admins |
-| Stage | `registrations.stage` | registration_phase (Registration), live (Live), ended_prize_pending (Prize pending), ended_prize_sent (Complete) | admins |
+| Stage | `registrations.stage` | registration_phase (Registration), live (Live), ended_prize_pending (Prize pending), ended_prize_sent (Complete) | **derived** from registration_start / league_start / league_end + payouts (`effective_stage`); admins can override (`stage_override`) |
 
 ### Prize pool
 
@@ -161,13 +198,14 @@ clean master record; a college can have a different stage, prize pool, contacts 
 | --- | --- | --- | --- |
 | Admin | `admin_profiles.role = admin` | /admin | everything |
 | Viewer | `admin_profiles.role = viewer` | /admin | read everything; no writes, no exports |
-| College POC | `college_access` row (invited) **or** login email = `registrations.poc_email` | /college | own registration(s): team name, contacts, winner details |
-| Anyone else | — | "No access yet" page with logout | nothing |
+| College POC | `college_access` row (self-registered or invited) **or** login email = `registrations.poc_email` | /college | own registration(s): details while pending/denied, team name, contacts, winner details, chat |
+| Signed up, no college yet | own account | /college (Register tab) | create one pending registration |
 
-- No sign-up form and no "claim admin". Access is invite-only from /admin/team. Supabase "Allow new users to sign up"
-  is **off**, so a student has no account until an admin invites them: every approve path (row menu, bulk bar,
-  editor review select, Add college) offers "Approve + invite POC", with "Approve only" as the secondary choice.
-  Student-facing copy says "You'll get an email invite once your college is approved".
+- **POCs self-register; admins still approve** (redesign, migration 0005). Supabase "Allow new users to sign up" is
+  **on** with email confirmation. A signed-up user with no registration may create exactly one pending registration
+  for themselves (`create_my_registration()`), nothing else. Admin access stays invite-only (Manage Admins); there is
+  never a "claim admin". Approving a self-registered college needs no invite (the POC already has access); colleges
+  added by admins, or older ones without a login, still get "Approve + invite POC".
 - Invites: look up the user with `find_user_id_by_email` (service role only); if new,
   `auth.admin.inviteUserByEmail` with redirect `/auth/callback?next=/college` (POCs) or `next=/admin`.
 - Login (one page for everyone): password, magic link, forgot password → /reset-password.
@@ -211,13 +249,26 @@ view `registration_overview` (security_invoker) · `find_user_id_by_email()` (se
 | /college | **POC portal**: same CollegeEditor in mode poc; season switch if several; phone-first. `/my` redirects here |
 | /login, /reset-password, /no-access | Auth (see Access) |
 
+### Database objects (migration 0005_portal_redesign.sql)
+
+colleges.country (india/usa) · registrations: created_by, college_email, email_domain, college_logo_url, club_name,
+club_logo_url, registration_start, league_start, league_end, stage_override, deny_reason · `derive_stage()` ·
+`create_my_registration()` / `resubmit_my_registration()` · storage bucket `logos` (public read; PNG/JPG/WebP ≤ 2 MB;
+uploads to users/<uid>/…, registrations/<id>/… by its POC, anywhere by admin writers) · chat_threads / chat_messages /
+chat_reads + `my_chat_threads()` · notifications + `send_poc_notification()` · Realtime on chat_messages and
+notifications · registration_overview gains the new fields, effective_stage, domain_mismatch, has_poc_access.
+USA prize pools have no auto tier (admin-set, $); totals never mix ₹ and $.
+
 ### Design
 
-The matiks.com look on the whole site (public + admin), taken from matiks.com's own CSS variables: #1a1a1a
-background (faint square grid on public pages; admin plain), lime primary `#b1fa63` with a raised darker-lime edge on
+The matiks.com look with Apple "Liquid Glass" on the whole site: #1a1a1a background with one soft static gradient
+(no grid, no animated blobs), translucent glass panels (`<Glass>` / `glass*` utilities: frosted fill, thin bright top
+edge, hairline rim, soft inner glow), a floating pill-shaped glass nav, glass dialogs/menus/sheets, glass segmented
+controls, SVG refraction on Chromium only (frosted blur elsewhere), solid panels under prefers-reduced-transparency,
+no backdrop blur on list rows. Lime primary `#b1fa63` with a raised darker-lime edge on
 buttons, lilac `#b8a7f5` highlights, status pills (registration blue, live teal, pending amber, done grey).
 Bebas Neue (all-caps) for big headings, Montserrat UI, Nunito Sans paragraphs, Space Mono numbers. Real Matiks
-wordmark, app icon and mascot in `public/brand/`; the mascot appears on public pages only (hero, success, empty states).
+wordmark, app icon and mascot in `public/brand/`; the mascot appears on public pages only (404, /colleges, /fixtures).
 
 ### UX rules (better than the prototype)
 

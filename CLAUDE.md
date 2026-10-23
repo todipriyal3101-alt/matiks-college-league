@@ -5,10 +5,10 @@
 Website for Matiks' inter-college mind sports league (one league, run season by season).
 Two panels, one Next.js app, one Supabase database:
 
-- **Student panel (public)** — landing page, 4-step college registration form, success page,
-  college portal `/college` (POCs sign in after an approve + invite), public colleges wall and fixtures.
-- **Admin panel (/admin, private)** — dashboard, registrations review, colleges, participants,
-  ambassadors, leagues (seasons), matches, team management, Excel/CSV exports.
+- **POC panel (/college)** — POCs create an account at `/login`, then Register (their one pending registration),
+  Chat with Matiks, Winners, Profile & contacts. No public landing page: `/` routes by role.
+- **Admin panel (/admin, private)** — Overview (India/USA), registered colleges (approve/deny), Search, Chats, POCs
+  (notifications), college editor, Manage Admins, league tools (Seasons, Matches, Ambassadors), Excel export.
 
 Full product spec: `docs/SPEC.md`. Build phases and prompts: `docs/PROMPTS.md`.
 Always read the relevant part of SPEC.md before building a feature.
@@ -19,12 +19,12 @@ Always read the relevant part of SPEC.md before building a feature.
 - Tailwind CSS + shadcn/ui components
 - Supabase: Postgres, Auth, Storage (project region: Mumbai)
 - Forms: react-hook-form + zod (same zod schema on client and server)
-- Admin tables: TanStack Table. Charts: Recharts. Emails: Resend. Captcha: Cloudflare Turnstile
+- Emails: Resend. Realtime: Supabase Realtime (chat, notifications). Logos: Supabase Storage bucket `logos`
 - Hosting: Vercel, auto-deploys from GitHub `main`
 
 ## Folder conventions
 
-- `src/app/(public)/...` — student-facing pages
+- `src/app/college/...` — POC panel; `src/app/(public)/...` — unlinked public pages (/colleges, /fixtures)
 - `src/app/admin/...` — admin pages (protected by `src/proxy.ts`)
 - `src/lib/supabase/` — `client.ts` (browser), `server.ts` (server, user session), `admin.ts` (service role, server only),
   `public.ts` (cookie-free anon client for public data; safe inside `"use cache"`)
@@ -32,7 +32,8 @@ Always read the relevant part of SPEC.md before building a feature.
 - `src/lib/database.types.ts` — DB types, **hand-written** from the migrations (see rule 11)
 - `src/lib/cache-tags.ts` — cache tag names
 - `src/lib/validation/` — zod schemas
-- `src/components/ui/` — shadcn components; `src/components/` — app components
+- `src/components/ui/` — shadcn components (restyled as glass); `src/components/` — app components;
+  `src/components/glass.tsx` — `<Glass>` + the refraction filter
 - `supabase/migrations/` — numbered SQL migrations; `supabase/seed.sql` — sample data
 
 ## Rules (always follow)
@@ -47,11 +48,12 @@ Always read the relevant part of SPEC.md before building a feature.
 5. **Validate on the server** with zod even when the form already validated.
 6. **Mobile-first.** Students arrive from Instagram/WhatsApp on phones. Test every student page at 375px wide.
 7. **Never show student phone numbers or emails on public pages.**
-8. **Design = the matiks.com look** on the whole site (SPEC "League operations > Design"): tokens in
-   `src/app/globals.css` (#1a1a1a background, lime primary `#b1fa63` with the raised `edge`, lilac accent, status
-   pill tokens with Live in teal), Bebas Neue for h1/h2, Montserrat UI, Nunito Sans paragraphs, Space Mono numbers;
-   brand files in `public/brand/` (wordmark, icon, mascot). Grid background on public pages only; mascot on public
-   pages only. Rupees in Indian format via `formatINR()`.
+8. **Design = the matiks.com look + Liquid Glass** on the whole site (SPEC "League operations > Design"): tokens in
+   `src/app/globals.css` (#1a1a1a background with one soft static gradient — no grid, no blobs; lime primary
+   `#b1fa63` with the raised `edge`, lilac accent, status pill tokens with Live in teal), Bebas Neue for h1/h2,
+   Montserrat UI, Nunito Sans paragraphs, Space Mono numbers; brand files in `public/brand/`. Glass surfaces only via
+   `<Glass>` or the `glass` / `glass-strong` / `glass-surface` / `glass-refract` utilities; `glass-surface` (no blur)
+   for list rows. Mascot on public pages only. Money via `formatMoney(amount, country)` (₹ Indian format / $).
 9. Before saying a task is done: run `npm run build` and fix every error and type error.
 10. Keep each change small and focused; explain what you changed at the end in a short list.
 11. **DB types are hand-written.** The Supabase CLI is not linked, so `src/lib/database.types.ts` is written by hand
