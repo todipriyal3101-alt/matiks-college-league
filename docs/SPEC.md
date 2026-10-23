@@ -46,7 +46,7 @@ There is **no public landing page**: `/` sends admins to `/admin`, POCs to `/col
 
 | Page | URL | What it does |
 | --- | --- | --- |
-| Sign in / Create account | /login | Glass card: password, magic link, forgot password, **Create account** (name, phone, email, password; email confirmation on) |
+| Sign in / Create account | /login | Glass card: password, magic link, forgot password, **Create account** (name, phone, email, password; email confirmation on). Cloudflare Turnstile on every action; the token goes to Supabase as `captchaToken` (Supabase Captcha protection covers sign-in too) |
 | Register | /college | First screen for a POC with no college: the registration form. Afterwards: status (Pending / Approved / Denied + reason), edit while pending or denied, Resubmit after a denial |
 | Chat | /college/chat | Their college's chat with Matiks admins (Realtime) |
 | Winners | /college/winners | The winners editor (POC rules unchanged; paid winners locked) |

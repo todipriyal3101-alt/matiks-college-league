@@ -20,6 +20,7 @@ Always read the relevant part of SPEC.md before building a feature.
 - Supabase: Postgres, Auth, Storage (project region: Mumbai)
 - Forms: react-hook-form + zod (same zod schema on client and server)
 - Emails: Resend. Realtime: Supabase Realtime (chat, notifications). Logos: Supabase Storage bucket `logos`
+- Captcha: Cloudflare Turnstile on every /login action, verified by Supabase Auth (Attack Protection › Captcha)
 - Hosting: Vercel, auto-deploys from GitHub `main`
 
 ## Folder conventions

@@ -120,6 +120,10 @@ export async function resendAccessEmail(
   });
   if (error) {
     console.error("resendAccessEmail:", error.message);
+    // With Supabase captcha on, the server can't ask Supabase to send a login link (no browser, no token).
+    if (/captcha/i.test(error.message)) {
+      return { ok: false, error: "Set up Resend (RESEND_API_KEY) to resend login links, or ask them to use “Email me a login link” on /login." };
+    }
     return { ok: false, error: error.message };
   }
   return { ok: true };

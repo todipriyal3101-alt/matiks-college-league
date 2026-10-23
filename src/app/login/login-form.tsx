@@ -1,8 +1,9 @@
 "use client";
 
 import { ArrowLeftIcon, Loader2Icon, MailIcon } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
+import { Turnstile, TURNSTILE_SITE_KEY, type TurnstileHandle } from "@/components/turnstile";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -19,8 +20,10 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Supabase auth errors in plain words. */
 function friendly(message: string) {
+  if (/email rate limit/i.test(message)) return "We can't send more emails right now. Please try again in an hour.";
   if (/rate limit|security purposes|too many/i.test(message)) return "Too many tries. Wait a minute, then try again.";
   if (/invalid.*email|unable to validate email/i.test(message)) return "Enter a valid email address.";
+  if (/captcha/i.test(message)) return "The security check failed or expired. Please try again.";
   return message;
 }
 
@@ -33,21 +36,38 @@ export function LoginForm({ next, initialMode = "password" }: { next?: string; i
   const [pending, setPending] = useState<"password" | "magic" | "reset" | "google" | "signup" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
+  // Cloudflare Turnstile: Supabase checks this token on sign-in, sign-up, magic link and password reset
+  // (Attack Protection › Captcha). Tokens are single-use, so the widget is reset after every request that used one.
+  const [captchaToken, setCaptchaToken] = useState("");
+  const turnstile = useRef<TurnstileHandle>(null);
+  const tokenUsed = useRef(false);
+  const captcha = () => {
+    tokenUsed.current = true;
+    return captchaToken || undefined;
+  };
   const continueUrl = `/auth/continue${next ? `?next=${encodeURIComponent(safeNext(next, "/"))}` : ""}`;
   const callback = () => `${window.location.origin}/auth/callback?next=${encodeURIComponent(continueUrl)}`;
 
   async function run(kind: NonNullable<typeof pending>, fn: () => Promise<string | null>) {
+    if (kind !== "google" && TURNSTILE_SITE_KEY && !captchaToken) {
+      setError("Wait a moment for the security check to finish, then try again.");
+      return;
+    }
     setPending(kind);
     setError(null);
+    tokenUsed.current = false;
     setError(await fn());
+    if (tokenUsed.current) turnstile.current?.reset();
     setPending(null);
   }
+
+  const widget = <Turnstile ref={turnstile} onToken={setCaptchaToken} action={mode === "signup" ? "signup" : mode === "forgot" ? "reset" : "login"} />;
 
   const passwordLogin = () =>
     run("password", async () => {
       if (!EMAIL_RE.test(email.trim())) return "Enter a valid email address.";
       if (!password) return "Enter your password.";
-      const { error } = await createClient().auth.signInWithPassword({ email: email.trim(), password });
+      const { error } = await createClient().auth.signInWithPassword({ email: email.trim(), password, options: { captchaToken: captcha() } });
       if (error) return error.message === "Invalid login credentials" ? "Wrong email or password." : friendly(error.message);
       // Full navigation so src/proxy.ts and the role routing see the new session cookies.
       // Full page load on purpose: /auth/continue is a route handler redirect, and the new
@@ -63,7 +83,7 @@ export function LoginForm({ next, initialMode = "password" }: { next?: string; i
       if (!EMAIL_RE.test(email.trim())) return "Enter a valid email address.";
       const { error } = await createClient().auth.signInWithOtp({
         email: email.trim(),
-        options: { shouldCreateUser: false, emailRedirectTo: callback() },
+        options: { shouldCreateUser: false, emailRedirectTo: callback(), captchaToken: captcha() },
       });
       if (error) {
         return /signups not allowed|not found/i.test(error.message)
@@ -79,6 +99,7 @@ export function LoginForm({ next, initialMode = "password" }: { next?: string; i
       if (!EMAIL_RE.test(email.trim())) return "Enter a valid email address.";
       const { error } = await createClient().auth.resetPasswordForEmail(email.trim(), {
         redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+        captchaToken: captcha(),
       });
       if (error) return friendly(error.message);
       // Same message whether or not the account exists, so this form can't be used to probe emails.
@@ -98,6 +119,7 @@ export function LoginForm({ next, initialMode = "password" }: { next?: string; i
         options: {
           data: { name: parsed.data.name, phone: parsed.data.phone },
           emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent("/college")}`,
+          captchaToken: captcha(),
         },
       });
       if (error) return /already registered/i.test(error.message) ? "This email already has an account. Sign in instead." : friendly(error.message);
@@ -162,6 +184,7 @@ export function LoginForm({ next, initialMode = "password" }: { next?: string; i
               <Input id="new-password" type="password" autoComplete="new-password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} className="h-12" />
               <FieldDescription>At least 8 characters.</FieldDescription>
             </Field>
+            {widget}
             {error && <FieldError>{error}</FieldError>}
             <Button type="submit" className="h-12" disabled={pending !== null}>
               {pending === "signup" && <Loader2Icon className="animate-spin" />}
@@ -187,6 +210,7 @@ export function LoginForm({ next, initialMode = "password" }: { next?: string; i
                 Forgot password?
               </button>
             </Field>
+            {widget}
             {error && <FieldError>{error}</FieldError>}
             <Button type="submit" className="h-12" disabled={pending !== null}>
               {pending === "password" && <Loader2Icon className="animate-spin" />}
@@ -210,6 +234,7 @@ export function LoginForm({ next, initialMode = "password" }: { next?: string; i
         ) : (
           <>
             <FieldDescription>Enter your email and we&apos;ll send you a link to choose a new password.</FieldDescription>
+            {widget}
             {error && <FieldError>{error}</FieldError>}
             <Button type="submit" className="h-12" disabled={pending !== null}>
               {pending === "reset" && <Loader2Icon className="animate-spin" />}
