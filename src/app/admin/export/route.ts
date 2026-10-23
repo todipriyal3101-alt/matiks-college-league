@@ -74,6 +74,8 @@ function collegeRow(r: OverviewRow, money: string) {
     "POC login email": safe(r.poc_email),
     "Domain mismatch": r.domain_mismatch ? "Yes" : "",
     "Hosted by (club)": safe(r.club_name),
+    "College logo URL": safe(r.college_logo_url),
+    "Club logo URL": safe(r.club_logo_url),
     Team: safe(r.team_name),
     Participants: r.participant_count ?? 0,
     [`Auto tier ${money}`]: r.auto_prize_pool ?? "",

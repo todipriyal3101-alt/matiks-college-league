@@ -120,3 +120,30 @@ export async function getRegistrationsPaused(): Promise<boolean> {
   if (error) throw new Error(`getRegistrationsPaused: ${error.message}`);
   return data?.registrations_paused ?? false;
 }
+
+// ---------- Registered colleges list filters (the page, its logo ZIP and anything else that must match the screen) ----------
+
+export const COLLEGE_TABS = [
+  { key: "all", label: "All" },
+  { key: "pending", label: "Pending" },
+  { key: "approved", label: "Approved" },
+  { key: "denied", label: "Denied" },
+] as const;
+export type CollegeTab = (typeof COLLEGE_TABS)[number]["key"];
+
+export function parseCollegeTab(value: unknown): CollegeTab {
+  return COLLEGE_TABS.some((t) => t.key === value) ? (value as CollegeTab) : "all";
+}
+
+export const inCollegeTab = (r: OverviewRow, tab: CollegeTab) =>
+  tab === "all" ||
+  (tab === "pending" && r.review_status === "pending") ||
+  (tab === "approved" && r.review_status === "approved") ||
+  (tab === "denied" && r.review_status === "rejected");
+
+/** Search box on /admin/colleges: college, place, POC, phone, club, source, season. `q` is lowercase. */
+export function matchesCollegeSearch(r: OverviewRow, q: string) {
+  if (!q) return true;
+  return [r.college_name, r.city, r.state, r.primary_poc_name, r.poc_email, r.primary_poc_phone, r.club_name, r.utm_source, r.referral_code, r.league_name]
+    .some((v) => v?.toLowerCase().includes(q));
+}

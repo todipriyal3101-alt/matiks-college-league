@@ -131,6 +131,7 @@ export function CollegesList({ rows, isWriter }: { rows: OverviewRow[]; isWriter
                   reviewStatus={status}
                   pocEmail={row.poc_email ?? ""}
                   hasAccess={!!row.has_poc_access}
+                  hasLogos={!!(row.college_logo_url || row.club_logo_url)}
                   isWriter={isWriter}
                   onReview={(s) => review(row, s)}
                   onDeny={() => setDialog({ kind: "deny", row })}

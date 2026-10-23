@@ -93,18 +93,17 @@ async function Overview() {
         </Glass>
       </div>
 
-      {isWriter && (
-        <div className="flex flex-wrap gap-3 max-sm:[&>*]:flex-1">
-          {league ? (
+      <div className="flex flex-wrap gap-3 max-sm:[&>*]:flex-1">
+        {isWriter &&
+          (league ? (
             <AddCollegeDialog leagueId={league.id} leagueName={league.name} defaultCountry={country} />
           ) : (
             <p className="text-sm text-muted-foreground">
               Create a season under <Link href="/admin/leagues" className="font-semibold text-primary">League tools › Seasons</Link> to add colleges.
             </p>
-          )}
-          <ExportAllButton />
-        </div>
-      )}
+          ))}
+        <ExportAllButton isWriter={isWriter} />
+      </div>
 
       <MatiksBanner />
     </div>

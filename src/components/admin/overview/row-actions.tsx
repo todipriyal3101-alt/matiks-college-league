@@ -3,6 +3,7 @@
 import {
   CheckIcon,
   ClockIcon,
+  ImageDownIcon,
   MailPlusIcon,
   LinkIcon,
   MoreHorizontalIcon,
@@ -16,6 +17,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { deleteRegistration } from "@/app/admin/(panel)/overview-actions";
+import { download } from "@/components/admin/command-palette";
 import { InvitePocDialog } from "@/components/admin/overview/invite-poc-dialog";
 import {
   AlertDialog,
@@ -45,6 +47,7 @@ export function RowActions({
   reviewStatus,
   pocEmail,
   hasAccess,
+  hasLogos = false,
   isWriter,
   onReview,
   onDeny,
@@ -56,6 +59,8 @@ export function RowActions({
   pocEmail: string;
   /** The POC already has a login with access (self-registered or invited): approving needs no invite. */
   hasAccess: boolean;
+  /** College or club logo uploaded: offers "Download logos" (admins and viewers). */
+  hasLogos?: boolean;
   isWriter: boolean;
   onReview: (status: ReviewStatus) => void;
   onDeny: () => void;
@@ -84,6 +89,9 @@ export function RowActions({
             <Link href={href}>
               <Settings2Icon /> Manage
             </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem disabled={!hasLogos} onSelect={() => download(`/admin/logos?registration=${registrationId}`)}>
+            <ImageDownIcon /> {hasLogos ? "Download logos" : "No logos uploaded"}
           </DropdownMenuItem>
           {/* Viewers see Manage only. */}
           {isWriter && (

@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, BuildingIcon } from "lucide-react";
+import { ArrowLeftIcon, BuildingIcon, ImageDownIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -8,34 +8,14 @@ import { CountrySwitch } from "@/components/admin/country-switch";
 import { UrlSearch } from "@/components/admin/url-search";
 import { Glass } from "@/components/glass";
 import { EmptyState } from "@/components/league/empty-state";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireAdmin } from "@/lib/auth/admin";
-import type { OverviewRow } from "@/lib/data/league-ops";
-import { getAdminCountry, getRegistrations } from "@/lib/data/portal";
+import { COLLEGE_TABS as TABS, getAdminCountry, getRegistrations, inCollegeTab as inTab, matchesCollegeSearch as matches, parseCollegeTab } from "@/lib/data/portal";
 import { cn } from "@/lib/utils";
 import { COUNTRY_LABELS } from "@/lib/validation/portal";
 
 export const metadata: Metadata = { title: "Registered colleges" };
-
-const TABS = [
-  { key: "all", label: "All" },
-  { key: "pending", label: "Pending" },
-  { key: "approved", label: "Approved" },
-  { key: "denied", label: "Denied" },
-] as const;
-type Tab = (typeof TABS)[number]["key"];
-
-const inTab = (r: OverviewRow, tab: Tab) =>
-  tab === "all" ||
-  (tab === "pending" && r.review_status === "pending") ||
-  (tab === "approved" && r.review_status === "approved") ||
-  (tab === "denied" && r.review_status === "rejected");
-
-function matches(r: OverviewRow, q: string) {
-  if (!q) return true;
-  return [r.college_name, r.city, r.state, r.primary_poc_name, r.poc_email, r.primary_poc_phone, r.club_name, r.utm_source, r.referral_code, r.league_name]
-    .some((v) => v?.toLowerCase().includes(q));
-}
 
 export default function CollegesPage({ searchParams }: PageProps<"/admin/colleges">) {
   return (
@@ -47,7 +27,7 @@ export default function CollegesPage({ searchParams }: PageProps<"/admin/college
 
 async function Colleges({ searchParams }: Pick<PageProps<"/admin/colleges">, "searchParams">) {
   const [{ isWriter }, country, params] = await Promise.all([requireAdmin(), getAdminCountry(), searchParams]);
-  const tab: Tab = TABS.some((t) => t.key === params.status) ? (params.status as Tab) : "all";
+  const tab = parseCollegeTab(params.status);
   const q = (typeof params.q === "string" ? params.q : "").trim().toLowerCase().slice(0, 100);
   const rows = await getRegistrations(country);
   const searched = rows.filter((r) => matches(r, q));
@@ -89,7 +69,15 @@ async function Colleges({ searchParams }: Pick<PageProps<"/admin/colleges">, "se
               );
             })}
           </nav>
-          <UrlSearch placeholder="Search college, POC, phone, source…" className="sm:w-80" />
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <UrlSearch placeholder="Search college, POC, phone, source…" className="sm:w-72" />
+            {/* Same tab + search as the list; the country comes from the switch. */}
+            <Button asChild variant="outline" className="h-11 rounded-full px-4">
+              <a href={`/admin/logos?${new URLSearchParams({ all: "1", status: tab, ...(q && { q }) })}`} download>
+                <ImageDownIcon /> Download all logos (ZIP)
+              </a>
+            </Button>
+          </div>
         </div>
         {visible.length === 0 ? (
           <EmptyState
