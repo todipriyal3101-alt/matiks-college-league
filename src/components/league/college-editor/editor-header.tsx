@@ -6,7 +6,9 @@ import {
   CheckIcon,
   GitMergeIcon,
   MailPlusIcon,
+  DownloadIcon,
   MoreHorizontalIcon,
+  PencilIcon,
   Trash2Icon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -34,6 +36,7 @@ import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { formatDay } from "@/lib/ist";
 import { COUNTRIES, COUNTRY_FLAGS, COUNTRY_LABELS, type Country, type DetailsFormValues } from "@/lib/validation/portal";
 import type { RegistrationDetail } from "@/lib/data/league-ops";
 import {
@@ -222,11 +225,17 @@ export function OverviewPanel({
   participantCount,
   registrationId,
   source,
+  locked = false,
+  onRequestEdit,
 }: {
   mode: "admin" | "poc";
   readOnly: boolean;
   participantCount: number;
   registrationId: string;
+  /** Admin default: the POC's details (email, domain, logos, club, dates) are read-only. */
+  locked?: boolean;
+  /** "Edit as admin" (writers; asks for confirmation first). */
+  onRequestEdit?: () => void;
   source: { utm_source: string | null; utm_medium: string | null; utm_campaign: string | null; utm_content: string | null; referral_code: string | null };
 }) {
   const { register, control, formState, setValue } = useFormContext<EditorFormValues>();
@@ -306,14 +315,23 @@ export function OverviewPanel({
               onChange={(c) => setDetails({ ...details, country: c })}
             />
           </div>
-          <DetailsFields
-            idPrefix="editor"
-            folder={`registrations/${registrationId}`}
-            value={details}
-            onChange={(d) => setDetails({ ...d, country })}
-            errors={detailErrors}
-            disabled={readOnly}
-          />
+          {locked ? (
+            <DetailsReadOnly details={details} registrationId={registrationId} />
+          ) : (
+            <DetailsFields
+              idPrefix="editor"
+              folder={`registrations/${registrationId}`}
+              value={details}
+              onChange={(d) => setDetails({ ...d, country })}
+              errors={detailErrors}
+              disabled={readOnly}
+            />
+          )}
+          {locked && !readOnly && onRequestEdit && (
+            <button type="button" onClick={onRequestEdit} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+              <PencilIcon className="size-3" /> Edit as admin
+            </button>
+          )}
         </div>
       )}
 
@@ -394,5 +412,52 @@ function AdminMenu({
         onDeleted={() => router.push("/admin/colleges")}
       />
     </>
+  );
+}
+
+/** The POC's league details as admins see them by default: read-only, logos downloadable as the original files. */
+function DetailsReadOnly({ details, registrationId }: { details: DetailsFormValues; registrationId: string }) {
+  const rows: [string, string][] = [
+    ["College email", details.collegeEmail],
+    ["Email domain", details.emailDomain && `@${details.emailDomain}`],
+    ["Hosted by", details.clubName],
+    ["Registration start", formatDay(details.registrationStart)],
+    ["League start", formatDay(details.leagueStart)],
+    ["League end", formatDay(details.leagueEnd)],
+  ];
+  return (
+    <div className="space-y-4">
+      <dl className="glass-surface grid gap-x-6 gap-y-3 rounded-2xl p-4 text-sm sm:grid-cols-3">
+        {rows.map(([label, value]) => (
+          <div key={label} className="min-w-0">
+            <dt className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">{label}</dt>
+            <dd className="truncate">{value || <span className="text-muted-foreground">—</span>}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {(
+          [
+            ["college", "College logo", details.collegeLogoUrl],
+            ["club", "Club logo (Hosted by)", details.clubLogoUrl],
+          ] as const
+        ).map(([kind, label, url]) => (
+          <div key={kind} className="glass-surface flex items-center gap-3 rounded-2xl p-3">
+            <span className={`grid size-14 shrink-0 place-items-center overflow-hidden rounded-xl ${url ? "bg-white" : "bg-white/6"}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element -- user-uploaded logo from our public bucket */}
+              {url ? <img src={url} alt="" className="size-full object-contain" /> : <span className="text-xs text-muted-foreground">None</span>}
+            </span>
+            <span className="min-w-0 flex-1 text-sm font-semibold">{label}</span>
+            {url && (
+              <Button asChild variant="outline" size="sm" className="h-9 rounded-full">
+                <a href={`/admin/logos?registration=${registrationId}&kind=${kind}`} download>
+                  <DownloadIcon /> Download
+                </a>
+              </Button>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

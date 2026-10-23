@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2Icon, PencilIcon, XIcon } from "lucide-react";
+import { Loader2Icon, XIcon } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -8,17 +8,19 @@ import { registerMyCollege } from "@/app/college/actions";
 import { CollegeSearch } from "@/components/college-search";
 import { DetailsFields, SectionLabel, detailsErrors, type DetailsErrors } from "@/components/details-fields";
 import { Glass } from "@/components/glass";
+import { ContactFieldsForm, contactErrors } from "@/components/portal/contact-fields";
 import { SegmentedControl } from "@/components/segmented-control";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import type { CollegeSearchResult } from "@/lib/data/colleges";
 import {
   COUNTRIES,
   COUNTRY_FLAGS,
   COUNTRY_LABELS,
+  EMPTY_CONTACT_FIELDS,
   EMPTY_DETAILS,
   pocRegisterSchema,
+  type ContactFields,
   type Country,
   type DetailsFormValues,
   type PocRegisterInput,
@@ -26,14 +28,9 @@ import {
 
 const COUNTRY_OPTIONS = COUNTRIES.map((c) => ({ value: c, label: `${COUNTRY_FLAGS[c]} ${COUNTRY_LABELS[c]}` }));
 
-function initials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  return ((parts[0]?.[0] ?? "?") + (parts.length > 1 ? parts.at(-1)![0] : "")).toUpperCase();
-}
-
 /**
- * Register tab, first visit: the college (type-ahead or new), country, college email + domain, logos, club, dates.
- * Name and phone come from sign-up; asked here only when missing. Same zod schema as the server.
+ * Register tab, first visit: the primary POC's own details (name + phone prefilled from sign-up), then the college
+ * (type-ahead or new), country, college email + domain, logos, club, dates. Same zod schema as the server.
  */
 export function RegisterForm({ userId, email, profile: initialProfile }: { userId: string; email: string; profile: { name: string; phone: string } }) {
   const [picked, setPicked] = useState<CollegeSearchResult | null>(null);
@@ -41,8 +38,7 @@ export function RegisterForm({ userId, email, profile: initialProfile }: { userI
   const [query, setQuery] = useState("");
   const [country, setCountry] = useState<Country>("india");
   const [details, setDetails] = useState<DetailsFormValues>(EMPTY_DETAILS);
-  const [profile, setProfile] = useState(initialProfile);
-  const [editProfile, setEditProfile] = useState(!initialProfile.name || !initialProfile.phone);
+  const [contact, setContact] = useState<ContactFields>({ ...EMPTY_CONTACT_FIELDS, name: initialProfile.name, phone: initialProfile.phone, email });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pending, startTransition] = useTransition();
 
@@ -58,7 +54,7 @@ export function RegisterForm({ userId, email, profile: initialProfile }: { userI
       collegeName: picked?.name ?? newName ?? query,
       country: effectiveCountry,
       details,
-      profile,
+      contact,
     };
     const parsed = pocRegisterSchema.safeParse(input);
     if (!parsed.success) {
@@ -66,9 +62,8 @@ export function RegisterForm({ userId, email, profile: initialProfile }: { userI
       for (const issue of parsed.error.issues) next[issue.path.join(".")] ??= issue.message;
       for (const [k, v] of Object.entries(detailsErrors(parsed.error.issues, "details"))) next[`details.${k}`] ??= v;
       setErrors(next);
-      if (Object.keys(next).some((k) => k.startsWith("profile."))) setEditProfile(true);
       const first = Object.keys(next)[0];
-      const id = first === "collegeName" ? "poc-college" : first?.startsWith("profile.") ? `poc-${first.slice(8)}` : `reg-${first?.split(".").at(-1)}`;
+      const id = first === "collegeName" ? "poc-college" : first?.startsWith("contact.") ? `me-${first.slice(8)}` : `reg-${first?.split(".").at(-1)}`;
       setTimeout(() => document.getElementById(id)?.focus(), 0);
       toast.error("Fix the highlighted fields");
       return;
@@ -88,37 +83,20 @@ export function RegisterForm({ userId, email, profile: initialProfile }: { userI
   return (
     <Glass className="p-5 sm:p-7">
       <form onSubmit={submit} noValidate className="space-y-6">
-        {/* Who's registering (from sign-up) */}
-        {editProfile ? (
-          <div className="space-y-3 rounded-2xl bg-lilac/10 p-4">
-            <SectionLabel>You (primary contact)</SectionLabel>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field data-invalid={!!errors["profile.name"]}>
-                <FieldLabel htmlFor="poc-name">Your name</FieldLabel>
-                <Input id="poc-name" autoComplete="name" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} className="h-12" />
-                <FieldError>{errors["profile.name"]}</FieldError>
-              </Field>
-              <Field data-invalid={!!errors["profile.phone"]}>
-                <FieldLabel htmlFor="poc-phone">Phone (WhatsApp)</FieldLabel>
-                <Input id="poc-phone" type="tel" inputMode="tel" autoComplete="tel" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} className="h-12 font-mono" />
-                <FieldError>{errors["profile.phone"]}</FieldError>
-              </Field>
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-3 rounded-2xl bg-lilac/10 p-3 sm:p-4">
-            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-lilac text-sm font-bold text-background">{initials(profile.name)}</span>
-            <p className="min-w-0 flex-1 text-sm">
-              <span className="block truncate font-sans font-bold">{profile.name}</span>
-              <span className="block truncate text-muted-foreground">
-                <span className="font-mono">{profile.phone}</span> · {email}
-              </span>
-            </p>
-            <Button type="button" variant="ghost" size="sm" className="text-primary" onClick={() => setEditProfile(true)}>
-              <PencilIcon /> Edit
-            </Button>
-          </div>
-        )}
+        {/* The primary POC: the person registering (name + phone from sign-up). */}
+        <div className="space-y-3 rounded-2xl bg-lilac/8 p-4 sm:p-5">
+          <SectionLabel>You · primary contact</SectionLabel>
+          <ContactFieldsForm
+            idPrefix="me"
+            value={contact}
+            onChange={(c) => {
+              setContact(c);
+              setErrors((e) => Object.fromEntries(Object.entries(e).filter(([k]) => !k.startsWith("contact."))));
+            }}
+            errors={contactErrors(Object.entries(errors).map(([k, message]) => ({ path: k.split("."), message })), ["contact"])}
+          />
+          <p className="text-xs text-muted-foreground">T-shirt, address and pincode can wait; add up to 2 more contacts after you submit.</p>
+        </div>
 
         <div className="space-y-3">
           <SectionLabel>College</SectionLabel>

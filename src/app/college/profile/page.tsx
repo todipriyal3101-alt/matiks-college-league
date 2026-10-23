@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { Glass } from "@/components/glass";
-import { CollegeEditor } from "@/components/league/college-editor/college-editor";
+import { TeamContacts } from "@/components/portal/team-contacts";
 import { ProfileForm } from "@/components/portal/profile-form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getRegistrationDetail } from "@/lib/data/league-ops";
@@ -10,7 +10,7 @@ import { getPocContext, pickRegistration } from "@/lib/data/poc";
 
 export const metadata: Metadata = { title: "Profile & contacts" };
 
-/** Account menu › Profile & contacts: the POC's own name/phone, and the college's contacts editor (max 3). */
+/** Account menu › Profile & contacts: the POC's account name/phone, and the college's Team contacts (max 3). */
 export default function ProfilePage({ searchParams }: PageProps<"/college/profile">) {
   return (
     <div className="fade-in space-y-5">
@@ -35,7 +35,7 @@ async function Profile({ searchParams }: Pick<PageProps<"/college/profile">, "se
       <Glass className="p-5 sm:p-7">
         <ProfileForm initial={{ name: ctx.name, phone: ctx.phone }} email={ctx.email} />
       </Glass>
-      {detail && <CollegeEditor detail={detail} mode="poc" me={ctx.email} adminNames={{}} sections={["contacts"]} />}
+      {selected && detail && <TeamContacts registrationId={selected.id} contacts={detail.contacts} />}
     </>
   );
 }

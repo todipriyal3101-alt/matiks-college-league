@@ -14,6 +14,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { RegistrationDetail } from "@/lib/data/league-ops";
 import { deriveStage, REVIEW_LABELS, STAGE_LABELS, type ReviewStatus, type Stage } from "@/lib/league";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  askPocToCompleteContacts,
   markWinnerPaid,
   restoreWinnerPayment,
   saveEditor,
@@ -78,6 +89,19 @@ export function CollegeEditor({
   // Optimistic toggle state; cleared whenever fresh data arrives from the server.
   const [overrides, setOverrides] = useState<Overrides>(NO_OVERRIDES);
   const [payFor, setPayFor] = useState<string | null>(null);
+  // Admins view what POCs filled in (contacts, league details); "Edit as admin" unlocks it after a confirm.
+  const [adminEdit, setAdminEdit] = useState(false);
+  const [confirmEdit, setConfirmEdit] = useState(false);
+  const [asking, startAsking] = useTransition();
+  const locked = isAdmin && !adminEdit;
+  const requestEdit = !readOnly && isAdmin ? () => setConfirmEdit(true) : undefined;
+  function askPoc() {
+    startAsking(async () => {
+      const res = await askPocToCompleteContacts(registrationId);
+      if (!res.ok) toast.error(res.error);
+      else toast.success(res.message);
+    });
+  }
 
   // The tab lives in the URL (?tab=winners) so links and the POC checklist can open it directly. Switching uses
   // history.replaceState: instant, no server round trip (Next keeps useSearchParams in sync).
@@ -304,6 +328,8 @@ export function CollegeEditor({
               participantCount={detail.registration.participant_count}
               registrationId={registrationId}
               source={detail.registration}
+              locked={locked}
+              onRequestEdit={requestEdit}
             />
           </TabsContent>
           )}
@@ -313,6 +339,10 @@ export function CollegeEditor({
               saved={detail.contacts}
               isAdmin={isAdmin}
               readOnly={readOnly}
+              locked={locked}
+              onRequestEdit={requestEdit}
+              onAskPoc={!readOnly && isAdmin ? askPoc : undefined}
+              asking={asking}
               merchSent={(id) => overrides.contacts[id] ?? detail.contacts.find((c) => c.id === id)?.merch_sent ?? false}
               onMerchSent={(id, sent) => onMerch("contact", id, sent)}
             />
@@ -356,6 +386,37 @@ export function CollegeEditor({
           </TabsContent>
           )}
         </Tabs>
+
+        {isAdmin && adminEdit && (
+          <div className="flex items-center gap-2 rounded-full bg-status-pending px-3 py-1.5 text-xs font-semibold text-status-pending-fg">
+            Editing POC details as admin
+            <button type="button" className="ml-auto underline underline-offset-2" onClick={() => setAdminEdit(false)}>
+              Done
+            </button>
+          </div>
+        )}
+        <AlertDialog open={confirmEdit} onOpenChange={setConfirmEdit}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Edit the POC&apos;s details as admin?</AlertDialogTitle>
+              <AlertDialogDescription>
+                The college&apos;s POC fills in contacts, dates, logos and the college email. Only edit them for an emergency
+                correction, and tell the POC in Chat. Merch, participants and the prize pool don&apos;t need this.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  setAdminEdit(true);
+                  setConfirmEdit(false);
+                }}
+              >
+                Edit as admin
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {isAdmin && (
           <MarkPaidDialog

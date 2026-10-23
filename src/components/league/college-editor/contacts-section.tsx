@@ -1,6 +1,6 @@
 "use client";
 
-import { PlusIcon, StarIcon, Trash2Icon, UsersIcon } from "lucide-react";
+import { BellRingIcon, Loader2Icon, PencilIcon, PlusIcon, StarIcon, Trash2Icon, UsersIcon } from "lucide-react";
 import { Controller, useFieldArray, useFormContext } from "react-hook-form";
 
 import { CopyButton } from "@/components/league/copy-button";
@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import type { Tables } from "@/lib/database.types";
+import { cn } from "@/lib/utils";
+import { missingContactDetails } from "@/lib/validation/portal";
 import { TSHIRT_SIZES } from "@/lib/validation/league-ops";
 
 import { EMPTY_CONTACT, type EditorFormValues } from "./form-values";
@@ -23,19 +25,110 @@ export function ContactsSection({
   saved,
   isAdmin,
   readOnly,
+  locked = false,
   merchSent,
   onMerchSent,
+  onRequestEdit,
+  onAskPoc,
+  asking = false,
 }: {
   /** Contacts as stored (for primary flag and merch status). */
   saved: Tables<"contacts">[];
   isAdmin: boolean;
   readOnly: boolean;
+  /** Admin default: POCs fill contacts in, so show read-only cards (merch owed/sent stay editable). */
+  locked?: boolean;
   merchSent: (contactId: string) => boolean;
   onMerchSent: (contactId: string, sent: boolean) => void;
+  /** "Edit as admin" (writers; asks for confirmation first). */
+  onRequestEdit?: () => void;
+  /** "Ask POC to complete details" (writers). */
+  onAskPoc?: () => void;
+  asking?: boolean;
 }) {
   const { control, register, formState } = useFormContext<EditorFormValues>();
   const { fields, append, remove } = useFieldArray({ control, name: "contacts", keyName: "key" });
   const errors = formState.errors.contacts;
+
+  if (locked) {
+    const incomplete = saved.length === 0 || saved.some((c) => contactGaps(c).length > 0);
+    return (
+      <section>
+        <SectionHeader
+          title="Points of contact"
+          subtitle="Filled in by the college's POC"
+          action={
+            !readOnly && incomplete && onAskPoc ? (
+              <Button type="button" size="sm" variant="outline" onClick={onAskPoc} disabled={asking}>
+                {asking ? <Loader2Icon className="animate-spin" /> : <BellRingIcon />} Ask POC to complete details
+              </Button>
+            ) : null
+          }
+        />
+        {fields.length === 0 ? (
+          <EmptyState icon={UsersIcon} title="No contacts yet" description="The POC adds them from their portal (Register › Team contacts)." />
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {fields.map((field, i) => {
+              const c = saved.find((x) => x.id === field.id);
+              if (!c) return null;
+              const gaps = contactGaps(c);
+              return (
+                <Card key={field.key} className="gap-3 p-5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-2 text-xs font-medium tracking-wider text-muted-foreground uppercase">
+                      {c.is_primary && <StarIcon className="size-4 fill-primary text-primary" />}
+                      {c.is_primary ? "Primary POC" : "POC"}
+                    </span>
+                    {gaps.length > 0 && (
+                      <span className="rounded-full bg-status-pending px-2 py-0.5 text-[11px] font-semibold text-status-pending-fg">
+                        Missing: {gaps.join(", ")}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-lg font-bold">{c.name}</p>
+                  <dl className="space-y-2 text-sm">
+                    <ReadRow label="Phone" value={c.phone} copy mono />
+                    <ReadRow label="Email" value={c.email} copy />
+                    <div className="grid grid-cols-2 gap-2">
+                      <ReadRow label="Year" value={c.year} />
+                      <ReadRow label="T-shirt" value={c.tshirt_size} />
+                    </div>
+                    <ReadRow label="Matiks username" value={c.matiks_username && `@${c.matiks_username}`} mono />
+                    {c.course && <ReadRow label="Course" value={c.course} />}
+                    <ReadRow label="Address" value={c.address} copy />
+                    <ReadRow label="Pincode" value={c.pincode} mono />
+                  </dl>
+                  <Field className="border-t border-border/60 pt-3">
+                    <FieldLabel htmlFor={`c${i}-merch`}>Merch owed</FieldLabel>
+                    <Textarea
+                      id={`c${i}-merch`}
+                      rows={2}
+                      placeholder="e.g. Matiks hoodie + stickers"
+                      disabled={readOnly}
+                      {...register(`contacts.${i}.merchDescription`)}
+                    />
+                  </Field>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Merch</span>
+                    {!readOnly && (
+                      <Switch checked={merchSent(c.id)} onCheckedChange={(v) => onMerchSent(c.id, v)} aria-label={`Merch sent to ${c.name}`} />
+                    )}
+                    <PillBadge ok={merchSent(c.id)} labelOk="Sent" labelPending="Pending" />
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+        {!readOnly && onRequestEdit && (
+          <button type="button" onClick={onRequestEdit} className="mt-4 inline-flex items-center gap-1.5 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+            <PencilIcon className="size-3" /> Edit as admin
+          </button>
+        )}
+      </section>
+    );
+  }
 
   return (
     <section>
@@ -172,5 +265,23 @@ export function TshirtSelect({ id, name, disabled }: { id: string; name: `contac
         </Select>
       )}
     />
+  );
+}
+
+/** What a contact still lacks: T-shirt, address, pincode (for merch) + phone and Matiks username. */
+function contactGaps(c: Tables<"contacts">) {
+  return [...(!c.phone ? ["phone"] : []), ...missingContactDetails(c), ...(!c.matiks_username ? ["Matiks username"] : [])];
+}
+
+/** A read-only field with an optional copy button. */
+function ReadRow({ label, value, copy, mono }: { label: string; value: string | null | undefined; copy?: boolean; mono?: boolean }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">{label}</dt>
+      <dd className="flex items-start gap-1">
+        <span className={cn("min-w-0 flex-1 break-words whitespace-pre-line", mono && "font-mono", !value && "text-muted-foreground")}>{value || "—"}</span>
+        {copy && value && <CopyButton value={value} label={label.toLowerCase()} className="-my-1.5 size-8 shrink-0" />}
+      </dd>
+    </div>
   );
 }

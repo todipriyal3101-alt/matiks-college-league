@@ -56,7 +56,7 @@ const optionalEmail = z
   .transform((v) => v || null)
   .nullable();
 
-const pincode = optionalMatch(/^[1-9]\d{5}$/, "6-digit pincode", 6);
+const pincode = optionalMatch(/^([1-9]\d{5}|\d{5}(-\d{4})?)$/, "6-digit pincode (or US ZIP)", 10);
 const upiId = optionalMatch(/^[\w.-]{2,256}@[a-zA-Z][a-zA-Z0-9.-]{1,63}$/, "UPI ID looks like name@bank");
 const matiksUsername = optionalMatch(/^[A-Za-z0-9._-]+$/, "Letters, numbers, dot, dash or underscore", 50);
 const tshirtSize = z.enum(TSHIRT_SIZES).nullable();

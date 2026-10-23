@@ -10,7 +10,7 @@ import { sendLater, winnerPaidEmail } from "@/lib/email";
 import { formatINR } from "@/lib/league";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { detailsToRow } from "@/lib/validation/portal";
+import { detailsToRow, missingContactDetails } from "@/lib/validation/portal";
 import {
   adminEditorSchema,
   editorSchema,
@@ -268,4 +268,52 @@ export async function setMerchSent(
   if (error) return { ok: false, error: friendly(error) };
   refresh();
   return { ok: true };
+}
+
+/**
+ * "Ask POC to complete details": a notification to the college's POC logins (send_poc_notification, admin writers
+ * only) + the same note in their college chat, listing what's missing per contact.
+ */
+export async function askPocToCompleteContacts(registrationId: string): Promise<EditorResult<{ message: string }>> {
+  const denied = await requireAdminWriterResult();
+  if (denied) return { ok: false, error: denied };
+  if (!id.safeParse(registrationId).success) return { ok: false, error: "Invalid request." };
+
+  const supabase = await createClient();
+  const { data: contacts, error } = await supabase
+    .from("contacts")
+    .select("name, phone, matiks_username, tshirt_size, address, pincode")
+    .eq("registration_id", registrationId)
+    .order("is_primary", { ascending: false });
+  if (error) return { ok: false, error: friendly(error) };
+
+  const lines = contacts.flatMap((c) => {
+    const missing = [...missingContactDetails(c), ...(!c.phone ? ["phone"] : []), ...(!c.matiks_username ? ["Matiks username"] : [])];
+    return missing.length ? [`${c.name}: ${missing.join(", ")}`] : [];
+  });
+  if (!lines.length && contacts.length) return { ok: false, error: "Every contact is already complete." };
+
+  const title = "Please complete your team contact details";
+  const body = contacts.length
+    ? `We need these to ship merch:\n${lines.join("\n")}\nOpen Register › Team contacts to fill them in.`
+    : "Add your team contacts (Register › Team contacts) so we can ship merch.";
+
+  const { data: sent, error: notifyError } = await supabase.rpc("send_poc_notification", {
+    p_title: title,
+    p_body: body,
+    p_scope: "college",
+    p_registration_id: registrationId,
+  });
+  if (notifyError) return { ok: false, error: friendly(notifyError) };
+
+  const { data: thread } = await supabase.from("chat_threads").select("id").eq("registration_id", registrationId).maybeSingle();
+  if (thread) {
+    const { error: chatError } = await supabase.from("chat_messages").insert({ thread_id: thread.id, body: `${title}.\n${body}` });
+    if (chatError) console.error("askPocToCompleteContacts chat:", chatError.message);
+  }
+  const n = sent?.length ?? 0;
+  return {
+    ok: true,
+    message: n ? `Asked ${n} POC${n === 1 ? "" : "s"} (notification + chat)` : "No POC login yet: posted in the college chat only",
+  };
 }

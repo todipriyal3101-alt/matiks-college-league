@@ -111,6 +111,18 @@ On submit (server action):
 > | /admin/chats | "Matiks Admins" + one thread per college, unread counts, newest first, Realtime; phones: list then chat |
 > | /admin/pocs | Every POC (name, college, phone, email, status) + search; "Send notification" to all / approved / one college (in-app + email via Resend) |
 >
+> **Logos:** admins and viewers download a college's logo or club logo as the original file
+> ("IIT-Guwahati-college-logo.png"), one college's logos from the ⋯ menu, or every college's logos as one ZIP (one
+> folder per college; follows the India/USA switch and the /admin/colleges tab + search) via `/admin/logos`. The Excel
+> export has the logo URLs.
+>
+> **POC fills the details, admins view them:** the Register form takes the primary POC's name, phone, email, year,
+> Matiks username (required) and T-shirt, address, pincode (optional); POCs keep editing **Team contacts** (themselves +
+> up to 2 more) while pending and after approval; the checklist asks for T-shirt, address and pincode. In the college
+> editor, contacts and the league details are read-only cards for admins (copy buttons, "Missing: …" hint, "Ask POC to
+> complete details" = notification + chat message); admins edit merch owed/sent, participants, prize override, country,
+> stage override and review status. "Edit as admin" (writers, behind a confirm) unlocks the rest for emergencies.
+>
 > The tables below describe the original build; the Insights tab, sidebar and bulk bar were removed in the redesign.
 
 | Page | URL | What it does |

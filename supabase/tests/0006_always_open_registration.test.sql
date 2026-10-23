@@ -78,3 +78,39 @@ select t.run('grants', 'stranger', 'current_registration_season() is internal',
   $q$ select public.current_registration_season()::text $q$, 'ERROR 42501');
 select t.run('grants', 'anon', 'anon still cannot register',
   $q$ select t.reg()::text $q$, 'ERROR 42501');
+
+-- ---------- Contacts after approval (POC fills them in; never locked; merch + primary stay admin-only) ----------
+-- Fixture: stranger registers for real, then an admin approves it.
+select set_config('request.jwt.claims', t.claims('stranger'), false);
+set role authenticated;
+select t.reg('Approved College');
+reset role;
+select set_config('request.jwt.claims', '', false);
+update public.registrations set status = 'approved' where created_by = '00000000-0000-0000-0000-0000000000a6';
+create table t.r6 as select r.id as reg, (select id from public.contacts where registration_id = r.id and is_primary) as primary_contact
+  from public.registrations r where r.created_by = '00000000-0000-0000-0000-0000000000a6';
+grant select on t.r6 to authenticated;
+
+select t.run('contacts', 'stranger', 'approved: POC completes own contact (T-shirt, address, pincode, username)',
+  $q$ with x as (update public.contacts set tshirt_size = 'M', address = '12 Main Rd', pincode = '560001', matiks_username = 'sam_m', year = '2nd year'
+       where id = (select primary_contact from t.r6) returning tshirt_size || '|' || pincode || '|' || matiks_username) select * from x $q$,
+  'M|560001|sam_m');
+select t.run('contacts', 'stranger', 'approved: POC adds a 2nd and 3rd contact (never primary, no merch)',
+  $q$ with x as (insert into public.contacts (registration_id, name, email, phone, merch_description, merch_sent, is_primary)
+       select reg, n, n || '@x.test', '9000000000', 'hoodie', true, true from t.r6, unnest(array['Two', 'Three']) n
+       returning is_primary::text || '|' || merch_sent || '|' || coalesce(merch_description, 'null') as v) select string_agg(distinct v, ',') from x $q$,
+  'false|false|null');
+select t.run('contacts', 'stranger', 'approved: a 4th contact is refused',
+  $q$ with x as (insert into public.contacts (registration_id, name, email)
+       select reg, n, n || '@x.test' from t.r6, unnest(array['Two', 'Three', 'Four']) n returning 1) select count(*)::text from x $q$,
+  'ERROR 23514');
+select t.run('contacts', 'stranger', 'approved: POC cannot mark merch sent or change merch owed',
+  $q$ with x as (update public.contacts set merch_sent = true, merch_description = 'free stuff' where id = (select primary_contact from t.r6)
+       returning merch_sent || '|' || coalesce(merch_description, 'null')) select * from x $q$, 'false|null');
+select t.run('contacts', 'stranger', 'approved: POC cannot delete the primary contact',
+  $q$ with x as (delete from public.contacts where id = (select primary_contact from t.r6) returning 1) select count(*)::text from x $q$, 'ERROR 42501');
+select t.run('contacts', 'admin', 'admin sets merch owed + sent on a POC contact',
+  $q$ with x as (update public.contacts set merch_description = 'Hoodie', merch_sent = true where id = (select primary_contact from t.r6)
+       returning merch_description || '|' || merch_sent || '|' || (merch_sent_at is not null)) select * from x $q$, 'Hoodie|true|true');
+select t.run('contacts', 'other', 'another user cannot touch these contacts',
+  $q$ with x as (update public.contacts set name = 'hack' where registration_id = (select reg from t.r6) returning 1) select count(*)::text from x $q$, '0');

@@ -9,11 +9,13 @@ import { CollegeLogo } from "@/components/league/college-logo";
 import { EmptyState } from "@/components/league/empty-state";
 import { EmptyStateSticker } from "@/components/stickers";
 import { EditDetailsForm } from "@/components/portal/edit-details-form";
+import { RegisterChecklist } from "@/components/portal/register-checklist";
+import { TeamContacts } from "@/components/portal/team-contacts";
 import { RegisterForm } from "@/components/portal/register-form";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAdmin } from "@/lib/auth/admin";
-import type { OverviewRow } from "@/lib/data/league-ops";
+import { getRegistrationDetail, type OverviewRow } from "@/lib/data/league-ops";
 import { getPocContext, pickRegistration } from "@/lib/data/poc";
 import { getOverviewRow, getRegistrationsPaused } from "@/lib/data/portal";
 import { createClient } from "@/lib/supabase/server";
@@ -88,7 +90,7 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
 
   const selected = pickRegistration(ctx, r)!;
   const supabase = await createClient();
-  const [row, { data: own }] = await Promise.all([
+  const [row, { data: own }, detail] = await Promise.all([
     getOverviewRow(selected.id),
     // The registration's own columns: the view's logo falls back to the college master record's.
     supabase
@@ -96,8 +98,9 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
       .select("college_email, email_domain, college_logo_url, club_name, club_logo_url, registration_start, league_start, league_end")
       .eq("id", selected.id)
       .maybeSingle(),
+    getRegistrationDetail(selected.id),
   ]);
-  if (!row || !own) return <EmptyState icon={BuildingIcon} title="College not found" description="It may have been removed." />;
+  if (!row || !own || !detail) return <EmptyState icon={BuildingIcon} title="College not found" description="It may have been removed." />;
   const status = row.review_status!;
   const editable = status === "pending" || status === "rejected";
 
@@ -111,20 +114,20 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
       )}
       <Heading eyebrow={row.league_name ?? "Matiks College League"} title={row.college_name ?? "Your college"} />
       <StatusCard row={row} />
-      <Glass className="p-5 sm:p-7">
+      <RegisterChecklist
+        status={status}
+        stage={(row.effective_stage ?? "registration_phase") as Stage}
+        contacts={detail.contacts}
+        winners={detail.winners}
+      />
+      <Glass id="details" className="scroll-mt-28 p-5 sm:p-7">
         {editable ? (
           <EditDetailsForm registrationId={selected.id} initial={detailsFromRow(own)} denied={status === "rejected"} />
         ) : (
           <DetailsSummary row={row} />
         )}
       </Glass>
-      <p className="text-center text-sm text-muted-foreground">
-        Add up to 3 contacts in{" "}
-        <Link href="/college/profile" className="font-semibold text-primary underline-offset-4 hover:underline">
-          Profile &amp; contacts
-        </Link>
-        .
-      </p>
+      <TeamContacts registrationId={selected.id} contacts={detail.contacts} />
     </div>
   );
 }
