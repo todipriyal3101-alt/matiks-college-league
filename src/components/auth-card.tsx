@@ -1,13 +1,14 @@
+import { Glass } from "@/components/glass";
 import { Logo } from "@/components/league/logo";
 
-/** Centered card on the Matiks grid, used by /login, /reset-password and /no-access. */
+/** Centered glass card, used by /login, /reset-password and /no-access. */
 export function AuthCard({ subtitle, children }: { subtitle: string; children: React.ReactNode }) {
   return (
-    <main className="bg-grid flex min-h-full flex-1 items-center justify-center p-4">
-      <div className="fade-in w-full max-w-sm space-y-6 rounded-3xl border bg-card p-6 sm:p-8">
+    <main className="flex min-h-full flex-1 items-center justify-center p-4">
+      <Glass variant="strong" className="fade-in w-full max-w-sm space-y-6 p-6 sm:p-8">
         <Logo subtitle={subtitle} />
         {children}
-      </div>
+      </Glass>
     </main>
   );
 }

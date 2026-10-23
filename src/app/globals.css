@@ -126,6 +126,20 @@
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: #2a2a2a;
   --sidebar-ring: #b1fa63;
+
+  /*
+   * Liquid Glass (Matiks + Apple iOS 26). Panels are translucent over a calm dark page: a frosted fill, a thin bright
+   * top edge, a hairline rim and a soft inner glow. Primary buttons stay solid lime for contrast.
+   * Text on glass: the fill sits over #1a1a1a, so white and --muted-foreground keep >= 4.5:1.
+   */
+  --glass-fill: rgb(44 44 44 / 0.55);
+  --glass-fill-strong: rgb(36 36 36 / 0.86);
+  --glass-blur: 20px;
+  --glass-saturate: 160%;
+  --glass-edge:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.15), inset 0 0 0 1px rgb(255 255 255 / 0.07),
+    inset 0 0 24px 0 rgb(255 255 255 / 0.025);
+  --glass-drop: 0 14px 40px -18px rgb(0 0 0 / 0.75);
 }
 
 @layer base {
@@ -133,7 +147,9 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply text-foreground antialiased;
+    /* Plain, calm dark page: one soft static gradient, slightly lighter at the top. No patterns, no motion. */
+    background: linear-gradient(180deg, #232323 0, var(--background) 520px) no-repeat var(--background);
   }
   html {
     @apply font-sans;
@@ -174,12 +190,39 @@
   }
 }
 
-/* The faint square grid behind matiks.com (public pages only; admin stays plain). */
-@utility bg-grid {
-  background-image:
-    linear-gradient(to right, rgb(255 255 255 / 0.045) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(255 255 255 / 0.045) 1px, transparent 1px);
-  background-size: 56px 56px;
+/* ---------- Liquid Glass (use <Glass> from src/components/glass.tsx, or these utilities) ---------- */
+
+/* The look without the backdrop blur: for repeated items (list rows, table cells) where blur would cost too much. */
+@utility glass-surface {
+  background-color: var(--glass-fill);
+  box-shadow: var(--glass-edge), var(--glass-drop);
+}
+
+/* Frosted panel: nav, cards, stat tiles, segmented controls. */
+@utility glass {
+  background-color: var(--glass-fill);
+  box-shadow: var(--glass-edge), var(--glass-drop);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+
+/* Denser glass for things that float over content: dialogs, menus, popovers, sheets. */
+@utility glass-strong {
+  background-color: var(--glass-fill-strong);
+  box-shadow: var(--glass-edge), 0 24px 60px -20px rgb(0 0 0 / 0.8);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  backdrop-filter: blur(28px) saturate(170%);
+}
+
+/*
+ * Real refraction on Chromium: the SVG displacement filter (#liquid-glass, src/components/glass.tsx) bends what is
+ * behind the panel. <html class="refraction"> is set only on Chromium, which renders url() in backdrop-filter;
+ * Safari and Firefox keep the frosted blur above. Use on a few large surfaces only (nav, tab bar, banner).
+ */
+@utility glass-refract {
+  html.refraction & {
+    backdrop-filter: url(#liquid-glass) blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  }
 }
 
 /* Subtle page entrance; disabled by prefers-reduced-motion above. */
@@ -190,5 +233,17 @@
   from {
     opacity: 0;
     transform: translateY(4px);
+  }
+}
+
+/* Reduced transparency: solid panels, no blur or refraction. Outside @layer so it beats the utilities. */
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .glass-strong,
+  .glass-surface,
+  .glass-refract {
+    background-color: var(--card) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
   }
 }

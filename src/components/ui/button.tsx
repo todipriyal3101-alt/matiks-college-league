@@ -11,7 +11,7 @@ const buttonVariants = cva(
         // Matiks: lime with a raised darker-lime edge that presses down on tap.
         default: "edge bg-primary text-primary-foreground hover:brightness-105",
         outline:
-          "border-input bg-card hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground",
+          "border-white/10 bg-white/6 shadow-[inset_0_1px_0_rgb(255_255_255/0.12)] hover:bg-white/10 hover:text-foreground aria-expanded:bg-white/10 aria-expanded:text-foreground",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         ghost:

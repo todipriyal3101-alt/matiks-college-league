@@ -2,6 +2,7 @@ import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { Bebas_Neue, Montserrat, Nunito_Sans, Space_Mono } from "next/font/google";
 
+import { LiquidGlassFilter } from "@/components/glass";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { siteUrl } from "@/lib/site-url";
@@ -36,9 +37,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
+      // <LiquidGlassFilter> adds class="refraction" on Chromium before hydration.
+      suppressHydrationWarning
       className={`dark ${montserrat.variable} ${nunitoSans.variable} ${bebasNeue.variable} ${spaceMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col overflow-x-clip">
+        <LiquidGlassFilter />
         <TooltipProvider>{children}</TooltipProvider>
         {/* Lifted above the sticky "Unsaved changes · Save" bar so toasts never cover the Save button. */}
         <Toaster theme="dark" closeButton offset={{ bottom: 88 }} mobileOffset={{ bottom: 88 }} />

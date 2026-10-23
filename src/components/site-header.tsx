@@ -1,36 +1,21 @@
 import Link from "next/link";
 
+import { Glass } from "@/components/glass";
 import { Logo } from "@/components/league/logo";
 import { Button } from "@/components/ui/button";
 
-const NAV = [
-  { href: "/colleges", label: "Colleges" },
-  { href: "/fixtures", label: "Fixtures" },
-  { href: "/college", label: "My college" },
-];
-
+/** Header for the remaining public pages (/colleges, /fixtures: still live, no longer linked). */
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4">
+    <header className="sticky top-3 z-40 px-4">
+      <Glass variant="pill" refract className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 pr-2 pl-5">
         <Link href="/" aria-label="Matiks College League home">
           <Logo />
         </Link>
-        <nav className="flex items-center gap-1 text-sm font-medium">
-          {NAV.map((n) => (
-            <Link
-              key={n.href}
-              href={n.href}
-              className="hidden rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-foreground sm:inline"
-            >
-              {n.label}
-            </Link>
-          ))}
-          <Button asChild className="ml-1 h-10 px-4 uppercase">
-            <Link href="/register">Register</Link>
-          </Button>
-        </nav>
-      </div>
+        <Button asChild className="h-10 rounded-full px-5">
+          <Link href="/login">Sign in</Link>
+        </Button>
+      </Glass>
     </header>
   );
 }

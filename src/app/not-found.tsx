@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 
 export default function NotFound() {
   return (
-    <main className="bg-grid flex min-h-full flex-1 items-center justify-center p-4">
+    <main className="flex min-h-full flex-1 items-center justify-center p-4">
       <div className="fade-in w-full max-w-sm space-y-5 text-center">
         <Link href="/" className="inline-block" aria-label="Matiks College League home">
           <Logo />
