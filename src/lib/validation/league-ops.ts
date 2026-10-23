@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { Constants } from "@/lib/database.types";
-import { REVIEW_STATUSES, STAGES } from "@/lib/league";
+import { adminDetailsSchema, phoneSchema } from "@/lib/validation/portal";
 
 // League operations (SPEC "League operations"): shared by the editor (client) and server actions.
 
@@ -31,12 +31,19 @@ const optionalMatch = (re: RegExp, message: string, max = 120) =>
     .transform((v) => v || null)
     .nullable();
 
-/** 10-digit Indian mobile; accepts +91 / 0 prefixes and spaces. Empty → null. */
+/**
+ * Indian mobiles are stored as 10 digits (+91 / 0 prefixes dropped); other countries (USA POCs) as +country digits.
+ * Empty → null.
+ */
 const optionalPhone = z
   .string()
   .trim()
-  .transform((v) => v.replace(/[\s-]/g, "").replace(/^(\+91|0)/, ""))
-  .refine((v) => v === "" || /^[6-9]\d{9}$/.test(v), "Enter a 10-digit Indian mobile number")
+  .transform((v) => {
+    const compact = v.replace(/[\s().-]/g, "");
+    const indian = compact.match(/^(?:\+91|0)?([6-9]\d{9})$/);
+    return indian ? indian[1] : compact;
+  })
+  .refine((v) => v === "" || /^\+?\d{7,15}$/.test(v), "Enter a valid phone number")
   .transform((v) => v || null)
   .nullable();
 
@@ -107,6 +114,8 @@ export const adminEditorSchema = editorSchema.extend({
   participantCount: z.coerce.number("Enter a number").int("Whole number").min(0).max(100_000),
   /** Empty = no override (use the auto tier). */
   prizePoolOverride: z.preprocess((v) => (v === "" || v == null ? null : v), rupees.nullable()),
+  /** Country (on the college) + college email/domain, logos, club, dates (migration 0005). */
+  details: adminDetailsSchema,
 });
 
 export type EditorInput = z.input<typeof editorSchema>;
@@ -124,35 +133,6 @@ export const markPaidSchema = z.object({
     .regex(/^[A-Z0-9]{6,30}$/, "UTR is 6–30 letters or digits"),
 });
 
-// ---------- Overview filters (synced to the URL) ----------
-
-export const OVERVIEW_SORTS = ["college", "participants", "prize", "newest"] as const;
-
-export const overviewFiltersSchema = z.object({
-  q: z.string().trim().max(100).catch(""),
-  review: z.enum([...REVIEW_STATUSES, "all"]).catch("all"),
-  stage: z.enum([...STAGES, "all"]).catch("all"),
-  source: z.string().trim().max(50).catch("all"),
-  sort: z.enum(OVERVIEW_SORTS).catch("college"),
-});
-
-export type OverviewFilters = z.output<typeof overviewFiltersSchema>;
-
-/** Parse filters from URL search params; anything invalid falls back to the default. */
-export function parseOverviewFilters(params: Record<string, string | string[] | undefined>): OverviewFilters {
-  const pick = (k: string) => {
-    const v = params[k];
-    return Array.isArray(v) ? v[0] : v;
-  };
-  return overviewFiltersSchema.parse({
-    q: pick("q") ?? "",
-    review: pick("review") ?? "all",
-    stage: pick("stage") ?? "all",
-    source: pick("source") ?? "all",
-    sort: pick("sort") ?? "college",
-  });
-}
-
 /** Admin "Add college" (overview dialog + addCollege action). */
 export const addCollegeSchema = z
   .object({
@@ -165,15 +145,13 @@ export const addCollegeSchema = z
         state: z.string().trim().min(1, "State is required").max(80),
       })
       .nullable(),
-    /** Email the POC a portal invite (default). Sign-ups are off, so without one the POC can't log in. */
+    /** Email the POC a portal invite (default), so they can sign in without creating an account first. */
     invitePoc: z.boolean().default(true),
+    /** Country (on the college) + the registration details; all optional except the country. */
+    details: adminDetailsSchema,
     poc: z.object({
       name: z.string().trim().min(1, "POC name is required").max(80),
-      phone: z
-        .string()
-        .trim()
-        .transform((v) => v.replace(/[\s-]/g, "").replace(/^(\+91|0)/, ""))
-        .pipe(z.string().regex(/^[6-9]\d{9}$/, "Enter a 10-digit Indian mobile number")),
+      phone: phoneSchema,
       email: z.email("Enter a valid email (needed for the portal invite)").trim().toLowerCase().max(120),
     }),
   })

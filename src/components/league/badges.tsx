@@ -10,9 +10,9 @@ const STAGE_STYLES: Record<Stage, string> = {
   ended_prize_sent: "bg-status-done text-status-done-fg",
 };
 
-/** Season stage: Registration / Live / Prize pending / Complete. */
-export function StageBadge({ stage, className }: { stage: Stage; className?: string }) {
-  return <span className={cn(pill, STAGE_STYLES[stage], className)}>{STAGE_LABELS[stage]}</span>;
+/** Season stage: Registration / Live / Prize pending / Complete (or a longer label, e.g. "Live · ends 30 Nov"). */
+export function StageBadge({ stage, className, children }: { stage: Stage; className?: string; children?: React.ReactNode }) {
+  return <span className={cn(pill, STAGE_STYLES[stage], className)}>{children ?? STAGE_LABELS[stage]}</span>;
 }
 
 const REVIEW_STYLES: Record<ReviewStatus, string> = {

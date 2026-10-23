@@ -102,11 +102,26 @@ export function registrationReceivedEmail(to: string, d: { collegeName: string; 
       heading: "Registration received 🎉",
       body:
         p(`Thanks for registering <strong>${esc(d.collegeName)}</strong> for ${esc(brandedSeason(d.leagueName))}.`) +
-        p(`Our team reviews every registration. <strong>You'll get an email invite once your college is approved</strong>; it lets you sign in to your college portal and add your team's contacts and, later, your winners.`) +
+        p(`A Matiks admin reviews every registration, usually within a day. You can edit your details in the college portal until then, and message us from its Chat tab.`) +
         p(`${muted("Registration ID")}<br>${mono(d.registrationId)}`),
-      cta: { label: "See the colleges in the league", href: `${SITE}/colleges` },
+      cta: { label: "Open your college portal", href: `${SITE}/college` },
     }),
-    text: `Thanks for registering ${d.collegeName} for ${brandedSeason(d.leagueName)}.\n\nOur team reviews every registration. You'll get an email invite once your college is approved.\n\nRegistration ID: ${d.registrationId}\n\n${SITE}/colleges`,
+    text: `Thanks for registering ${d.collegeName} for ${brandedSeason(d.leagueName)}.\n\nA Matiks admin reviews every registration, usually within a day. You can edit your details in the college portal until then.\n\nRegistration ID: ${d.registrationId}\n\n${SITE}/college`,
+  };
+}
+
+/** An admin announcement to POCs (POCs page "Send notification"); also shown in their in-app bell. */
+export function pocAnnouncementEmail(to: string, d: { title: string; body: string | null }): Email {
+  return {
+    to,
+    subject: d.title,
+    html: layout({
+      preheader: d.body?.slice(0, 120) ?? d.title,
+      heading: d.title,
+      body: d.body ? d.body.split(/\n{2,}/).map((para) => p(esc(para).replace(/\n/g, "<br>"))).join("") : "",
+      cta: { label: "Open your college portal", href: `${SITE}/college` },
+    }),
+    text: `${d.title}\n\n${d.body ?? ""}\n\n${SITE}/college`,
   };
 }
 
@@ -114,7 +129,7 @@ const STATUS_COPY = {
   approved: {
     subject: (c: string) => `${c} is approved for the league`,
     heading: "You're approved ✅",
-    line: "Your college is approved. We'll email you an invite to your college portal shortly.",
+    line: "Your college is approved. Sign in to your college portal to check your dates and, when the league ends, add your winners.",
   },
   waitlisted: {
     subject: (c: string) => `${c} is on the waitlist`,
@@ -124,21 +139,29 @@ const STATUS_COPY = {
   rejected: {
     subject: (c: string) => `Update on ${c}'s registration`,
     heading: "Registration update",
-    line: "We couldn't confirm your college for this season. Reply to this email if you think that's a mistake.",
+    line: "We couldn't confirm your college for this season. You can fix the details and resubmit from your college portal, or message us from its Chat tab.",
   },
 } as const;
 
-export function statusChangedEmail(to: string, d: { collegeName: string; leagueName: string; status: keyof typeof STATUS_COPY }): Email {
+export function statusChangedEmail(
+  to: string,
+  d: { collegeName: string; leagueName: string; status: keyof typeof STATUS_COPY; reason?: string | null },
+): Email {
   const copy = STATUS_COPY[d.status];
+  const reason = d.status === "rejected" && d.reason ? d.reason : null;
   return {
     to,
     subject: copy.subject(d.collegeName),
     html: layout({
       preheader: copy.line,
       heading: copy.heading,
-      body: p(`<strong>${esc(d.collegeName)}</strong> · ${esc(brandedSeason(d.leagueName))}`) + p(copy.line),
+      body:
+        p(`<strong>${esc(d.collegeName)}</strong> · ${esc(brandedSeason(d.leagueName))}`) +
+        (reason ? p(`${muted("Reason")}<br>${esc(reason)}`) : "") +
+        p(copy.line),
+      cta: { label: "Open your college portal", href: `${SITE}/college` },
     }),
-    text: `${d.collegeName} · ${brandedSeason(d.leagueName)}\n\n${copy.line}`,
+    text: `${d.collegeName} · ${brandedSeason(d.leagueName)}\n\n${reason ? `Reason: ${reason}\n\n` : ""}${copy.line}\n\n${SITE}/college`,
   };
 }
 

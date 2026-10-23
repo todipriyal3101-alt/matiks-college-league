@@ -13,10 +13,14 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
+import { DenyDialog } from "@/components/admin/colleges/deny-dialog";
 import { InvitePocDialog } from "@/components/admin/overview/invite-poc-dialog";
 import { CollegeShareItems, DeleteRegistrationDialog } from "@/components/admin/overview/row-actions";
+import { DetailsFields, SectionLabel } from "@/components/details-fields";
 import { ReviewBadge, StageBadge } from "@/components/league/badges";
+import { CollegeLogo } from "@/components/league/college-logo";
 import { Money } from "@/components/league/money";
+import { SegmentedControl } from "@/components/segmented-control";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -30,6 +34,7 @@ import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { COUNTRIES, COUNTRY_FLAGS, COUNTRY_LABELS, type Country, type DetailsFormValues } from "@/lib/validation/portal";
 import type { RegistrationDetail } from "@/lib/data/league-ops";
 import {
   effectivePrizePool,
@@ -54,8 +59,11 @@ export function EditorTopBar({
   readOnly,
   reviewStatus,
   stage,
+  stageOverride,
+  autoStage,
   unpaid,
   onReviewStatus,
+  onDeny,
   onStage,
   onMarkPaid,
 }: {
@@ -63,27 +71,39 @@ export function EditorTopBar({
   mode: "admin" | "poc";
   readOnly: boolean;
   reviewStatus: ReviewStatus;
+  /** What's shown: the override if set, else the automatic stage. */
   stage: Stage;
+  stageOverride: Stage | null;
+  /** The stage the dates and payouts give (what "Auto" means). */
+  autoStage: Stage;
   /** Saved winners not yet paid (admin "Mark paid" menu). */
   unpaid: { id: string; label: string }[];
   onReviewStatus: (status: ReviewStatus) => void;
-  onStage: (stage: Stage) => void;
+  /** Resolves to an error message, or null when done. */
+  onDeny: (reason: string) => Promise<string | null>;
+  onStage: (stage: Stage | null) => void;
   onMarkPaid: (winnerId: string) => void;
 }) {
   const { registration } = detail;
   const canAdminWrite = mode === "admin" && !readOnly;
-  // Approving always goes through the invite dialog: with sign-ups off, a POC can only log in once invited.
+  // A POC without a login yet (admin-added or older registrations) gets the invite dialog when approving.
   const [invite, setInvite] = useState<"invite" | "approve" | null>(null);
+  const [denyOpen, setDenyOpen] = useState(false);
+  const approve = () => (detail.derived.hasPocAccess ? onReviewStatus("approved") : setInvite("approve"));
 
   return (
-    <div className="sticky top-16 z-20 -mx-4 border-b border-border/60 bg-background/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+    <div className="glass-strong sticky top-[5.25rem] z-20 rounded-3xl px-4 py-3 sm:top-[5.5rem] sm:px-5">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
-            {registration.leagues.name}
-            {registration.colleges.city && ` · ${registration.colleges.city}`}
-          </p>
-          <h1 className="truncate text-3xl sm:text-4xl">{registration.colleges.name}</h1>
+        <div className="flex min-w-0 items-center gap-3">
+          <CollegeLogo url={registration.college_logo_url ?? registration.colleges.logo_url} name={registration.colleges.name} className="size-12" />
+          <div className="min-w-0">
+            <p className="truncate text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+              {registration.leagues.name}
+              {registration.colleges.city && ` · ${registration.colleges.city}`}
+              {registration.club_name && ` · Hosted by ${registration.club_name}`}
+            </p>
+            <h1 className="truncate text-3xl sm:text-4xl">{registration.colleges.name}</h1>
+          </div>
         </div>
         {canAdminWrite && (
           <AdminMenu
@@ -100,11 +120,14 @@ export function EditorTopBar({
         {canAdminWrite ? (
           <>
             {reviewStatus !== "approved" && (
-              <Button type="button" size="sm" className="h-9" onClick={() => setInvite("approve")}>
-                <CheckIcon /> Approve + invite
+              <Button type="button" size="sm" className="h-9" onClick={approve}>
+                <CheckIcon /> {detail.derived.hasPocAccess ? "Approve" : "Approve + invite"}
               </Button>
             )}
-            <Select value={reviewStatus} onValueChange={(v) => (v === "approved" ? setInvite("approve") : onReviewStatus(v as ReviewStatus))}>
+            <Select
+              value={reviewStatus}
+              onValueChange={(v) => (v === "approved" ? approve() : v === "rejected" ? setDenyOpen(true) : onReviewStatus(v as ReviewStatus))}
+            >
               <SelectTrigger id="review-status" size="sm" aria-label="Review" className="w-auto gap-1.5 data-[size=sm]:h-9">
                 <ReviewBadge status={reviewStatus} />
               </SelectTrigger>
@@ -116,14 +139,16 @@ export function EditorTopBar({
                 ))}
               </SelectContent>
             </Select>
-            <Select value={stage} onValueChange={(v) => onStage(v as Stage)}>
+            <Select value={stageOverride ?? "auto"} onValueChange={(v) => onStage(v === "auto" ? null : (v as Stage))}>
               <SelectTrigger id="stage" size="sm" aria-label="Stage" className="w-auto gap-1.5 data-[size=sm]:h-9">
                 <StageBadge stage={stage} />
+                <span className="text-xs text-muted-foreground">{stageOverride ? "override" : "auto"}</span>
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="auto">Auto · {STAGE_LABELS[autoStage]} (from the dates)</SelectItem>
                 {STAGES.map((s) => (
                   <SelectItem key={s} value={s}>
-                    {STAGE_LABELS[s]}
+                    Override: {STAGE_LABELS[s]}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -152,8 +177,24 @@ export function EditorTopBar({
             <StageBadge stage={stage} />
           </>
         )}
+        {mode === "admin" && detail.derived.domainMismatch && (
+          <span
+            className="rounded-full bg-status-pending px-2.5 py-0.5 text-xs font-semibold text-status-pending-fg"
+            title={`POC signed in as ${registration.poc_email}`}
+          >
+            Email domain mismatch
+          </span>
+        )}
       </div>
+      {mode === "admin" && reviewStatus === "rejected" && registration.deny_reason && (
+        <p className="mt-2 text-sm text-muted-foreground">
+          Denied: <span className="text-foreground">{registration.deny_reason}</span>
+        </p>
+      )}
 
+      {canAdminWrite && (
+        <DenyDialog open={denyOpen} onOpenChange={setDenyOpen} collegeName={registration.colleges.name} onDeny={onDeny} />
+      )}
       {canAdminWrite && (
         <InvitePocDialog
           open={invite !== null}
@@ -172,14 +213,33 @@ export function EditorTopBar({
   );
 }
 
-/** Overview tab: team name, participants and the prize pool. */
-export function OverviewPanel({ mode, readOnly, participantCount }: { mode: "admin" | "poc"; readOnly: boolean; participantCount: number }) {
-  const { register, control, formState } = useFormContext<EditorFormValues>();
+const COUNTRY_OPTIONS = COUNTRIES.map((c) => ({ value: c, label: `${COUNTRY_FLAGS[c]} ${COUNTRY_LABELS[c]}` }));
+
+/** Overview tab: team name, participants, the prize pool; for admins also the league details and the source. */
+export function OverviewPanel({
+  mode,
+  readOnly,
+  participantCount,
+  registrationId,
+  source,
+}: {
+  mode: "admin" | "poc";
+  readOnly: boolean;
+  participantCount: number;
+  registrationId: string;
+  source: { utm_source: string | null; utm_medium: string | null; utm_campaign: string | null; utm_content: string | null; referral_code: string | null };
+}) {
+  const { register, control, formState, setValue } = useFormContext<EditorFormValues>();
   const isAdmin = mode === "admin";
-  const [participants, override] = useWatch({ control, name: ["participantCount", "prizePoolOverride"] });
+  const [participants, override, details] = useWatch({ control, name: ["participantCount", "prizePoolOverride", "details"] });
+  const country: Country = details?.country ?? "india";
   const overrideValue = override === "" || override == null ? null : Number(override);
-  const pool = effectivePrizePool(Number(participants) || 0, Number.isFinite(overrideValue) ? overrideValue : null);
+  const pool = effectivePrizePool(Number(participants) || 0, Number.isFinite(overrideValue) ? overrideValue : null, country);
   const e = formState.errors;
+  const detailErrors = Object.fromEntries(
+    Object.entries(e.details ?? {}).flatMap(([k, v]) => (v && typeof v === "object" && "message" in v ? [[k, String(v.message)]] : [])),
+  );
+  const setDetails = (next: DetailsFormValues & { country: Country }) => setValue("details", next, { shouldDirty: true, shouldValidate: formState.isSubmitted });
 
   return (
     <div className="space-y-4">
@@ -203,32 +263,81 @@ export function OverviewPanel({ mode, readOnly, participantCount }: { mode: "adm
         {isAdmin && (
           <Field data-invalid={!!e.prizePoolOverride}>
             <FieldLabel htmlFor="override" className="gap-1">
-              Prize override
+              {country === "usa" ? "Prize pool ($)" : "Prize override"}
               <Tooltip>
                 <TooltipTrigger type="button" className="text-muted-foreground" aria-label="About the override">
                   ⓘ
                 </TooltipTrigger>
-                <TooltipContent>Empty = auto tier from participants</TooltipContent>
+                <TooltipContent>{country === "usa" ? "USA has no auto tier: set the prize pool in dollars" : "Empty = auto tier from participants"}</TooltipContent>
               </Tooltip>
             </FieldLabel>
-            <Input id="override" type="number" min={0} inputMode="numeric" placeholder="Auto" className="font-mono" disabled={readOnly} {...register("prizePoolOverride")} />
+            <Input id="override" type="number" min={0} inputMode="numeric" placeholder={country === "usa" ? "0" : "Auto"} className="font-mono" disabled={readOnly} {...register("prizePoolOverride")} />
             <FieldError errors={[e.prizePoolOverride]} />
           </Field>
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 rounded-2xl border bg-card p-4">
-        <div>
-          <div className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Auto tier</div>
-          <Money amount={pool.auto} className="text-lg" />
-        </div>
-        <ArrowRightIcon className="size-5 text-muted-foreground" />
+      <div className="glass-surface flex flex-wrap items-center gap-4 rounded-2xl p-4">
+        {pool.auto != null && (
+          <>
+            <div>
+              <div className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Auto tier</div>
+              <Money amount={pool.auto} country={country} className="text-lg" />
+            </div>
+            <ArrowRightIcon className="size-5 text-muted-foreground" />
+          </>
+        )}
         <div>
           <div className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Prize pool</div>
-          <Money amount={pool.amount} className="font-display text-4xl leading-none text-primary" />
+          <Money amount={pool.amount} country={country} className="font-display text-4xl leading-none text-primary" />
         </div>
-        {pool.overridden && <span className="rounded-full bg-lilac/15 px-2 py-0.5 text-xs font-semibold text-lilac">Overridden</span>}
+        {pool.overridden && country !== "usa" && <span className="rounded-full bg-lilac/15 px-2 py-0.5 text-xs font-semibold text-lilac">Overridden</span>}
       </div>
+
+      {isAdmin && details && (
+        <div className="space-y-4 pt-2">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <SectionLabel>League details</SectionLabel>
+            <SegmentedControl
+              label="Country"
+              options={COUNTRY_OPTIONS}
+              value={country}
+              disabled={readOnly}
+              onChange={(c) => setDetails({ ...details, country: c })}
+            />
+          </div>
+          <DetailsFields
+            idPrefix="editor"
+            folder={`registrations/${registrationId}`}
+            value={details}
+            onChange={(d) => setDetails({ ...d, country })}
+            errors={detailErrors}
+            disabled={readOnly}
+          />
+        </div>
+      )}
+
+      {isAdmin && (
+        <div className="space-y-2 pt-2">
+          <SectionLabel>Source</SectionLabel>
+          <dl className="glass-surface grid grid-cols-2 gap-x-4 gap-y-2 rounded-2xl p-4 text-sm sm:grid-cols-5">
+            {(
+              [
+                ["Source", source.utm_source ?? "direct"],
+                ["Referral code", source.referral_code],
+                ["Medium", source.utm_medium],
+                ["Campaign", source.utm_campaign],
+                ["Content", source.utm_content],
+              ] as const
+            ).map(([label, value]) => (
+              <div key={label} className="min-w-0">
+                <dt className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">{label}</dt>
+                <dd className="truncate font-mono">{value || "—"}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )}
     </div>
   );
 }
@@ -282,7 +391,7 @@ function AdminMenu({
         onOpenChange={setConfirmOpen}
         registrationId={registrationId}
         collegeName={collegeName}
-        onDeleted={() => router.push("/admin")}
+        onDeleted={() => router.push("/admin/colleges")}
       />
     </>
   );

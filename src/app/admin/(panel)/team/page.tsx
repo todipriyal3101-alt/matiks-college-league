@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import { SeasonBar } from "@/components/admin/season-bar";
 import { AccessList, type AccessEntry } from "@/components/admin/team/access-list";
 import { InviteForm } from "@/components/admin/team/invite-form";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,14 +11,17 @@ import { getOverview } from "@/lib/data/league-ops";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Manage Access" };
+export const metadata: Metadata = { title: "Manage Admins" };
 
 export default function TeamPage() {
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-5xl">Team</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Admins, viewers and college POCs.</p>
+    <div className="fade-in space-y-8">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-5xl sm:text-6xl">Manage Admins</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Admins, viewers and college POCs.</p>
+        </div>
+        <SeasonBar />
       </div>
       <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>
         <Team />

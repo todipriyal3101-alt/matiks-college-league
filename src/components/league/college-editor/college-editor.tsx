@@ -7,12 +7,12 @@ import { useEffect, useState, useTransition } from "react";
 import { FormProvider, useForm, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
 
-import { restoreRegistrations, setReviewStatus, setStage } from "@/app/admin/(panel)/overview-actions";
+import { denyRegistration, restoreRegistrations, setReviewStatus, setStage } from "@/app/admin/(panel)/overview-actions";
 import { EmptyState } from "@/components/league/empty-state";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { RegistrationDetail } from "@/lib/data/league-ops";
-import { REVIEW_LABELS, STAGE_LABELS, type ReviewStatus, type Stage } from "@/lib/league";
+import { deriveStage, REVIEW_LABELS, STAGE_LABELS, type ReviewStatus, type Stage } from "@/lib/league";
 import {
   markWinnerPaid,
   restoreWinnerPayment,
@@ -34,7 +34,8 @@ export type EditorTab = (typeof EDITOR_TABS)[number];
 
 type Overrides = {
   reviewStatus?: ReviewStatus;
-  stage?: Stage;
+  /** Wrapped so "back to Auto" (null) differs from "no local change" (undefined). */
+  stageOverride?: { value: Stage | null };
   winners: Record<string, Partial<WinnerStatus>>;
   contacts: Record<string, boolean>;
 };
@@ -51,9 +52,12 @@ export function CollegeEditor({
   readOnly = false,
   me,
   adminNames,
+  sections,
 }: {
   detail: RegistrationDetail;
   mode: EditorMode;
+  /** Show only these tabs (POC panel: Winners tab, Profile & contacts). One section hides the tab bar. */
+  sections?: readonly EditorTab[];
   /** Viewers: everything visible, nothing editable. */
   readOnly?: boolean;
   me: string | null;
@@ -79,10 +83,11 @@ export function CollegeEditor({
   // history.replaceState: instant, no server round trip (Next keeps useSearchParams in sync).
   const searchParams = useSearchParams();
   const urlTab = searchParams.get("tab");
-  const tab: EditorTab = (EDITOR_TABS as readonly string[]).includes(urlTab ?? "") ? (urlTab as EditorTab) : "overview";
+  const tabs = sections ?? EDITOR_TABS;
+  const tab: EditorTab = (tabs as readonly string[]).includes(urlTab ?? "") ? (urlTab as EditorTab) : tabs[0];
   function openTab(next: EditorTab) {
     const params = new URLSearchParams(searchParams.toString());
-    if (next === "overview") params.delete("tab");
+    if (next === tabs[0]) params.delete("tab");
     else params.set("tab", next);
     const qs = params.toString();
     window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
@@ -125,6 +130,12 @@ export function CollegeEditor({
       const first = document.querySelector<HTMLElement>("[data-invalid=true] input, [data-invalid=true] textarea");
       const panel = first?.closest<HTMLElement>("[data-editor-tab]")?.dataset.editorTab as EditorTab | undefined;
       if (panel) openTab(panel);
+      // A section this page doesn't show (POC Winners page) can't be fixed here: say where.
+      const hidden = (Object.keys(form.formState.errors) as string[]).find((k) => k === "contacts" || k === "winners" || k === "teamName");
+      if (!first && hidden && !tabs.includes(hidden === "teamName" ? "overview" : (hidden as EditorTab))) {
+        toast.error(hidden === "contacts" ? "A contact's details need fixing first: open Profile & contacts." : `Fix the ${hidden} first.`);
+        return;
+      }
       toast.error("Fix the highlighted fields");
       // Focus once the tab switch has rendered (a hidden panel can't take focus).
       setTimeout(() => first?.focus(), 80);
@@ -133,7 +144,7 @@ export function CollegeEditor({
 
   // ---------- Immediate toggles (admin) ----------
   const reviewStatus = overrides.reviewStatus ?? detail.registration.status;
-  const stage = overrides.stage ?? detail.registration.stage;
+  const stageOverride = overrides.stageOverride ? overrides.stageOverride.value : detail.registration.stage_override;
 
   function undoToast(message: string, undo: () => Promise<{ ok: boolean; error?: string }>) {
     toast.success(message, {
@@ -148,20 +159,27 @@ export function CollegeEditor({
     });
   }
 
-  function changeRegistration(patch: { reviewStatus?: ReviewStatus; stage?: Stage }) {
-    setOverrides((o) => ({ ...o, ...patch }));
+  function changeRegistration(patch: { reviewStatus: ReviewStatus } | { stage: Stage | null }) {
+    setOverrides((o) => ({ ...o, ...("reviewStatus" in patch ? { reviewStatus: patch.reviewStatus } : { stageOverride: { value: patch.stage } }) }));
     startToggle(async () => {
-      const res = patch.reviewStatus
-        ? await setReviewStatus([registrationId], patch.reviewStatus)
-        : await setStage([registrationId], patch.stage!);
+      const res = "reviewStatus" in patch ? await setReviewStatus([registrationId], patch.reviewStatus) : await setStage([registrationId], patch.stage);
       if (!res.ok) {
-        setOverrides((o) => ({ ...o, reviewStatus: undefined, stage: undefined }));
+        setOverrides((o) => ({ ...o, reviewStatus: undefined, stageOverride: undefined }));
         toast.error(res.error);
         return;
       }
-      const label = patch.reviewStatus ? REVIEW_LABELS[patch.reviewStatus] : STAGE_LABELS[patch.stage!];
+      const label =
+        "reviewStatus" in patch ? REVIEW_LABELS[patch.reviewStatus] : patch.stage ? `Stage: ${STAGE_LABELS[patch.stage]}` : "Stage: automatic";
       undoToast(label, () => restoreRegistrations(res.previous));
     });
+  }
+
+  async function deny(reason: string): Promise<string | null> {
+    const res = await denyRegistration(registrationId, reason || null);
+    if (!res.ok) return res.error;
+    setOverrides((o) => ({ ...o, reviewStatus: "rejected" }));
+    undoToast("Denied", () => restoreRegistrations(res.previous));
+    return null;
   }
 
   const winnerStatus = (id: string): WinnerStatus => {
@@ -219,6 +237,17 @@ export function CollegeEditor({
     });
   }
 
+  // What "Auto" means right now: the dates (as saved) and the payouts (including unsaved paid toggles).
+  const autoStage = deriveStage({
+    stored: detail.registration.stage,
+    country: detail.registration.colleges.country,
+    leagueStart: detail.registration.league_start,
+    leagueEnd: detail.registration.league_end,
+    winnersTotal: detail.winners.length,
+    winnersPaid: detail.winners.filter((w) => winnerStatus(w.id).paid).length,
+  });
+  const stage = stageOverride ?? autoStage;
+
   const unpaid = detail.winners
     .filter((w) => !winnerStatus(w.id).paid)
     .map((w) => ({ id: w.id, label: [w.position, w.name].filter(Boolean).join(" · ") }));
@@ -243,18 +272,21 @@ export function CollegeEditor({
           readOnly={readOnly}
           reviewStatus={reviewStatus}
           stage={stage}
+          stageOverride={stageOverride}
+          autoStage={autoStage}
           unpaid={unpaid}
           onReviewStatus={(s) => changeRegistration({ reviewStatus: s })}
+          onDeny={deny}
           onStage={(s) => changeRegistration({ stage: s })}
           onMarkPaid={setPayFor}
         />
 
-        {!isAdmin && !readOnly && <PocChecklist detail={detail} stage={stage} status={winnerStatus} onOpen={openTab} />}
+        {!isAdmin && !readOnly && !sections && <PocChecklist detail={detail} stage={stage} status={winnerStatus} onOpen={openTab} />}
 
         <Tabs id="editor-tabs" value={tab} onValueChange={(v) => openTab(v as EditorTab)} className="scroll-mt-40">
-          <div className="-mx-4 overflow-x-auto px-4 pb-1.5 sm:mx-0 sm:px-0">
+          <div className={tabs.length > 1 ? "-mx-4 overflow-x-auto px-4 pb-1.5 sm:mx-0 sm:px-0" : "hidden"}>
             <TabsList variant="line" className="h-11 w-max min-w-full justify-start border-b border-border/60 sm:min-w-0 sm:border-0">
-              {EDITOR_TABS.map((t) => (
+              {tabs.map((t) => (
                 <TabsTrigger key={t} value={t} className="h-10 flex-none px-3 capitalize">
                   {t}
                   {counts[t] !== undefined && <span className="font-mono text-xs text-muted-foreground">{counts[t]}</span>}
@@ -264,9 +296,18 @@ export function CollegeEditor({
           </div>
 
           {/* Panels stay mounted (hidden when inactive) so unsaved edits and their errors survive tab switches. */}
+          {tabs.includes("overview") && (
           <TabsContent forceMount value="overview" data-editor-tab="overview" className="fade-in pt-4 data-[state=inactive]:hidden">
-            <OverviewPanel mode={mode} readOnly={readOnly} participantCount={detail.registration.participant_count} />
+            <OverviewPanel
+              mode={mode}
+              readOnly={readOnly}
+              participantCount={detail.registration.participant_count}
+              registrationId={registrationId}
+              source={detail.registration}
+            />
           </TabsContent>
+          )}
+          {tabs.includes("contacts") && (
           <TabsContent forceMount value="contacts" data-editor-tab="contacts" className="fade-in pt-4 data-[state=inactive]:hidden">
             <ContactsSection
               saved={detail.contacts}
@@ -276,6 +317,8 @@ export function CollegeEditor({
               onMerchSent={(id, sent) => onMerch("contact", id, sent)}
             />
           </TabsContent>
+          )}
+          {tabs.includes("winners") && (
           <TabsContent forceMount value="winners" data-editor-tab="winners" className="fade-in pt-4 data-[state=inactive]:hidden">
             <WinnersSection
               saved={detail.winners}
@@ -287,6 +330,8 @@ export function CollegeEditor({
               onMerchSent={(id, sent) => onMerch("winner", id, sent)}
             />
           </TabsContent>
+          )}
+          {tabs.includes("participants") && (
           <TabsContent forceMount value="participants" data-editor-tab="participants" className="fade-in pt-4 data-[state=inactive]:hidden">
             {detail.participants.length === 0 ? (
               <EmptyState icon={UsersIcon} title="No players yet" description="Teammates added when registering show up here." />
@@ -304,9 +349,12 @@ export function CollegeEditor({
               </ul>
             )}
           </TabsContent>
+          )}
+          {tabs.includes("activity") && (
           <TabsContent forceMount value="activity" data-editor-tab="activity" className="fade-in pt-4 data-[state=inactive]:hidden">
             <ActivityTimeline entries={detail.activity} me={me} mode={mode} adminNames={adminNames} />
           </TabsContent>
+          )}
         </Tabs>
 
         {isAdmin && (
@@ -322,7 +370,7 @@ export function CollegeEditor({
         )}
 
         {isDirty && !readOnly && (
-          <div className="fixed inset-x-0 bottom-0 z-40 border-t border-primary/40 bg-card/95 backdrop-blur">
+          <div className="glass-strong fixed inset-x-0 bottom-0 z-40 shadow-[inset_0_1px_0_rgb(177_250_99/0.4)]">
             <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
               <span className="mr-auto text-sm font-semibold">Unsaved changes</span>
               <Button type="button" variant="ghost" onClick={() => form.reset()} disabled={saving}>

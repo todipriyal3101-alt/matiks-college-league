@@ -6,7 +6,9 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { addCollege } from "@/app/admin/(panel)/overview-actions";
-import { CollegeSearch } from "@/components/register/college-search";
+import { CollegeSearch } from "@/components/college-search";
+import { DetailsFields, SectionLabel } from "@/components/details-fields";
+import { SegmentedControl } from "@/components/segmented-control";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -23,13 +25,16 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { INDIAN_STATES } from "@/lib/indian-states";
 import { addCollegeSchema, type AddCollegeInput } from "@/lib/validation/league-ops";
+import { COUNTRIES, COUNTRY_FLAGS, COUNTRY_LABELS, EMPTY_DETAILS, type Country, type DetailsFormValues } from "@/lib/validation/portal";
 
 const EMPTY_COLLEGE = { name: "", city: "", state: "" };
 const EMPTY_POC = { name: "", phone: "", email: "" };
 /** Field error keys are zod paths: "collegeId", "newCollege.city", "poc.phone", … */
 type Errors = Record<string, string>;
 
-export function AddCollegeDialog({ leagueId, leagueName }: { leagueId: string; leagueName: string }) {
+const COUNTRY_OPTIONS = COUNTRIES.map((c) => ({ value: c, label: `${COUNTRY_FLAGS[c]} ${COUNTRY_LABELS[c]}` }));
+
+export function AddCollegeDialog({ leagueId, leagueName, defaultCountry = "india" }: { leagueId: string; leagueName: string; defaultCountry?: Country }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -40,6 +45,10 @@ export function AddCollegeDialog({ leagueId, leagueName }: { leagueId: string; l
   const [college, setCollege] = useState(EMPTY_COLLEGE);
   const [poc, setPoc] = useState(EMPTY_POC);
   const [invitePoc, setInvitePoc] = useState(true);
+  const [country, setCountry] = useState<Country>(defaultCountry);
+  const [details, setDetails] = useState<DetailsFormValues>(EMPTY_DETAILS);
+  // Admin uploads go to their own folder; the registration doesn't exist until Save.
+  const [uploadFolder] = useState(() => `admin/${crypto.randomUUID()}`);
 
   function reset() {
     setErrors({});
@@ -49,6 +58,8 @@ export function AddCollegeDialog({ leagueId, leagueName }: { leagueId: string; l
     setCollege(EMPTY_COLLEGE);
     setPoc(EMPTY_POC);
     setInvitePoc(true);
+    setCountry(defaultCountry);
+    setDetails(EMPTY_DETAILS);
   }
 
   /** Clears a field's error as soon as it's edited. */
@@ -67,7 +78,8 @@ export function AddCollegeDialog({ leagueId, leagueName }: { leagueId: string; l
       "poc.phone": "poc-phone",
       "poc.email": "poc-email",
     };
-    const id = Object.entries(ids).find(([key]) => keys.includes(key))?.[1];
+    const details = keys.find((k) => k.startsWith("details."));
+    const id = Object.entries(ids).find(([key]) => keys.includes(key))?.[1] ?? (details && `add-${details.slice(8)}`);
     if (id) document.getElementById(id)?.focus();
   }
 
@@ -80,6 +92,7 @@ export function AddCollegeDialog({ leagueId, leagueName }: { leagueId: string; l
       newCollege: notListed ? college : null,
       poc,
       invitePoc,
+      details: { ...details, country },
     };
     // Same schema as the server: every field error shows at once, inline.
     const parsed = addCollegeSchema.safeParse(input);
@@ -123,13 +136,17 @@ export function AddCollegeDialog({ leagueId, leagueName }: { leagueId: string; l
           <PlusIcon /> Add college
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Add college</DialogTitle>
           <DialogDescription>Adds it to {leagueName} as approved, with its primary POC.</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} noValidate>
           <FieldGroup>
+            <Field>
+              <FieldLabel>Country</FieldLabel>
+              <SegmentedControl label="Country" options={COUNTRY_OPTIONS} value={country} onChange={setCountry} className="self-start" />
+            </Field>
             {!notListed ? (
               <Field data-invalid={!!errors.collegeId}>
                 <FieldLabel htmlFor="college-search">College</FieldLabel>
@@ -191,24 +208,37 @@ export function AddCollegeDialog({ leagueId, leagueName }: { leagueId: string; l
                   </Field>
                   <Field data-invalid={!!errors["newCollege.state"]}>
                     <FieldLabel htmlFor="new-college-state">State</FieldLabel>
-                    <Select
-                      value={college.state || undefined}
-                      onValueChange={(v) => {
-                        setCollege({ ...college, state: v });
-                        clear("newCollege.state");
-                      }}
-                    >
-                      <SelectTrigger id="new-college-state" className="w-full" aria-invalid={!!errors["newCollege.state"]}>
-                        <SelectValue placeholder="Select state" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {INDIAN_STATES.map((s) => (
-                          <SelectItem key={s} value={s}>
-                            {s}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {country === "india" ? (
+                      <Select
+                        value={college.state || undefined}
+                        onValueChange={(v) => {
+                          setCollege({ ...college, state: v });
+                          clear("newCollege.state");
+                        }}
+                      >
+                        <SelectTrigger id="new-college-state" className="w-full" aria-invalid={!!errors["newCollege.state"]}>
+                          <SelectValue placeholder="Select state" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {INDIAN_STATES.map((s) => (
+                            <SelectItem key={s} value={s}>
+                              {s}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        id="new-college-state"
+                        value={college.state}
+                        placeholder="e.g. California"
+                        aria-invalid={!!errors["newCollege.state"]}
+                        onChange={(e) => {
+                          setCollege({ ...college, state: e.target.value });
+                          clear("newCollege.state");
+                        }}
+                      />
+                    )}
                     <FieldError>{errors["newCollege.state"]}</FieldError>
                   </Field>
                 </div>
@@ -217,6 +247,22 @@ export function AddCollegeDialog({ leagueId, leagueName }: { leagueId: string; l
                 </Button>
               </>
             )}
+
+            <div className="space-y-3">
+              <SectionLabel>League details (optional)</SectionLabel>
+              <DetailsFields
+                idPrefix="add"
+                folder={uploadFolder}
+                value={details}
+                onChange={(d) => {
+                  setDetails(d);
+                  setErrors((e) => Object.fromEntries(Object.entries(e).filter(([k]) => !k.startsWith("details."))));
+                }}
+                errors={Object.fromEntries(
+                  Object.entries(errors).flatMap(([k, v]) => (k.startsWith("details.") ? [[k.slice(8), v]] : [])),
+                )}
+              />
+            </div>
 
             <FieldSeparator>Primary POC</FieldSeparator>
             <Field data-invalid={!!errors["poc.name"]}>
@@ -239,16 +285,16 @@ export function AddCollegeDialog({ leagueId, leagueName }: { leagueId: string; l
                 <Input
                   id="poc-phone"
                   type="tel"
-                  inputMode="numeric"
+                  inputMode="tel"
                   autoComplete="off"
-                  maxLength={14}
+                  maxLength={20}
                   value={poc.phone}
                   aria-invalid={!!errors["poc.phone"]}
                   onChange={(e) => {
                     setPoc({ ...poc, phone: e.target.value });
                     clear("poc.phone");
                   }}
-                  placeholder="10-digit mobile"
+                  placeholder={country === "india" ? "10-digit mobile" : "+1 555 123 4567"}
                   className="font-mono"
                 />
                 <FieldError>{errors["poc.phone"]}</FieldError>

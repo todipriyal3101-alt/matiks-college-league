@@ -10,6 +10,7 @@ import { sendLater, winnerPaidEmail } from "@/lib/email";
 import { formatINR } from "@/lib/league";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { detailsToRow } from "@/lib/validation/portal";
 import {
   adminEditorSchema,
   editorSchema,
@@ -105,12 +106,19 @@ export async function saveEditor(
   const registrationPatch = changed(
     {
       team_name: data.teamName,
-      ...(mode === "admin" ? { participant_count: data.participantCount, prize_pool_override: data.prizePoolOverride } : {}),
+      ...(mode === "admin"
+        ? { participant_count: data.participantCount, prize_pool_override: data.prizePoolOverride, ...detailsToRow(data.details!) }
+        : {}),
     } as TablesUpdate<"registrations">,
     current.registration,
   );
   if (Object.keys(registrationPatch).length) {
     const { error } = await supabase.from("registrations").update(registrationPatch).eq("id", registrationId);
+    if (error) return { ok: false, error: friendly(error) };
+  }
+  // Country lives on the college (the master record); admin only.
+  if (mode === "admin" && data.details && data.details.country !== current.registration.colleges.country) {
+    const { error } = await supabase.from("colleges").update({ country: data.details.country }).eq("id", current.registration.college_id);
     if (error) return { ok: false, error: friendly(error) };
   }
 

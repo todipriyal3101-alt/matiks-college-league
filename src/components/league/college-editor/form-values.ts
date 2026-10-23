@@ -1,9 +1,10 @@
 import type { RegistrationDetail } from "@/lib/data/league-ops";
 import type { Tables } from "@/lib/database.types";
 import type { AdminEditorInput } from "@/lib/validation/league-ops";
+import { detailsFromRow, type Country, type DetailsFormValues } from "@/lib/validation/portal";
 
 /** The editor form holds the admin superset; POC mode validates with the narrower schema (extra keys are dropped). */
-export type EditorFormValues = AdminEditorInput;
+export type EditorFormValues = Omit<AdminEditorInput, "details"> & { details: DetailsFormValues & { country: Country } };
 export type ContactFormValues = EditorFormValues["contacts"][number];
 export type WinnerFormValues = EditorFormValues["winners"][number];
 
@@ -50,6 +51,7 @@ export function toFormValues(detail: RegistrationDetail): EditorFormValues {
     prizePoolOverride: detail.registration.prize_pool_override ?? "",
     contacts: detail.contacts.map(contactToForm),
     winners: detail.winners.map(winnerToForm),
+    details: { ...detailsFromRow(detail.registration), country: detail.registration.colleges.country },
   };
 }
 

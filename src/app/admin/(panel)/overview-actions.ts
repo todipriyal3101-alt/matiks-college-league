@@ -11,19 +11,24 @@ import { REVIEW_STATUSES, STAGES, type ReviewStatus, type Stage } from "@/lib/le
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { addCollegeSchema, type AddCollegeInput } from "@/lib/validation/league-ops";
+import { denySchema, detailsToRow } from "@/lib/validation/portal";
 
 // League Overview actions. Writes use the admin's own session (RLS + activity log record who did it);
 // only register_college needs the service role.
 
 export type ActionResult<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 
-type Previous = { id: string; status: ReviewStatus; stage: Stage }[];
+/** What Undo puts back: review status, the deny reason and the stage override (null = derived from the dates). */
+type Previous = { id: string; status: ReviewStatus; stage_override: Stage | null; deny_reason: string | null }[];
 
 const ids = z.array(z.uuid()).min(1).max(500);
 
 async function snapshot(registrationIds: string[]): Promise<Previous> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("registrations").select("id, status, stage").in("id", registrationIds);
+  const { data, error } = await supabase
+    .from("registrations")
+    .select("id, status, stage_override, deny_reason")
+    .in("id", registrationIds);
   if (error) throw new Error(error.message);
   return data;
 }
@@ -41,11 +46,35 @@ export async function setReviewStatus(
   const supabase = await createClient();
   const { error } = await supabase
     .from("registrations")
-    .update({ status: parsed.data.status, reviewed_by: profile.user_id, reviewed_at: new Date().toISOString() })
+    .update({
+      status: parsed.data.status,
+      reviewed_by: profile.user_id,
+      reviewed_at: new Date().toISOString(),
+      ...(parsed.data.status === "rejected" ? {} : { deny_reason: null }),
+    })
     .in("id", parsed.data.ids);
   if (error) return { ok: false, error: error.message };
   updateTag(CACHE_TAGS.colleges);
   emailStatusChange(parsed.data.ids, parsed.data.status);
+  refresh();
+  return { ok: true, previous };
+}
+
+/** Deny with an optional reason (shown to the POC on their Register tab, in the notification and the email). */
+export async function denyRegistration(registrationId: string, reason: string | null): Promise<ActionResult<{ previous: Previous }>> {
+  const { profile } = await requireAdminWriter();
+  const parsed = denySchema.safeParse({ registrationId, reason: reason ?? "" });
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid request." };
+
+  const previous = await snapshot([parsed.data.registrationId]);
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("registrations")
+    .update({ status: "rejected", deny_reason: parsed.data.reason, reviewed_by: profile.user_id, reviewed_at: new Date().toISOString() })
+    .eq("id", parsed.data.registrationId);
+  if (error) return { ok: false, error: error.message };
+  updateTag(CACHE_TAGS.colleges);
+  emailStatusChange([parsed.data.registrationId], "rejected");
   refresh();
   return { ok: true, previous };
 }
@@ -57,49 +86,59 @@ function emailStatusChange(registrationIds: string[], status: ReviewStatus) {
     async () => {
       const { data } = await createAdminClient()
         .from("registrations")
-        .select("poc_email, colleges(name), leagues(name)")
+        .select("poc_email, deny_reason, colleges(name), leagues(name)")
         .in("id", registrationIds)
         .eq("status", status);
       return (data ?? []).map((r) =>
-        statusChangedEmail(r.poc_email, { collegeName: r.colleges.name, leagueName: r.leagues.name, status }),
+        statusChangedEmail(r.poc_email, { collegeName: r.colleges.name, leagueName: r.leagues.name, status, reason: r.deny_reason }),
       );
     },
     { afterUndoWindow: true },
   );
 }
 
-/** Change the season stage of one or many. Returns the previous values for Undo. */
-export async function setStage(registrationIds: string[], stage: Stage): Promise<ActionResult<{ previous: Previous }>> {
+/**
+ * Override the stage of one or many (null = back to automatic: derived from the dates and payouts).
+ * Returns the previous values for Undo.
+ */
+export async function setStage(registrationIds: string[], stage: Stage | null): Promise<ActionResult<{ previous: Previous }>> {
   await requireAdminWriter();
-  const parsed = z.object({ ids, stage: z.enum(STAGES) }).safeParse({ ids: registrationIds, stage });
+  const parsed = z.object({ ids, stage: z.enum(STAGES).nullable() }).safeParse({ ids: registrationIds, stage });
   if (!parsed.success) return { ok: false, error: "Invalid request." };
 
   const previous = await snapshot(parsed.data.ids);
   const supabase = await createClient();
-  const { error } = await supabase.from("registrations").update({ stage: parsed.data.stage }).in("id", parsed.data.ids);
+  const { error } = await supabase.from("registrations").update({ stage_override: parsed.data.stage }).in("id", parsed.data.ids);
   if (error) return { ok: false, error: error.message };
   refresh();
   return { ok: true, previous };
 }
 
-/** Undo for setReviewStatus / setStage: puts each registration back to its previous status and stage. */
+/** Undo for setReviewStatus / denyRegistration / setStage: puts back the previous status, reason and stage override. */
 export async function restoreRegistrations(previous: Previous): Promise<ActionResult> {
   await requireAdminWriter();
   const parsed = z
-    .array(z.object({ id: z.uuid(), status: z.enum(REVIEW_STATUSES), stage: z.enum(STAGES) }))
+    .array(
+      z.object({
+        id: z.uuid(),
+        status: z.enum(REVIEW_STATUSES),
+        stage_override: z.enum(STAGES).nullable(),
+        deny_reason: z.string().max(500).nullable(),
+      }),
+    )
     .min(1)
     .max(500)
     .safeParse(previous);
   if (!parsed.success) return { ok: false, error: "Invalid request." };
 
   const supabase = await createClient();
-  // Group by (status, stage) so a bulk undo is a handful of updates, not one per row.
-  const groups = Map.groupBy(parsed.data, (p) => `${p.status}|${p.stage}`);
+  // Group identical values so a bulk undo is a handful of updates, not one per row.
+  const groups = Map.groupBy(parsed.data, (p) => JSON.stringify([p.status, p.stage_override, p.deny_reason]));
   for (const rows of groups.values()) {
-    const { status, stage } = rows[0];
+    const { status, stage_override, deny_reason } = rows[0];
     const { error } = await supabase
       .from("registrations")
-      .update({ status, stage })
+      .update({ status, stage_override, deny_reason })
       .in("id", rows.map((r) => r.id));
     if (error) return { ok: false, error: error.message };
   }
@@ -142,7 +181,7 @@ export async function addCollege(
     const issue = parsed.error.issues[0];
     return { ok: false, error: issue?.message ?? "Invalid request.", field: issue?.path.join(".") };
   }
-  const { leagueId, collegeId, newCollege, poc } = parsed.data;
+  const { leagueId, collegeId, newCollege, poc, details } = parsed.data;
 
   // register_college is EXECUTE-able by the service role only (migration 0002).
   const { data: registrationId, error } = await createAdminClient().rpc("register_college", {
@@ -165,13 +204,23 @@ export async function addCollege(
     return { ok: false, error: "Couldn't add the college. Please try again." };
   }
 
-  // Approve with the admin's own session so the activity log records who did it.
+  // Approve (+ the league details) with the admin's own session so the activity log records who did it.
   const supabase = await createClient();
-  const { error: approveError } = await supabase
+  const { data: added, error: approveError } = await supabase
     .from("registrations")
-    .update({ status: "approved", reviewed_by: profile.user_id, reviewed_at: new Date().toISOString() })
-    .eq("id", registrationId);
-  if (approveError) return { ok: false, error: `Added, but approving failed: ${approveError.message}` };
+    .update({
+      status: "approved",
+      reviewed_by: profile.user_id,
+      reviewed_at: new Date().toISOString(),
+      ...detailsToRow(details),
+    })
+    .eq("id", registrationId)
+    .select("college_id")
+    .single();
+  if (approveError) return { ok: false, error: `Added, but saving failed: ${approveError.message}` };
+  // Country lives on the college (the master record).
+  const { error: countryError } = await supabase.from("colleges").update({ country: details.country }).eq("id", added.college_id);
+  if (countryError) return { ok: false, error: `Added, but setting the country failed: ${countryError.message}` };
   updateTag(CACHE_TAGS.colleges);
 
   let message = "";
@@ -192,29 +241,6 @@ export async function invitePoc(
   const res = await inviteOne(profile, registrationId, options);
   refresh();
   return res;
-}
-
-/** Bulk "Approve + invite POCs": approves each registration and invites the email it registered with. */
-export async function approveAndInvite(registrationIds: string[]): Promise<ActionResult<{ message: string; failed: string[] }>> {
-  const { profile } = await requireAdminWriter();
-  const parsed = ids.max(50, "Invite at most 50 colleges at a time.").safeParse(registrationIds);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid request." };
-
-  const failed: string[] = [];
-  let done = 0;
-  // One at a time: the auth invite endpoint is rate limited.
-  for (const id of parsed.data) {
-    const res = await inviteOne(profile, id, { approve: true });
-    if (res.ok) done++;
-    else failed.push(res.error);
-  }
-  refresh();
-  if (!done) return { ok: false, error: failed[0] ?? "Nothing was invited." };
-  return {
-    ok: true,
-    failed,
-    message: `Approved + invited ${done}${failed.length ? ` · ${failed.length} failed` : ""}`,
-  };
 }
 
 async function inviteOne(

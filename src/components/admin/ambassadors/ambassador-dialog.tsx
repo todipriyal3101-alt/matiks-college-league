@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { saveAmbassador } from "@/app/admin/(panel)/ambassadors/actions";
-import { CollegeSearch } from "@/components/register/college-search";
+import { CollegeSearch } from "@/components/college-search";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";

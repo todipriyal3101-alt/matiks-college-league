@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import { SeasonBar } from "@/components/admin/season-bar";
 import { AmbassadorsList } from "@/components/admin/ambassadors/ambassadors-list";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireAdmin } from "@/lib/auth/admin";
@@ -12,10 +13,13 @@ export const metadata: Metadata = { title: "Ambassadors" };
 
 export default function AmbassadorsPage() {
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-5xl">Ambassadors</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Referral links, QR codes and signups.</p>
+    <div className="fade-in space-y-8">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-5xl sm:text-6xl">Ambassadors</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Referral links, QR codes and signups.</p>
+        </div>
+        <SeasonBar />
       </div>
       <Suspense fallback={<Skeleton className="h-64 w-full rounded-xl" />}>
         <Ambassadors />

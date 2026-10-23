@@ -44,16 +44,21 @@ export function RowActions({
   collegeName,
   reviewStatus,
   pocEmail,
+  hasAccess,
   isWriter,
   onReview,
+  onDeny,
   onDeleted,
 }: {
   registrationId: string;
   collegeName: string;
   reviewStatus: ReviewStatus;
   pocEmail: string;
+  /** The POC already has a login with access (self-registered or invited): approving needs no invite. */
+  hasAccess: boolean;
   isWriter: boolean;
   onReview: (status: ReviewStatus) => void;
+  onDeny: () => void;
   onDeleted?: () => void;
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -85,17 +90,19 @@ export function RowActions({
             <>
               <CollegeShareItems registrationId={registrationId} collegeName={collegeName} />
               <DropdownMenuSeparator />
-              {/* The current status is shown disabled rather than hidden. */}
-              {/* Approving goes through the invite dialog (it also offers "Approve only"): sign-ups are off,
-                  so a POC can only log in once invited. */}
-              <DropdownMenuItem disabled={reviewStatus === "approved"} onSelect={() => setInvite("approve")}>
-                <CheckIcon /> Approve + invite POC
+              {/* The current status is shown disabled rather than hidden. A POC without a login gets the invite
+                  dialog (it also offers "Approve only"). */}
+              <DropdownMenuItem
+                disabled={reviewStatus === "approved"}
+                onSelect={() => (hasAccess ? onReview("approved") : setInvite("approve"))}
+              >
+                <CheckIcon /> {hasAccess ? "Approve" : "Approve + invite POC"}
               </DropdownMenuItem>
               <DropdownMenuItem disabled={reviewStatus === "waitlisted"} onSelect={() => onReview("waitlisted")}>
                 <ClockIcon /> Waitlist
               </DropdownMenuItem>
-              <DropdownMenuItem disabled={reviewStatus === "rejected"} onSelect={() => onReview("rejected")}>
-                <XIcon /> Reject
+              <DropdownMenuItem disabled={reviewStatus === "rejected"} onSelect={onDeny}>
+                <XIcon /> Deny…
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => setInvite("invite")}>
@@ -136,15 +143,15 @@ export function RowActions({
   );
 }
 
-/** "Share" (the college's admin link: share sheet on phones, else copy) and "Share registration link". */
+/** "Share" (the college's admin link: share sheet on phones, else copy) and the POC sign-up link. */
 export function CollegeShareItems({ registrationId, collegeName }: { registrationId: string; collegeName: string }) {
   return (
     <>
       <DropdownMenuItem onSelect={() => void shareLink(absoluteUrl(`/admin/colleges/${registrationId}`), collegeName)}>
         <Share2Icon /> Share
       </DropdownMenuItem>
-      <DropdownMenuItem onSelect={() => void copyLink(absoluteUrl("/register"))}>
-        <LinkIcon /> Share registration link
+      <DropdownMenuItem onSelect={() => void copyLink(absoluteUrl("/login?mode=signup"))}>
+        <LinkIcon /> Copy POC sign-up link
       </DropdownMenuItem>
     </>
   );

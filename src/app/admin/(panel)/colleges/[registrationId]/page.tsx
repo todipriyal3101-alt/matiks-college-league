@@ -16,8 +16,8 @@ export const metadata: Metadata = { title: "College" };
 export default function AdminCollegePage({ params }: PageProps<"/admin/colleges/[registrationId]">) {
   return (
     <div className="space-y-6">
-      <Link href="/admin" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ChevronLeftIcon className="size-4" /> All colleges
+      <Link href="/admin/colleges" className="inline-flex items-center gap-1 text-sm font-semibold text-foreground/85 hover:text-foreground">
+        <ChevronLeftIcon className="size-4" /> All registered colleges
       </Link>
       <Suspense fallback={<EditorSkeleton />}>
         <Editor params={params} />

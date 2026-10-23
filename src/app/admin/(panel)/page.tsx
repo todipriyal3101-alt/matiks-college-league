@@ -1,172 +1,131 @@
-import { BuildingIcon, CalendarPlusIcon, ClipboardCheckIcon, IndianRupeeIcon, RadioIcon, TrophyIcon } from "lucide-react";
+import {
+  ArrowRightIcon,
+  BuildingIcon,
+  CheckCircle2Icon,
+  CircleDollarSignIcon,
+  HourglassIcon,
+  IndianRupeeIcon,
+  RadioIcon,
+  UsersIcon,
+} from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { CountrySwitch } from "@/components/admin/country-switch";
 import { AddCollegeDialog } from "@/components/admin/overview/add-college-dialog";
-import { InsightsView } from "@/components/admin/insights/insights-view";
-import { ExportMenu } from "@/components/admin/overview/export-menu";
-import { OverviewFilters } from "@/components/admin/overview/overview-filters";
-import { OverviewTable } from "@/components/admin/overview/overview-table";
-import { EmptyState } from "@/components/league/empty-state";
+import { ExportAllButton } from "@/components/admin/overview/export-button";
+import { MatiksBanner } from "@/components/admin/overview/matiks-banner";
+import { Glass } from "@/components/glass";
 import { StatCard } from "@/components/league/stat-card";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireAdmin } from "@/lib/auth/admin";
 import { getSelectedLeague } from "@/lib/data/admin-leagues";
-import { filterOverview, getOverview, overviewSources, overviewStats } from "@/lib/data/league-ops";
-import { getSeasonPeople, matchPeople } from "@/lib/data/people";
-import { formatINR } from "@/lib/league";
-import { createClient } from "@/lib/supabase/server";
-import { parseOverviewFilters } from "@/lib/validation/league-ops";
+import { getAdminCountry, getRegistrations, overviewTotals } from "@/lib/data/portal";
+import { formatMoney } from "@/lib/league";
+import { COUNTRY_LABELS } from "@/lib/validation/portal";
 
-export const metadata: Metadata = { title: "League Overview" };
+export const metadata: Metadata = { title: "Overview" };
 
-export default function LeagueOverviewPage({ searchParams }: PageProps<"/admin">) {
+const pad = (n: number) => String(n).padStart(3, "0");
+const count = new Intl.NumberFormat("en-IN");
+
+/** Summary only (the list lives at /admin/colleges). Every number follows the India / USA switch. */
+export default function OverviewPage() {
   return (
     <Suspense fallback={<OverviewSkeleton />}>
-      <Overview searchParams={searchParams} />
+      <Overview />
     </Suspense>
   );
 }
 
-async function Overview({ searchParams }: Pick<PageProps<"/admin">, "searchParams">) {
-  const [{ isWriter }, league, params] = await Promise.all([requireAdmin(), getSelectedLeague(), searchParams]);
-
-  if (!league) {
-    return (
-      <EmptyState
-        icon={CalendarPlusIcon}
-        title="No seasons yet"
-        description="Create the first season to start taking registrations."
-        action={
-          <Button asChild>
-            <Link href="/admin/leagues">Go to Seasons</Link>
-          </Button>
-        }
-      />
-    );
-  }
-
-  const supabase = await createClient();
-  const filters = parseOverviewFilters(params);
-  const [rows, emails, people] = await Promise.all([
-    getOverview(league.id),
-    // Not in registration_overview: only needed for the "Invite POC" default.
-    supabase.from("registrations").select("id, poc_email").eq("league_id", league.id),
-    // The search box also finds winners and contacts by name or phone; the row then says who matched.
-    filters.q ? getSeasonPeople(league.id).then((all) => matchPeople(all, filters.q)) : [],
-  ]);
-  const pocEmails = Object.fromEntries((emails.data ?? []).map((r) => [r.id, r.poc_email]));
-  const insights = params.tab === "insights";
-  const stats = overviewStats(rows);
-  const matches: Record<string, string[]> = {};
-  for (const p of people) (matches[p.registrationId] ??= []).push(`${p.name || p.phone} (${p.detail})`);
-  const visible = filterOverview(rows, filters, new Set(Object.keys(matches)));
+async function Overview() {
+  const [{ isWriter }, country, league] = await Promise.all([requireAdmin(), getAdminCountry(), getSelectedLeague()]);
+  const t = overviewTotals(await getRegistrations(country));
 
   return (
-    <div className="space-y-6">
+    <div className="fade-in space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">{league.name}</p>
-          <h1 className="text-5xl">Overview</h1>
-        </div>
-        {isWriter && (
-          <div className="flex gap-2">
-            {rows.length > 0 && <ExportMenu />}
-            <AddCollegeDialog leagueId={league.id} leagueName={league.name} />
-          </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
-        <StatCard icon={BuildingIcon} label="Colleges" value={stats.colleges} hint={`${stats.approved} approved`} />
-        <StatCard icon={IndianRupeeIcon} label="Prize committed" value={formatINR(stats.prizeCommitted)} hint="approved colleges" />
-        <StatCard icon={TrophyIcon} label="Prize paid out" value={formatINR(stats.prizePaid)} />
-        <StatCard icon={RadioIcon} label="Live now" value={stats.liveNow} />
-        <StatCard
-          icon={ClipboardCheckIcon}
-          label="Pending review"
-          value={stats.pendingReview}
-          className="col-span-2 lg:col-span-1"
-        />
-      </div>
-
-      <nav className="flex gap-1 border-b border-border/60" aria-label="Overview sections">
-        <TabLink href="/admin" active={!insights}>
-          Colleges
-        </TabLink>
-        <TabLink href="/admin?tab=insights" active={insights}>
-          Insights
-        </TabLink>
-      </nav>
-
-      {insights ? (
-        <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>
-          <InsightsView leagueId={league.id} />
-        </Suspense>
-      ) : rows.length === 0 ? (
-        <EmptyState
-          icon={BuildingIcon}
-          title="No colleges yet"
-          description={isWriter ? "Share /register or add a college." : "Colleges show up as they register."}
-          action={isWriter ? <AddCollegeDialog leagueId={league.id} leagueName={league.name} /> : undefined}
-        />
-      ) : (
-        <section className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <QuickFilter href="/admin" active={filters.review === "all"} label="All" count={rows.length} />
-            <QuickFilter href="/admin?review=pending" active={filters.review === "pending"} label="Pending review" count={stats.pendingReview} highlight />
-            <QuickFilter href="/admin?review=approved" active={filters.review === "approved"} label="Approved" count={stats.approved} />
-          </div>
-          <OverviewFilters filters={filters} sources={overviewSources(rows)} />
-          <p className="text-xs text-muted-foreground">
-            {visible.length} of {rows.length}
+          <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+            Matiks College League · {COUNTRY_LABELS[country]}
           </p>
-          <OverviewTable rows={visible} isWriter={isWriter} pocEmails={pocEmails} matches={matches} />
-        </section>
+          <h1 className="text-5xl sm:text-6xl">Overview</h1>
+        </div>
+        <CountrySwitch value={country} />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <StatCard icon={BuildingIcon} label="Total colleges" value={pad(t.colleges)} hint={`${t.approved} approved`} />
+        <StatCard icon={RadioIcon} label="Leagues live" value={pad(t.live)} hint="running now" />
+        <StatCard icon={CheckCircle2Icon} label="Leagues ended" value={pad(t.ended)} hint={`${t.complete} complete`} />
+        <StatCard
+          icon={country === "usa" ? CircleDollarSignIcon : IndianRupeeIcon}
+          label="Amount burnt"
+          value={formatMoney(t.amountBurnt, country)}
+          hint="prize money paid out"
+        />
+        <StatCard icon={UsersIcon} label="Users gained" value={count.format(t.usersGained)} hint="sum of participants" />
+        <StatCard icon={HourglassIcon} label="Prize pending" value={pad(t.prizePending)} hint="league done, not paid" />
+        <Glass asChild className="col-span-2 bg-primary/10 shadow-[inset_0_0_0_1px_rgb(177_250_99/0.28),var(--glass-edge),var(--glass-drop)]">
+          <Link
+            href={t.pending ? "/admin/colleges?status=pending" : "/admin/colleges"}
+            className="group flex min-h-30 flex-col p-4 transition-colors outline-none hover:bg-primary/15 focus-visible:ring-3 focus-visible:ring-ring/50 sm:p-5"
+          >
+            <span className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-semibold tracking-wider text-foreground uppercase">All registered colleges</span>
+              <span className="grid size-7 place-items-center rounded-lg bg-olive text-primary transition-transform group-hover:translate-x-0.5">
+                <ArrowRightIcon className="size-4" aria-hidden />
+              </span>
+            </span>
+            <span className="mt-auto pt-2 font-display text-4xl leading-none text-primary">
+              {t.registered} {t.registered === 1 ? "college" : "colleges"}
+            </span>
+            <span className="mt-2 flex items-center gap-2 text-xs text-foreground/85">
+              {t.pending > 0 ? (
+                <span className="rounded-full bg-status-pending px-2.5 py-0.5 font-bold text-status-pending-fg">{t.pending} pending</span>
+              ) : (
+                <span className="rounded-full bg-status-done px-2.5 py-0.5 font-semibold text-status-done-fg">Nothing to review</span>
+              )}
+              {t.pending > 0 ? "Review and approve →" : "Open the list →"}
+            </span>
+          </Link>
+        </Glass>
+      </div>
+
+      {isWriter && (
+        <div className="flex flex-wrap gap-3 max-sm:[&>*]:flex-1">
+          {league ? (
+            <AddCollegeDialog leagueId={league.id} leagueName={league.name} defaultCountry={country} />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Create a season under <Link href="/admin/leagues" className="font-semibold text-primary">League tools › Seasons</Link> to add colleges.
+            </p>
+          )}
+          <ExportAllButton />
+        </div>
       )}
+
+      <MatiksBanner />
     </div>
-  );
-}
-
-/** One-tap review filters (the most used is Pending review). */
-function QuickFilter({ href, active, label, count, highlight }: { href: string; active: boolean; label: string; count: number; highlight?: boolean }) {
-  return (
-    <Link
-      href={href}
-      aria-current={active ? "page" : undefined}
-      className={`inline-flex h-9 items-center gap-2 rounded-full border px-3.5 text-sm font-semibold transition-colors ${active ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card hover:bg-muted"}`}
-    >
-      {label}
-      <span className={`font-mono text-xs ${active ? "" : highlight && count ? "text-status-pending-fg" : "text-muted-foreground"}`}>{count}</span>
-    </Link>
-  );
-}
-
-function TabLink({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      aria-current={active ? "page" : undefined}
-      className={`-mb-px border-b-2 px-3 py-2 text-sm font-semibold ${active ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-    >
-      {children}
-    </Link>
   );
 }
 
 function OverviewSkeleton() {
   return (
-    <div className="space-y-6">
-      <Skeleton className="h-9 w-64" />
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-        {Array.from({ length: 5 }, (_, i) => (
-          <Skeleton key={i} className="h-24 rounded-xl" />
-        ))}
+    <div className="space-y-6" aria-hidden>
+      <div className="flex items-end justify-between">
+        <Skeleton className="h-14 w-60" />
+        <Skeleton className="h-11 w-48 rounded-full" />
       </div>
-      <Skeleton className="h-9 w-full" />
-      <Skeleton className="h-64 w-full rounded-xl" />
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        {Array.from({ length: 6 }, (_, i) => (
+          <Skeleton key={i} className="h-30 rounded-3xl" />
+        ))}
+        <Skeleton className="col-span-2 h-30 rounded-3xl" />
+      </div>
+      <Skeleton className="h-11 w-72 rounded-full" />
+      <Skeleton className="h-32 rounded-[2rem] sm:h-48" />
     </div>
   );
 }

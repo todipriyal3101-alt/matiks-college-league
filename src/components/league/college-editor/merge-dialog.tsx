@@ -4,7 +4,7 @@ import { AlertTriangleIcon, GitMergeIcon, Loader2Icon } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { CollegeSearch } from "@/components/register/college-search";
+import { CollegeSearch } from "@/components/college-search";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
