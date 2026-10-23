@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { safeNext } from "@/lib/safe-next";
+import { signUpSchema } from "@/lib/validation/portal";
 import { createClient } from "@/lib/supabase/client";
 
 // Inlined at build time. Turn on once the Google provider is configured in Supabase.
 const GOOGLE_LOGIN_ENABLED = process.env.NEXT_PUBLIC_ENABLE_GOOGLE_LOGIN === "true";
 
-type Mode = "password" | "forgot";
+export type Mode = "password" | "forgot" | "signup";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -27,7 +28,9 @@ export function LoginForm({ next, initialMode = "password" }: { next?: string; i
   const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [pending, setPending] = useState<"password" | "magic" | "reset" | "google" | null>(null);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [pending, setPending] = useState<"password" | "magic" | "reset" | "google" | "signup" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
   const continueUrl = `/auth/continue${next ? `?next=${encodeURIComponent(safeNext(next, "/"))}` : ""}`;
@@ -64,7 +67,7 @@ export function LoginForm({ next, initialMode = "password" }: { next?: string; i
       });
       if (error) {
         return /signups not allowed|not found/i.test(error.message)
-          ? "There's no account for this email yet. If you registered a college, you'll get an email invite once it's approved."
+          ? "There's no account for this email yet. Create one below."
           : friendly(error.message);
       }
       setSent(`We've emailed a login link to ${email.trim()}. Open it on any device.`);
@@ -80,6 +83,32 @@ export function LoginForm({ next, initialMode = "password" }: { next?: string; i
       if (error) return friendly(error.message);
       // Same message whether or not the account exists, so this form can't be used to probe emails.
       setSent(`If ${email.trim()} has an account, we've sent a link to choose a new password. It works once and expires in 1 hour.`);
+      return null;
+    });
+
+  // POCs create their own account (SPEC "Access"); email confirmation is on, so they confirm first.
+  // Name and phone go into the auth metadata; the Register tab uses them for the primary contact.
+  const signUp = () =>
+    run("signup", async () => {
+      const parsed = signUpSchema.safeParse({ name, phone, email, password });
+      if (!parsed.success) return parsed.error.issues[0]?.message ?? "Check the form.";
+      const { data, error } = await createClient().auth.signUp({
+        email: parsed.data.email,
+        password: parsed.data.password,
+        options: {
+          data: { name: parsed.data.name, phone: parsed.data.phone },
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent("/college")}`,
+        },
+      });
+      if (error) return /already registered/i.test(error.message) ? "This email already has an account. Sign in instead." : friendly(error.message);
+      if (data.session) {
+        // Email confirmation turned off: already signed in. Full load so the proxy sees the new session cookies.
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+        window.location.assign("/college");
+        return null;
+      }
+      // Same message whether or not the email already had an account (Supabase doesn't say), so it can't be probed.
+      setSent(`We've emailed a confirmation link to ${parsed.data.email}. Open it to finish creating your account, then register your college.`);
       return null;
     });
 
@@ -110,7 +139,7 @@ export function LoginForm({ next, initialMode = "password" }: { next?: string; i
       noValidate
       onSubmit={(e) => {
         e.preventDefault();
-        void (mode === "password" ? passwordLogin() : resetPassword());
+        void (mode === "password" ? passwordLogin() : mode === "signup" ? signUp() : resetPassword());
       }}
     >
       <FieldGroup>
@@ -118,7 +147,31 @@ export function LoginForm({ next, initialMode = "password" }: { next?: string; i
           <FieldLabel htmlFor="email">Email</FieldLabel>
           <Input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-12" />
         </Field>
-        {mode === "password" ? (
+        {mode === "signup" ? (
+          <>
+            <Field>
+              <FieldLabel htmlFor="name">Your name</FieldLabel>
+              <Input id="name" autoComplete="name" required value={name} onChange={(e) => setName(e.target.value)} className="h-12" />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="phone">Phone (WhatsApp)</FieldLabel>
+              <Input id="phone" type="tel" inputMode="tel" autoComplete="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} className="h-12 font-mono" />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="new-password">Password</FieldLabel>
+              <Input id="new-password" type="password" autoComplete="new-password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} className="h-12" />
+              <FieldDescription>At least 8 characters.</FieldDescription>
+            </Field>
+            {error && <FieldError>{error}</FieldError>}
+            <Button type="submit" className="h-12" disabled={pending !== null}>
+              {pending === "signup" && <Loader2Icon className="animate-spin" />}
+              Create account
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => { setMode("password"); setError(null); }}>
+              Already have an account? Sign in
+            </Button>
+          </>
+        ) : mode === "password" ? (
           <>
             <Field>
               <FieldLabel htmlFor="password">Password</FieldLabel>
@@ -150,6 +203,9 @@ export function LoginForm({ next, initialMode = "password" }: { next?: string; i
                 Continue with Google
               </Button>
             )}
+            <Button type="button" variant="ghost" className="h-11" onClick={() => { setMode("signup"); setError(null); }}>
+              New college POC? <span className="text-primary">Create account</span>
+            </Button>
           </>
         ) : (
           <>

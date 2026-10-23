@@ -3,9 +3,8 @@ import { join } from "node:path";
 
 import { ImageResponse } from "next/og";
 
-import { LANDING } from "@/app/(public)/content";
 import { getActiveLeague } from "@/lib/data/leagues";
-import { BRAND, seasonShortName } from "@/lib/league";
+import { BRAND, formatINR, PRIZE_TIERS, seasonShortName } from "@/lib/league";
 
 // Shared Open Graph card (1200×630) for / and /register, in the matiks.com look: #1a1a1a grid, Bebas Neue,
 // lime highlights, the Matiks mascot. League name, prize pool and deadline come from the active league.
@@ -56,7 +55,7 @@ export async function leagueOgImage({ eyebrow, cta }: { eyebrow: string; cta: st
             <div style={{ fontSize: 40, color: "#b1fa63", letterSpacing: 2 }}>{kicker.toUpperCase()}</div>
             <div style={{ fontSize: 112, lineHeight: 0.92, letterSpacing: 2 }}>{BRAND.toUpperCase()}</div>
             <div style={{ display: "flex", gap: 56, marginTop: 24 }}>
-              <Fact label="Prize pool" value={LANDING.prizePool} />
+              <Fact label="Prize pool" value={`Up to ${formatINR(PRIZE_TIERS[0].amount)}`} />
               {deadline && <Fact label="Registration closes" value={deadline} />}
             </div>
           </div>

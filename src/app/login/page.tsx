@@ -18,7 +18,7 @@ const ERRORS: Record<string, string> = {
 
 export default function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
-    <AuthCard subtitle="Sign in">
+    <AuthCard subtitle="Sign in or create account">
       <Suspense>
         <LoginContent searchParams={searchParams} />
       </Suspense>
@@ -43,11 +43,12 @@ async function LoginContent({ searchParams }: Pick<PageProps<"/login">, "searchP
           {message}
         </p>
       )}
-      <LoginForm next={nextPath} initialMode={mode === "forgot" || error === "reset_expired" ? "forgot" : "password"} />
+      <LoginForm
+        next={nextPath}
+        initialMode={mode === "signup" ? "signup" : mode === "forgot" || error === "reset_expired" ? "forgot" : "password"}
+      />
       <p className="text-center text-xs text-muted-foreground">
-        {nextPath?.startsWith("/college")
-          ? "Registered a college? You'll get an email invite once it's approved."
-          : "Invite only. Registered a college? You'll get an email invite once it's approved."}
+        College POCs: create an account, then register your college. Matiks admins approve every college.
       </p>
     </>
   );

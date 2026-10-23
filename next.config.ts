@@ -3,11 +3,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
-  // Phase 7: the League Overview at /admin replaces these list pages.
   async redirects() {
     return [
-      { source: "/admin/registrations", destination: "/admin", permanent: false },
-      { source: "/admin/colleges", destination: "/admin", permanent: false },
+      // The registered-colleges list (/admin/colleges) replaced the old registrations page.
+      { source: "/admin/registrations", destination: "/admin/colleges", permanent: false },
       // Phase 9: one login page for admins and POCs.
       { source: "/admin/login", destination: "/login", permanent: false },
       // Phase 10: the POC portal replaced "My registration".

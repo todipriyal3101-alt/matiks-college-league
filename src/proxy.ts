@@ -13,24 +13,9 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const next = pathname + request.nextUrl.search;
 
-  // /admin/* needs a user with an admin_profiles row; /college needs a login (RLS decides what they see).
-  const isAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
-  const isCollegeRoute = pathname === "/college" || pathname.startsWith("/college/");
-  if ((isAdminRoute || isCollegeRoute) && !claims) {
-    return redirectTo(request, response, "/login", { next });
-  }
-  if (isAdminRoute) {
-    // RLS lets a user read their own admin_profiles row.
-    const { data: profile } = await supabase
-      .from("admin_profiles")
-      .select("user_id")
-      .eq("user_id", claims!.sub)
-      .maybeSingle();
-    if (!profile) return redirectTo(request, response, "/no-access", {});
-  }
-
   // UTM params are first-touch: only the first landing with params sets them.
   // ref is last-touch: the ambassador link that actually brought the student in gets credit.
+  // Set before any redirect below (redirectTo copies these cookies), so /register?ref=… links still count.
   const fromUrl = attributionFromSearchParams(request.nextUrl.searchParams);
   if (fromUrl) {
     const existingRaw = request.cookies.get(ATTRIBUTION_COOKIE)?.value;
@@ -49,6 +34,31 @@ export async function proxy(request: NextRequest) {
         path: "/",
       });
     }
+  }
+
+  // No public landing page: "/" sends people to their panel (by role, via /auth/continue) or to login.
+  if (pathname === "/") {
+    return claims ? redirectTo(request, response, "/auth/continue", {}) : redirectTo(request, response, "/login", {});
+  }
+  // Old registration links (posters, ambassador QR codes): POCs now sign up, then register in /college.
+  if (pathname === "/register" || pathname.startsWith("/register/")) {
+    return claims ? redirectTo(request, response, "/college", {}) : redirectTo(request, response, "/login", { mode: "signup" });
+  }
+
+  // /admin/* needs a user with an admin_profiles row; /college needs a login (RLS decides what they see).
+  const isAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
+  const isCollegeRoute = pathname === "/college" || pathname.startsWith("/college/");
+  if ((isAdminRoute || isCollegeRoute) && !claims) {
+    return redirectTo(request, response, "/login", { next });
+  }
+  if (isAdminRoute) {
+    // RLS lets a user read their own admin_profiles row.
+    const { data: profile } = await supabase
+      .from("admin_profiles")
+      .select("user_id")
+      .eq("user_id", claims!.sub)
+      .maybeSingle();
+    if (!profile) return redirectTo(request, response, "/no-access", {});
   }
 
   return response;
