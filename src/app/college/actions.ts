@@ -7,7 +7,7 @@ import { z } from "zod";
 
 import { ATTRIBUTION_COOKIE, parseAttributionCookie } from "@/lib/attribution";
 import { getAdmin } from "@/lib/auth/admin";
-import { getActiveLeagueFresh, isRegistrationOpen } from "@/lib/data/leagues";
+import { getRegistrationsPaused } from "@/lib/data/portal";
 import { registrationReceivedEmail, sendLater } from "@/lib/email";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -50,9 +50,9 @@ export async function registerMyCollege(input: PocRegisterInput): Promise<Portal
     return { ok: false, error: "Upload the logos again.", field: "details.collegeLogoUrl" };
   }
 
-  // Never the cached getActiveLeague(): registration_open and the deadline must be current (CLAUDE.md rule 12).
-  const league = await getActiveLeagueFresh();
-  if (!league || !isRegistrationOpen(league)) return { ok: false, error: "Registrations are closed right now. Message us once they open." };
+  // Always open (migration 0006): the season's switch and deadline don't apply; only the admin's emergency pause.
+  // The database checks it too; reading it here (uncached) gives the friendly message first.
+  if (await getRegistrationsPaused()) return { ok: false, error: "New registrations are paused. Message us in the Chat tab." };
 
   // Name and phone live on the account (sign-up asked for them); keep them current.
   const meta = (claims.claims.user_metadata ?? {}) as { name?: string; phone?: string };
@@ -96,8 +96,9 @@ export async function registerMyCollege(input: PocRegisterInput): Promise<Portal
   const name = collegeName;
   if (email) {
     sendLater(async () => {
-      const { data } = await supabase.from("registrations").select("colleges(name)").eq("id", registrationId).maybeSingle();
-      return registrationReceivedEmail(email, { collegeName: data?.colleges.name ?? name, leagueName: league.name, registrationId });
+      // The season was picked by the database (current season, created if needed).
+      const { data } = await supabase.from("registrations").select("colleges(name), leagues(name)").eq("id", registrationId).maybeSingle();
+      return registrationReceivedEmail(email, { collegeName: data?.colleges.name ?? name, leagueName: data?.leagues.name ?? "", registrationId });
     });
   }
   await track("college_registered", { source: attribution.utm_source ?? "direct", country, ...(attribution.ref ? { ref: attribution.ref } : {}) }).catch(() => {});

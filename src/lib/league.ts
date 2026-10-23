@@ -5,6 +5,9 @@ import type { Country } from "@/lib/validation/portal";
 /** The product name. Event names come only from the database (leagues.name), never from code. */
 export const BRAND = "Matiks College League";
 
+/** Where POCs write when the portal can't help (e.g. registrations paused and no college yet). */
+export const SUPPORT_EMAIL = "satish@matiks.com";
+
 const BRAND_PREFIX = /^\s*matiks college league\s*[-–—·:|,]?\s*/i;
 
 /** The season's own part of its name: "Matiks College League – Season 1" → "Season 1"; others unchanged. */

@@ -93,6 +93,30 @@ export type Database = {
         }
         Relationships: []
       }
+      app_settings: {
+        Row: {
+          created_at: string
+          id: boolean
+          registrations_paused: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: boolean
+          registrations_paused?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: boolean
+          registrations_paused?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ambassadors: {
         Row: {
           active: boolean
@@ -846,6 +870,7 @@ export type Database = {
       calc_prize_pool: { Args: { p_count: number }; Returns: number }
       can_read_thread: { Args: { p_thread_id: string }; Returns: boolean }
       can_write_logo: { Args: { p_name: string }; Returns: boolean }
+      current_registration_season: { Args: never; Returns: string }
       create_my_registration: {
         Args: {
           p_club_logo_url: string | null

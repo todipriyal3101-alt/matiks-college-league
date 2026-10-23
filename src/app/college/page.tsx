@@ -13,12 +13,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAdmin } from "@/lib/auth/admin";
 import type { OverviewRow } from "@/lib/data/league-ops";
-import { getActiveLeagueFresh, isRegistrationOpen } from "@/lib/data/leagues";
 import { getPocContext, pickRegistration } from "@/lib/data/poc";
-import { getOverviewRow } from "@/lib/data/portal";
+import { getOverviewRow, getRegistrationsPaused } from "@/lib/data/portal";
 import { createClient } from "@/lib/supabase/server";
 import { formatDay } from "@/lib/ist";
-import type { Stage } from "@/lib/league";
+import { SUPPORT_EMAIL, type Stage } from "@/lib/league";
 import { stageLine } from "@/lib/stage-line";
 import { cn } from "@/lib/utils";
 import { COUNTRY_FLAGS, COUNTRY_LABELS, detailsFromRow, type Country } from "@/lib/validation/portal";
@@ -56,24 +55,31 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
         />
       );
     }
-    // Fresh read: registration_open and the deadline must be current (CLAUDE.md rule 12).
-    const league = await getActiveLeagueFresh();
-    const open = !!league && isRegistrationOpen(league);
+    // Always open: only the admin's emergency "Pause new registrations" closes it (read uncached).
+    const paused = await getRegistrationsPaused();
     return (
       <div className="fade-in space-y-6">
         <Heading eyebrow="Matiks College League" title="Register your college">
           Tell us about your college and when you want to run the league. A Matiks admin reviews it, usually within a day.
         </Heading>
-        {open ? (
-          <RegisterForm userId={ctx.userId} email={ctx.email} profile={{ name: ctx.name, phone: ctx.phone }} />
-        ) : (
+        {paused ? (
           <Glass className="p-6">
             <EmptyState
               icon={LockIcon}
-              title="Registrations are closed right now"
-              description="Message us from the Chat tab once your college has registered before, or check back soon."
+              title="New registrations are paused"
+              description={
+                <>
+                  Message us in the Chat tab, or write to{" "}
+                  <a href={`mailto:${SUPPORT_EMAIL}`} className="font-semibold text-primary underline-offset-4 hover:underline">
+                    {SUPPORT_EMAIL}
+                  </a>
+                  .
+                </>
+              }
             />
           </Glass>
+        ) : (
+          <RegisterForm userId={ctx.userId} email={ctx.email} profile={{ name: ctx.name, phone: ctx.phone }} />
         )}
       </div>
     );

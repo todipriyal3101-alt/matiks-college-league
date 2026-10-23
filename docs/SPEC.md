@@ -61,7 +61,11 @@ college email domain (e.g. `iitg.ac.in`, validated), college logo, "Hosted by" c
 league start, league end (end ≥ start ≥ registration start). POC name + phone come from sign-up (asked if missing).
 
 On submit (`registerMyCollege` → `create_my_registration()`, the POC's own session): one pending registration per user,
-ever, in the active season (registration_open + deadline checked fresh); the POC becomes the primary contact with
+ever. **Always open** (migration 0006): a season's `registration_open` switch and deadline don't apply; the registration
+joins the newest non-completed season (created as "Matiks College League – Season N" when none exists). The only
+"closed" is the admin's emergency **Pause new registrations** switch (`app_settings.registrations_paused`, More ›
+Seasons, default off), which shows POCs "New registrations are paused. Message us in the Chat tab." (support email when
+they have no college chat yet); the POC becomes the primary contact with
 `college_access`; every admin gets an in-app notification; utm/ref attribution from the cookie is saved. If the POC's
 login email doesn't end with the college domain, admins see an "Email domain mismatch" flag.
 

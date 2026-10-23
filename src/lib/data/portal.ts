@@ -109,3 +109,14 @@ export async function getPocs(country: Country): Promise<PocRow[]> {
     }))
     .sort((a, b) => a.college.localeCompare(b.college) || Number(b.isPrimary) - Number(a.isPrimary));
 }
+
+/**
+ * The admin's emergency switch (app_settings, migration 0006). Uncached: the Register tab and the register action
+ * must see a change at once. POC self-registration is otherwise always open (no season switch or deadline).
+ */
+export async function getRegistrationsPaused(): Promise<boolean> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("app_settings").select("registrations_paused").maybeSingle();
+  if (error) throw new Error(`getRegistrationsPaused: ${error.message}`);
+  return data?.registrations_paused ?? false;
+}

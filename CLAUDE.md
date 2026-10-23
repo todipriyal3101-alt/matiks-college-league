@@ -64,8 +64,9 @@ Always read the relevant part of SPEC.md before building a feature.
     - Public league data (`getActiveLeague()`) is cached with `"use cache"` and tagged `CACHE_TAGS.league`.
       Every server action that changes a league (edit, open/close registration, status) must call
       `updateTag(CACHE_TAGS.league)` so the change shows immediately (`revalidateTag(tag, { expire: 0 })` in route handlers).
-    - The registration server action must read the league with `getActiveLeagueFresh()` (uncached) to check
-      `registration_open` and the deadline — never the cached version.
+    - POC self-registration is always open (migration 0006): never gate it on a season's `registration_open` or
+      deadline. The only switch is `app_settings.registrations_paused` ("Pause new registrations" in Seasons), read
+      uncached with `getRegistrationsPaused()`; `create_my_registration()` picks the season itself.
     - `/api/colleges/search` is never cached (dynamic + `Cache-Control: no-store`), so newly added colleges appear at once.
 
 13. **League operations follow docs/SPEC.md "League operations".** Everything there is per registration

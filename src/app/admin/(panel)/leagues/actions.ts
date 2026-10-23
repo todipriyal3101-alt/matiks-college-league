@@ -28,7 +28,6 @@ const seasonSchema = z
     deadline: z.union([z.literal(""), z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)]).transform((v) => (v ? fromIstInput(v) : null)),
     maxColleges: z.union([z.literal(""), z.coerce.number().int().min(1).max(100_000)]).transform((v) => (v === "" ? null : v)),
     status: z.enum(Constants.public.Enums.league_status),
-    registrationOpen: z.boolean(),
   })
   .refine((v) => !v.startDate || !v.endDate || v.startDate <= v.endDate, { message: "End date is before the start date", path: ["endDate"] });
 
@@ -49,7 +48,6 @@ export async function saveSeason(input: SeasonInput): Promise<SeasonResult> {
     registration_deadline: v.deadline,
     max_colleges: v.maxColleges,
     status: v.status,
-    registration_open: v.registrationOpen,
   };
   const supabase = await createClient();
   const { error } = v.id
@@ -61,14 +59,17 @@ export async function saveSeason(input: SeasonInput): Promise<SeasonResult> {
   return { ok: true };
 }
 
-/** The "Registration open" switch. */
-export async function setRegistrationOpen(leagueId: string, open: boolean): Promise<SeasonResult> {
+/**
+ * "Pause new registrations" (app_settings, migration 0006): the one emergency switch for POC self-registration,
+ * which is otherwise always open. Admin writers only (also enforced by RLS).
+ */
+export async function setRegistrationsPaused(paused: boolean): Promise<SeasonResult> {
   await requireAdminWriter();
-  if (!z.uuid().safeParse(leagueId).success || typeof open !== "boolean") return { ok: false, error: "Invalid request." };
+  if (typeof paused !== "boolean") return { ok: false, error: "Invalid request." };
   const supabase = await createClient();
-  const { error } = await supabase.from("leagues").update({ registration_open: open }).eq("id", leagueId);
+  const { data, error } = await supabase.from("app_settings").update({ registrations_paused: paused }).eq("id", true).select("id");
   if (error) return { ok: false, error: error.message };
-  updateTag(CACHE_TAGS.league);
+  if (!data.length) return { ok: false, error: "Only admins can change this." };
   refresh();
   return { ok: true };
 }

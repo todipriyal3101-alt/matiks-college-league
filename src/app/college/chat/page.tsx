@@ -5,6 +5,7 @@ import { ChatView } from "@/components/chat/chat-view";
 import { NeedsRegistration } from "@/components/portal/needs-registration";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getPocContext, pickRegistration } from "@/lib/data/poc";
+import { getRegistrationsPaused } from "@/lib/data/portal";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Chat" };
@@ -27,7 +28,7 @@ export default function PocChatPage({ searchParams }: PageProps<"/college/chat">
 async function Chat({ searchParams }: Pick<PageProps<"/college/chat">, "searchParams">) {
   const [ctx, { r }] = await Promise.all([getPocContext(), searchParams]);
   const selected = ctx && pickRegistration(ctx, r);
-  if (!ctx || !selected) return <NeedsRegistration what="Chat" />;
+  if (!ctx || !selected) return <NeedsRegistration what="Chat" paused={!!ctx && (await getRegistrationsPaused())} />;
 
   const supabase = await createClient();
   const { data: thread } = await supabase

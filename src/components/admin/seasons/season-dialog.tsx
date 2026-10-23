@@ -10,7 +10,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import type { Database } from "@/lib/database.types";
 
 /** Form state: what the inputs hold (numbers may still be strings while typing). */
@@ -24,7 +23,6 @@ export type SeasonFormValues = {
   deadline: string;
   maxColleges: number | string;
   status: Database["public"]["Enums"]["league_status"];
-  registrationOpen: boolean;
 };
 
 const STATUS_HELP = {
@@ -105,8 +103,9 @@ export function SeasonDialog({
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field>
-                <FieldLabel htmlFor="s-deadline">Registration deadline</FieldLabel>
+                <FieldLabel htmlFor="s-deadline">Deadline on share images</FieldLabel>
                 <Input id="s-deadline" type="datetime-local" value={v.deadline} onChange={(e) => set("deadline", e.target.value)} />
+                <FieldDescription>Shown on link previews only. POCs can always register (each college sets its own dates).</FieldDescription>
               </Field>
               <Field>
                 <FieldLabel htmlFor="s-max">Max colleges</FieldLabel>
@@ -128,10 +127,6 @@ export function SeasonDialog({
                 </SelectContent>
               </Select>
               <FieldDescription>{STATUS_HELP[v.status]}</FieldDescription>
-            </Field>
-            <Field orientation="horizontal">
-              <Switch id="s-open" checked={v.registrationOpen} onCheckedChange={(c) => set("registrationOpen", c)} />
-              <FieldLabel htmlFor="s-open">Registration open</FieldLabel>
             </Field>
             {error && <FieldError>{error}</FieldError>}
           </FieldGroup>

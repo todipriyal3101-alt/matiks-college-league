@@ -32,18 +32,3 @@ export async function getActiveLeague(): Promise<League | null> {
   cacheLife("hours");
   return fetchActiveLeague();
 }
-
-/**
- * Uncached read of the active league. Use wherever correctness matters more than
- * speed — the registration server action must check registration_open with this.
- */
-export async function getActiveLeagueFresh(): Promise<League | null> {
-  return fetchActiveLeague();
-}
-
-/** Open for registrations: the admin toggle is on and the deadline (if any) hasn't passed. */
-export function isRegistrationOpen(league: League, now = Date.now()): boolean {
-  if (!league.registration_open) return false;
-  if (!league.registration_deadline) return true;
-  return new Date(league.registration_deadline).getTime() > now;
-}
