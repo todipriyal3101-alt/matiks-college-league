@@ -26,6 +26,36 @@ export async function getCollegeRace(country: Country) {
   return [...data].sort((a, b) => b.players - a.players || a.name.localeCompare(b.name));
 }
 
+/** Ticker (0008): approved colleges by name, new registrations by state only. Short-lived so it feels live. */
+export async function getActivityFeed(limit = 12) {
+  "use cache";
+  cacheTag(CACHE_TAGS.activity, CACHE_TAGS.colleges);
+  cacheLife({ stale: 15, revalidate: 30, expire: 120 });
+  const { data, error } = await createPublicClient().rpc("public_activity_feed", { p_limit: limit });
+  if (error) throw new Error(`public_activity_feed: ${error.message}`);
+  return data;
+}
+
+/** Early-bird badges left this season (first 10 approved); 0 hides the banner. */
+export async function getEarlyBirdLeft() {
+  "use cache";
+  cacheTag(CACHE_TAGS.activity, CACHE_TAGS.colleges);
+  cacheLife({ stale: 15, revalidate: 30, expire: 120 });
+  const { data, error } = await createPublicClient().rpc("public_early_bird_left");
+  if (error) throw new Error(`public_early_bird_left: ${error.message}`);
+  return data;
+}
+
+/** "4 colleges from Odisha are in": approved colleges this season in a state. */
+export async function getStateRivalry(state: string) {
+  "use cache";
+  cacheTag(CACHE_TAGS.activity, CACHE_TAGS.colleges);
+  cacheLife({ stale: 15, revalidate: 30, expire: 120 });
+  const { data, error } = await createPublicClient().rpc("public_state_rivalry", { p_state: state });
+  if (error) throw new Error(`public_state_rivalry: ${error.message}`);
+  return data;
+}
+
 export async function getTopToday(limit = 10) {
   "use cache";
   cacheTag(CACHE_TAGS.duels);

@@ -7,11 +7,12 @@ import { DuelLoader } from "@/components/duel/duel-loader";
 import { Glass } from "@/components/glass";
 import { Countdown } from "@/components/launch/countdown";
 import { InteractiveMascot } from "@/components/launch/interactive-mascot";
+import { ActivityTicker } from "@/components/launch/activity-ticker";
 import { TopToday } from "@/components/launch/top-today";
 import { Sticker } from "@/components/stickers";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getCollegeRace, getHomeStats } from "@/lib/data/public";
+import { getActivityFeed, getCollegeRace, getHomeStats } from "@/lib/data/public";
 import { formatINR, PRIZE_TIERS } from "@/lib/league";
 import { createClient } from "@/lib/supabase/server";
 
@@ -69,6 +70,9 @@ export default function HomePage() {
           </div>
           <Suspense fallback={null}>
             <Turnout />
+          </Suspense>
+          <Suspense fallback={null}>
+            <Activity />
           </Suspense>
         </div>
         <div className="relative mx-auto h-64 w-full max-w-sm sm:h-[26rem] lg:max-w-none">
@@ -182,6 +186,12 @@ async function Turnout() {
       {n.format(stats.colleges)} {stats.colleges === 1 ? "college" : "colleges"} · {n.format(stats.players)} players already in
     </p>
   );
+}
+
+/** Live ticker: approved colleges by name, new registrations by state only (never people). */
+async function Activity() {
+  const items = await getActivityFeed();
+  return <ActivityTicker initial={items} className="max-w-lg" />;
 }
 
 /** Signed in: "Go to dashboard" instead of Register (no redirect from "/"). */

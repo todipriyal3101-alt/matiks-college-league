@@ -7,6 +7,8 @@ export const CACHE_TAGS = {
   colleges: "colleges",
   /** Launch pages: college race, home numbers, /c/[slug] (approved colleges' public data). Bumped with `colleges`. */
   race: "race",
+  /** Activity ticker, early-bird spots, state rivalry (0008). Bumped on new registrations; also bump with `colleges`. */
+  activity: "activity",
   /** "Top today" duel board. */
   duels: "duels",
 } as const;
