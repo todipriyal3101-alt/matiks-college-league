@@ -145,6 +145,44 @@ async function anonChecks() {
       return error?.code === "42501" ? true : `got ${error?.code ?? "no error"}`;
     });
   }
+  // 0008: ticker / rivalry / early-bird / pass / co-lead info are public and person-free; the rest is not.
+  for (const [fn, args] of [
+    ["public_activity_feed", { p_limit: 12 }],
+    ["public_early_bird_left", {}],
+    ["public_state_rivalry", { p_state: "Odisha" }],
+    ["public_pass", { p_code: "000000000000" }],
+    ["squad_invite_info", { p_code: "000000000000" }],
+  ] as const) {
+    await check(role, `can call ${fn}()`, async () => {
+      const { error } = await anon.rpc(fn, args as never);
+      return error ? error.message : true;
+    });
+  }
+  await check(role, "activity feed has kind/label/at only", async () => {
+    const { data, error } = await anon.rpc("public_activity_feed", { p_limit: 30 });
+    if (error) return error.message;
+    const extra = [...new Set(data.flatMap((r: object) => Object.keys(r)))].filter((k) => !["kind", "label", "at"].includes(k));
+    return extra.length ? `extra columns: ${extra.join(", ")}` : true;
+  });
+  for (const [fn, args] of [
+    ["college_claim_status", { p_college_ids: [] }],
+    ["request_to_join", { p_registration_id: REG! }],
+    ["redeem_squad_invite", { p_code: "000000000000" }],
+    ["my_squad_invites", { p_registration_id: REG! }],
+    ["start_email_verification", { p_email: "a@b.co", p_code_hash: "x".repeat(64) }],
+    ["mark_registration_viewed", { p_registration_id: REG! }],
+  ] as const) {
+    await check(role, `cannot call ${fn}()`, async () => {
+      const { error } = await anon.rpc(fn, args as never);
+      return error?.code === "42501" ? true : `got ${error?.code ?? "no error"}`;
+    });
+  }
+  for (const t of ["registration_drafts", "join_requests", "squad_invites", "email_verifications"] as const) {
+    await check(role, `cannot read ${t}`, async () => {
+      const { data, error } = await anon.from(t).select("*").limit(1);
+      return denied(error, data);
+    });
+  }
   await check(role, "cannot write duel rounds", async () => {
     const { data, error } = await anon.from("duel_rounds").insert({ seed: 1, ip_hash: "rls", expires_at: new Date().toISOString(), score: 200 } as never).select("id");
     if (data?.length) await service.from("duel_rounds").delete().eq("id", (data[0] as { id: string }).id);
@@ -266,6 +304,19 @@ async function viewerChecks(viewer: SupabaseClient) {
 // ---------- POC ----------
 async function pocChecks(poc: SupabaseClient, pocUserId: string) {
   const role = "poc";
+  // 0008
+  await check(role, "gets its own co-lead links (one per open spot)", async () => {
+    const { data, error } = await poc.rpc("my_squad_invites", { p_registration_id: REG! });
+    if (error) return error.message;
+    const { count: n } = await service.from("contacts").select("*", { count: "exact", head: true }).eq("registration_id", REG!);
+    await service.from("squad_invites").delete().eq("registration_id", REG!);
+    return data.length === Math.max(0, 3 - (n ?? 0)) ? true : `${data.length} links for ${n} contacts`;
+  });
+  await check(role, "cannot set Verified or Under review itself", async () => {
+    await poc.from("registrations").update({ email_verified_at: new Date().toISOString(), admin_first_viewed_at: new Date().toISOString() }).eq("id", REG!);
+    const { data } = await service.from("registrations").select("email_verified_at, admin_first_viewed_at").eq("id", REG!).single();
+    return data!.email_verified_at === null && data!.admin_first_viewed_at === null ? true : "set";
+  });
   await check(role, "reads only its own registration", async () => {
     const { data, error } = await poc.from("registrations").select("id");
     if (error) return error.message;
@@ -410,6 +461,44 @@ async function strangerChecks(stranger: SupabaseClient, userId: string) {
   await check(role, "cannot refresh another college's badges", async () => {
     const { error } = await stranger.rpc("refresh_my_badges", { p_registration_id: REG! });
     return error?.code === "42501" ? true : `got ${error?.code ?? "no error"}`;
+  });
+  // 0008
+  await check(role, "cannot read email verification codes", async () => {
+    const { data, error } = await stranger.from("email_verifications").select("*").limit(1);
+    return denied(error, data);
+  });
+  await check(role, "drafts: writes and reads only its own", async () => {
+    const { error } = await stranger.from("registration_drafts").upsert({ user_id: userId, data: { step: 1 } });
+    if (error) return error.message;
+    const other = await stranger.from("registration_drafts").insert({ user_id: "00000000-0000-0000-0000-000000000000", data: {} }).select("user_id");
+    const { data } = await stranger.from("registration_drafts").select("user_id");
+    await service.from("registration_drafts").delete().eq("user_id", userId);
+    if (!other.error) return "wrote someone else's draft";
+    return data?.length === 1 && data[0].user_id === userId ? true : `sees ${data?.length} drafts`;
+  });
+  await check(role, "claim status shows first name + initial only", async () => {
+    const { data: reg } = await service.from("registrations").select("college_id").eq("id", REG!).single();
+    const { data, error } = await stranger.rpc("college_claim_status", { p_college_ids: [reg!.college_id] });
+    if (error) return error.message;
+    const extra = [...new Set(data.flatMap((r: object) => Object.keys(r)))].filter((k) => !["college_id", "registration_id", "claimed_by", "status"].includes(k));
+    const full = data.some((r) => !/^(\S+( \p{L}\.)?|a Campus Lead)$/u.test(r.claimed_by));
+    return extra.length ? `extra columns: ${extra.join(", ")}` : full ? `full name: ${data[0].claimed_by}` : true;
+  });
+  await check(role, "cannot list another team's co-lead links", async () => {
+    const { error } = await stranger.rpc("my_squad_invites", { p_registration_id: REG! });
+    return error?.code === "42501" ? true : `got ${error?.code ?? "no error"}`;
+  });
+  await check(role, "cannot write join requests or co-lead links directly", async () => {
+    const a = await stranger.from("join_requests").insert({ registration_id: REG!, user_id: userId, name: "x", email: "x@x" }).select("id");
+    const b = await stranger.from("squad_invites").insert({ code: "rlscheck0000", registration_id: REG! }).select("code");
+    if (a.data?.length) await service.from("join_requests").delete().eq("id", a.data[0].id);
+    if (b.data?.length) await service.from("squad_invites").delete().eq("code", "rlscheck0000");
+    return a.error && b.error ? true : "allowed";
+  });
+  await check(role, "cannot stamp Under review", async () => {
+    await stranger.rpc("mark_registration_viewed", { p_registration_id: REG! });
+    const { data } = await service.from("registrations").select("admin_first_viewed_at").eq("id", REG!).single();
+    return data!.admin_first_viewed_at === null ? true : "stamped";
   });
   const args = (name: string) => ({
     p_college_id: null, p_college_name: name, p_country: "usa" as const, p_college_email: "sports@rlscheck.edu",
