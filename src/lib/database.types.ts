@@ -546,6 +546,87 @@ export type Database = {
           },
         ]
       }
+      email_verifications: {
+        Row: {
+          attempts: number
+          code_hash: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+        ]
+      }
+      join_requests: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          email: string
+          id: string
+          name: string
+          phone: string | null
+          registration_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          email: string
+          id?: string
+          name: string
+          phone?: string | null
+          registration_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          email?: string
+          id?: string
+          name?: string
+          phone?: string | null
+          registration_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "join_requests_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invite_codes: {
         Row: {
           code: string
@@ -795,9 +876,32 @@ export type Database = {
           },
         ]
       }
+      registration_drafts: {
+        Row: {
+          data: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          data?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          data?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+        ]
+      }
       registrations: {
         Row: {
+          admin_first_viewed_at: string | null
           admin_notes: string | null
+          email_verified_at: string | null
+          pass_code: string
+          target_players: number | null
           club_logo_url: string | null
           club_name: string | null
           college_email: string | null
@@ -830,7 +934,11 @@ export type Database = {
           utm_source: string | null
         }
         Insert: {
+          admin_first_viewed_at?: string | null
           admin_notes?: string | null
+          email_verified_at?: string | null
+          pass_code?: string
+          target_players?: number | null
           club_logo_url?: string | null
           club_name?: string | null
           college_email?: string | null
@@ -863,7 +971,11 @@ export type Database = {
           utm_source?: string | null
         }
         Update: {
+          admin_first_viewed_at?: string | null
           admin_notes?: string | null
+          email_verified_at?: string | null
+          pass_code?: string
+          target_players?: number | null
           club_logo_url?: string | null
           club_name?: string | null
           college_email?: string | null
@@ -908,6 +1020,44 @@ export type Database = {
             columns: ["league_id"]
             isOneToOne: false
             referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      squad_invites: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          registration_id: string
+          revoked_at: string | null
+          used_at: string | null
+          used_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          registration_id: string
+          revoked_at?: string | null
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          registration_id?: string
+          revoked_at?: string | null
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "squad_invites_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "registrations"
             referencedColumns: ["id"]
           },
         ]
@@ -1014,6 +1164,11 @@ export type Database = {
           effective_stage: Database["public"]["Enums"]["registration_stage"] | null
           email_domain: string | null
           has_poc_access: boolean | null
+          admin_first_viewed_at: string | null
+          email_verified_at: string | null
+          pass_code: string | null
+          reviewed_at: string | null
+          target_players: number | null
           league_end: string | null
           league_id: string | null
           league_name: string | null
@@ -1058,6 +1213,30 @@ export type Database = {
       }
     }
     Functions: {
+      cancel_my_join_request: { Args: { p_request_id: string }; Returns: undefined }
+      check_email_verification: { Args: { p_code_hash: string; p_email: string }; Returns: string }
+      college_claim_status: {
+        Args: { p_college_ids: string[] }
+        Returns: { claimed_by: string; college_id: string; registration_id: string; status: Database["public"]["Enums"]["registration_status"] }[]
+      }
+      decide_join_request: { Args: { p_accept: boolean; p_request_id: string }; Returns: undefined }
+      mark_registration_viewed: { Args: { p_registration_id: string }; Returns: undefined }
+      my_email_verified: { Args: { p_email: string }; Returns: boolean }
+      my_squad_invites: { Args: { p_registration_id: string }; Returns: { code: string; created_at: string }[] }
+      public_activity_feed: { Args: { p_limit?: number }; Returns: { at: string; kind: string; label: string }[] }
+      public_early_bird_left: { Args: never; Returns: number }
+      public_pass: {
+        Args: { p_code: string }
+        Returns: { college_logo_url: string | null; college_name: string; season: string; slug: string | null; status: Database["public"]["Enums"]["registration_status"] }[]
+      }
+      public_state_rivalry: { Args: { p_state: string }; Returns: number }
+      redeem_squad_invite: { Args: { p_code: string }; Returns: string }
+      request_to_join: { Args: { p_registration_id: string }; Returns: string }
+      squad_invite_info: {
+        Args: { p_code: string }
+        Returns: { college_logo_url: string | null; college_name: string; open: boolean; season: string }[]
+      }
+      start_email_verification: { Args: { p_code_hash: string; p_email: string }; Returns: string }
       admin_top_inviters: {
         Args: { p_limit?: number }
         Returns: { code: string; college_name: string | null; display_name: string | null; kind: string; plays: number; registrations: number }[]
