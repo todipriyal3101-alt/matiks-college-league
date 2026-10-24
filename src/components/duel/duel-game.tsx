@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { confetti } from "@/lib/confetti";
 import type { CollegeSearchResult } from "@/lib/data/colleges";
 import { DUEL_MS, questions, type Answer, type Question } from "@/lib/duel/engine";
+import { CELEBRATE_EVENT } from "@/lib/events";
 import { cn } from "@/lib/utils";
 
 const PB_KEY = "mcl_duel_pb";
@@ -124,6 +125,7 @@ export function DuelGame({
     }
     setResult({ ...data, personalBest });
     setPhase("result");
+    window.dispatchEvent(new Event(CELEBRATE_EVENT)); // the home page mascot cheers
   }, [token]);
 
   // Timer.

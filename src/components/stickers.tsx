@@ -50,6 +50,7 @@ export function Sticker({
 const PANELS = {
   admin: { left: "vault", right: "game-modes", leftTilt: "-8deg", rightTilt: "6deg" },
   poc: { left: "trophy", right: "streak", leftTilt: "-6deg", rightTilt: "8deg" },
+  public: { left: "game-modes", right: "trophy", leftTilt: "-6deg", rightTilt: "8deg" },
 } as const;
 
 /**

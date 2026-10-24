@@ -279,7 +279,8 @@
 }
 /* Admin: both from 1480px (gutter leaves >= 110px). */
 @media (min-width: 1480px) {
-  .panel-stickers[data-panel="admin"] {
+  .panel-stickers[data-panel="admin"],
+  .panel-stickers[data-panel="public"] {
     display: block;
   }
 }
@@ -353,6 +354,46 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .duel-shake {
+    animation: none;
+  }
+}
+
+/* ---------- Delight (all off with prefers-reduced-motion) ---------- */
+@keyframes mascot-wave {
+  0%, 100% { rotate: 0deg; }
+  20% { rotate: -6deg; }
+  40% { rotate: 5deg; }
+  60% { rotate: -4deg; }
+  80% { rotate: 3deg; }
+}
+@keyframes mascot-jump {
+  0%, 100% { transform: translateY(0) scale(1); }
+  30% { transform: translateY(-28px) scale(1.04); }
+  55% { transform: translateY(0) scale(0.97, 1.03); }
+  75% { transform: translateY(-10px); }
+}
+@keyframes sticker-wobble {
+  0%, 100% { rotate: 0deg; }
+  25% { rotate: -5deg; }
+  75% { rotate: 5deg; }
+}
+.mascot-wave:hover {
+  animation: mascot-wave 0.9s ease-in-out;
+  transform-origin: 50% 90%;
+}
+.mascot-jump {
+  animation: mascot-jump 0.9s ease-out;
+}
+.sticker-wobble {
+  pointer-events: auto;
+}
+.sticker-wobble:hover {
+  animation: sticker-wobble 0.5s ease-in-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mascot-wave:hover,
+  .mascot-jump,
+  .sticker-wobble:hover {
     animation: none;
   }
 }
