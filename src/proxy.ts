@@ -6,6 +6,7 @@ import {
   attributionFromSearchParams,
   parseAttributionCookie,
 } from "@/lib/attribution";
+import { INVITE_CODE_RE, INVITE_COOKIE, INVITE_MAX_AGE } from "@/lib/invite-cookie";
 import { updateSession } from "@/lib/supabase/proxy";
 
 export async function proxy(request: NextRequest) {
@@ -36,9 +37,16 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // No public landing page: "/" sends people to their panel (by role, via /auth/continue) or to login.
-  if (pathname === "/") {
-    return claims ? redirectTo(request, response, "/auth/continue", {}) : redirectTo(request, response, "/login", {});
+  // Personal invite links (/i/CODE): remember the inviter (last-touch, 30 days) for duel plays and registrations.
+  const invite = pathname.match(/^\/i\/([a-z0-9]{10})$/);
+  if (invite && INVITE_CODE_RE.test(invite[1])) {
+    response.cookies.set(INVITE_COOKIE, invite[1], {
+      maxAge: INVITE_MAX_AGE,
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+    });
   }
   // Old registration links (posters, ambassador QR codes): POCs now sign up, then register in /college.
   if (pathname === "/register" || pathname.startsWith("/register/")) {

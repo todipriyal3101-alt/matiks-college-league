@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2Icon, XIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -33,6 +34,7 @@ const COUNTRY_OPTIONS = COUNTRIES.map((c) => ({ value: c, label: `${COUNTRY_FLAG
  * (type-ahead or new), country, college email + domain, logos, club, dates. Same zod schema as the server.
  */
 export function RegisterForm({ userId, email, profile: initialProfile }: { userId: string; email: string; profile: { name: string; phone: string } }) {
+  const router = useRouter();
   const [picked, setPicked] = useState<CollegeSearchResult | null>(null);
   const [newName, setNewName] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -77,6 +79,8 @@ export function RegisterForm({ userId, email, profile: initialProfile }: { userI
         return;
       }
       toast.success("Registered! A Matiks admin will review it soon.");
+      // The one-time success screen (invite link front and centre).
+      router.replace("/college?registered=1");
     });
   }
 

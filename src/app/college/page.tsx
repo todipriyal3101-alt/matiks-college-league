@@ -9,6 +9,8 @@ import { CollegeLogo } from "@/components/league/college-logo";
 import { EmptyState } from "@/components/league/empty-state";
 import { EmptyStateSticker } from "@/components/stickers";
 import { EditDetailsForm } from "@/components/portal/edit-details-form";
+import { InviteCard } from "@/components/portal/invite-card";
+import { SuccessHero } from "@/components/portal/success-hero";
 import { RegisterChecklist } from "@/components/portal/register-checklist";
 import { TeamContacts } from "@/components/portal/team-contacts";
 import { RegisterForm } from "@/components/portal/register-form";
@@ -39,7 +41,7 @@ export default function RegisterTab({ searchParams }: PageProps<"/college">) {
 }
 
 async function Register({ searchParams }: Pick<PageProps<"/college">, "searchParams">) {
-  const [ctx, { r }] = await Promise.all([getPocContext(), searchParams]);
+  const [ctx, { r, registered }] = await Promise.all([getPocContext(), searchParams]);
   if (!ctx) return null;
 
   if (ctx.registrations.length === 0) {
@@ -90,7 +92,7 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
 
   const selected = pickRegistration(ctx, r)!;
   const supabase = await createClient();
-  const [row, { data: own }, detail] = await Promise.all([
+  const [row, { data: own }, detail, invite] = await Promise.all([
     getOverviewRow(selected.id),
     // The registration's own columns: the view's logo falls back to the college master record's.
     supabase
@@ -99,6 +101,8 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
       .eq("id", selected.id)
       .maybeSingle(),
     getRegistrationDetail(selected.id),
+    // The POC's personal invite link (made on first visit) + people who came through it.
+    supabase.rpc("my_invite", { p_registration_id: selected.id }).then(({ data }) => data?.[0] ?? null),
   ]);
   if (!row || !own || !detail) return <EmptyState icon={BuildingIcon} title="College not found" description="It may have been removed." />;
   const status = row.review_status!;
@@ -112,8 +116,14 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
           options={ctx.registrations.map((m) => ({ id: m.id, label: `${m.leagues.name} · ${m.colleges.name}` }))}
         />
       )}
-      <Heading eyebrow={row.league_name ?? "Matiks College League"} title={row.college_name ?? "Your college"} />
+      {registered ? (
+        <SuccessHero college={row.college_name ?? "your college"} />
+      ) : (
+        <Heading eyebrow={row.league_name ?? "Matiks College League"} title={row.college_name ?? "Your college"} />
+      )}
+      {registered && invite && <InviteCard code={invite.code} plays={invite.plays} registrations={invite.registrations} collegeName={row.college_name ?? ""} highlight />}
       <StatusCard row={row} />
+      {!registered && invite && <InviteCard code={invite.code} plays={invite.plays} registrations={invite.registrations} collegeName={row.college_name ?? ""} />}
       <RegisterChecklist
         status={status}
         stage={(row.effective_stage ?? "registration_phase") as Stage}

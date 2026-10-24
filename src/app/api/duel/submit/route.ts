@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { MAX_QUESTIONS, scoreRound } from "@/lib/duel/engine";
 import { verifyRound } from "@/lib/duel/server";
+import { istMidnightIso } from "@/lib/ist";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const noStore = { "Cache-Control": "no-store" };
@@ -39,10 +40,8 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
   if (error || !saved) return NextResponse.json({ error: "This round was already scored." }, { status: 409, headers: noStore });
 
-  // Rank among today's rounds (midnight IST = UTC+5:30, no daylight saving), named or not.
-  const IST = 5.5 * 3600_000;
-  const DAY = 86_400_000;
-  const since = new Date(Math.floor((Date.now() + IST) / DAY) * DAY - IST).toISOString();
+  // Rank among today's rounds (since midnight IST), named or not.
+  const since = istMidnightIso();
   const { count } = await admin
     .from("duel_rounds")
     .select("id", { count: "exact", head: true })

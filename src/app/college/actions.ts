@@ -9,6 +9,8 @@ import { ATTRIBUTION_COOKIE, parseAttributionCookie } from "@/lib/attribution";
 import { getAdmin } from "@/lib/auth/admin";
 import { getRegistrationsPaused } from "@/lib/data/portal";
 import { registrationReceivedEmail, sendLater } from "@/lib/email";
+import { INVITE_CODE_RE, INVITE_COOKIE } from "@/lib/invite-cookie";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
   detailsToRow,
@@ -63,7 +65,9 @@ export async function registerMyCollege(input: PocRegisterInput): Promise<Portal
     if (error) console.error("registerMyCollege updateUser:", error.message);
   }
 
-  const attribution = parseAttributionCookie((await cookies()).get(ATTRIBUTION_COOKIE)?.value);
+  const cookieStore = await cookies();
+  const attribution = parseAttributionCookie(cookieStore.get(ATTRIBUTION_COOKIE)?.value);
+  const inviteCode = cookieStore.get(INVITE_COOKIE)?.value;
   const { data: registrationId, error } = await supabase.rpc("create_my_registration", {
     p_college_id: collegeId,
     p_college_name: collegeId ? null : collegeName,
@@ -111,6 +115,17 @@ export async function registerMyCollege(input: PocRegisterInput): Promise<Portal
     .eq("registration_id", registrationId)
     .eq("is_primary", true);
   if (contactError) console.error("registerMyCollege contact details:", contactError.message);
+
+  // Came through someone's invite link (/i/CODE)? Credit them. Admin-only column, so the service role sets it,
+  // and never the POC's own link.
+  if (inviteCode && INVITE_CODE_RE.test(inviteCode)) {
+    const admin = createAdminClient();
+    const { data: invite } = await admin.from("invite_codes").select("code, user_id").eq("code", inviteCode).maybeSingle();
+    if (invite && invite.user_id !== userId) {
+      const { error: inviteError } = await admin.from("registrations").update({ invite_code: invite.code }).eq("id", registrationId);
+      if (inviteError) console.error("registerMyCollege invite:", inviteError.message);
+    }
+  }
 
   const email = claims.claims.email;
   const name = collegeName;

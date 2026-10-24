@@ -5,6 +5,7 @@ import { DuelEntries } from "@/components/admin/growth/duel-entries";
 import { Glass } from "@/components/glass";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireAdmin } from "@/lib/auth/admin";
+import { istMidnightIso } from "@/lib/ist";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Growth" };
@@ -27,9 +28,7 @@ export default function GrowthPage() {
 async function Growth() {
   const { isWriter } = await requireAdmin();
   const supabase = await createClient();
-  const IST = 5.5 * 3600_000;
-  const DAY = 86_400_000;
-  const since = new Date(Math.floor((Date.now() + IST) / DAY) * DAY - IST).toISOString();
+  const since = istMidnightIso();
   const [inviters, rounds, plays] = await Promise.all([
     supabase.rpc("admin_top_inviters", { p_limit: 25 }),
     supabase

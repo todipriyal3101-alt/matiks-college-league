@@ -56,3 +56,10 @@ export function formatDay(date: string | null | undefined): string {
   if (!date) return "";
   return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${date}T00:00:00Z`));
 }
+
+/** Today's midnight in India (UTC+5:30, no daylight saving) as an ISO timestamp: when "Top today" resets. */
+export function istMidnightIso(now = Date.now()) {
+  const IST = 5.5 * 3600_000;
+  const DAY = 86_400_000;
+  return new Date(Math.floor((now + IST) / DAY) * DAY - IST).toISOString();
+}
