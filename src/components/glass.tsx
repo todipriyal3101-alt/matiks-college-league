@@ -33,27 +33,15 @@ export function Glass({
   return <Comp data-slot="glass" className={cn(glassVariants({ variant, refract }), className)} {...props} />;
 }
 
-/**
- * The SVG filter behind `glass-refract`, plus the one-line check that turns refraction on for Chromium only
- * (<html class="refraction">). Rendered once in the root layout.
- */
+/** The SVG filter behind `glass-refract` (on for Chromium only: <EarlyScript>). Rendered once in the root layout. */
 export function LiquidGlassFilter() {
   return (
-    <>
-      <svg aria-hidden width="0" height="0" className="pointer-events-none absolute">
-        <filter id="liquid-glass" x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB">
-          <feTurbulence type="fractalNoise" baseFrequency="0.008 0.012" numOctaves={2} seed={7} result="noise" />
-          <feGaussianBlur in="noise" stdDeviation={2} result="soft" />
-          <feDisplacementMap in="SourceGraphic" in2="soft" scale={26} xChannelSelector="R" yChannelSelector="G" />
-        </filter>
-      </svg>
-      <script
-        // Chromium exposes navigator.userAgentData; Safari and Firefox don't, and fall back to frosted blur.
-        dangerouslySetInnerHTML={{
-          __html:
-            "try{if(navigator.userAgentData&&navigator.userAgentData.brands.some(function(b){return b.brand==='Chromium'}))document.documentElement.classList.add('refraction')}catch(e){}",
-        }}
-      />
-    </>
+    <svg aria-hidden width="0" height="0" className="pointer-events-none absolute">
+      <filter id="liquid-glass" x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB">
+        <feTurbulence type="fractalNoise" baseFrequency="0.008 0.012" numOctaves={2} seed={7} result="noise" />
+        <feGaussianBlur in="noise" stdDeviation={2} result="soft" />
+        <feDisplacementMap in="SourceGraphic" in2="soft" scale={26} xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+    </svg>
   );
 }

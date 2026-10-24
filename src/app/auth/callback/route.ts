@@ -1,6 +1,7 @@
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { isAuthLinkError } from "@/lib/auth/link-error";
 import { safeNext } from "@/lib/safe-next";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -12,6 +13,7 @@ const OTP_TYPES: EmailOtpType[] = ["invite", "magiclink", "recovery", "email", "
  * - `code` (PKCE: Google, or a link requested from this same browser)
  * - `token_hash` + `type` (password reset emails, and older invite / magic links; works on any device)
  * Password recovery goes to /reset-password; everything else to `next` or /auth/continue (routes by role).
+ * Supabase's own error params (?error_code=otp_expired: the link expired or was used) go to /login with a message.
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
@@ -21,7 +23,9 @@ export async function GET(request: NextRequest) {
   const supabase = await createClient();
 
   let error: { message: string } | null = null;
-  if (tokenHash && type && OTP_TYPES.includes(type)) {
+  if (isAuthLinkError(searchParams)) {
+    error = { message: `${searchParams.get("error_code") ?? searchParams.get("error")}: ${searchParams.get("error_description") ?? ""}` };
+  } else if (tokenHash && type && OTP_TYPES.includes(type)) {
     ({ error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type }));
   } else if (code) {
     ({ error } = await supabase.auth.exchangeCodeForSession(code));

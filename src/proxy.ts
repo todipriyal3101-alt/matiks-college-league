@@ -6,6 +6,7 @@ import {
   attributionFromSearchParams,
   parseAttributionCookie,
 } from "@/lib/attribution";
+import { isAuthLinkError } from "@/lib/auth/link-error";
 import { INVITE_CODE_RE, INVITE_COOKIE, INVITE_MAX_AGE, SQUAD_CODE_RE, SQUAD_COOKIE, SQUAD_MAX_AGE } from "@/lib/invite-cookie";
 import { updateSession } from "@/lib/supabase/proxy";
 
@@ -13,6 +14,12 @@ export async function proxy(request: NextRequest) {
   const { response, supabase, claims } = await updateSession(request);
   const { pathname } = request.nextUrl;
   const next = pathname + request.nextUrl.search;
+
+  // A dead Supabase email link (?error_code=otp_expired…) on any page: /login with a friendly message, and the error
+  // params are gone from the URL. /auth/callback handles its own; the #hash form is <EarlyScript>'s.
+  if (pathname !== "/auth/callback" && isAuthLinkError(request.nextUrl.searchParams)) {
+    return redirectTo(request, response, "/login", { error: "link_expired" });
+  }
 
   // UTM params are first-touch: only the first landing with params sets them.
   // ref is last-touch: the ambassador link that actually brought the student in gets credit.
