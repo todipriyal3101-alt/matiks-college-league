@@ -16,7 +16,6 @@ export async function getHomeStats() {
   return data[0] ?? { colleges: 0, players: 0, next_league_start: null, season: null };
 }
 
-export type RaceRow = Awaited<ReturnType<typeof getCollegeRace>>[number];
 
 export async function getCollegeRace(country: Country) {
   "use cache";
@@ -25,15 +24,6 @@ export async function getCollegeRace(country: Country) {
   const { data, error } = await createPublicClient().rpc("public_college_race", { p_country: country });
   if (error) throw new Error(`public_college_race: ${error.message}`);
   return [...data].sort((a, b) => b.players - a.players || a.name.localeCompare(b.name));
-}
-
-export async function getStateCounts(country: Country) {
-  "use cache";
-  cacheTag(CACHE_TAGS.race, CACHE_TAGS.colleges);
-  cacheLife("minutes");
-  const { data, error } = await createPublicClient().rpc("public_state_counts", { p_country: country });
-  if (error) throw new Error(`public_state_counts: ${error.message}`);
-  return data;
 }
 
 export async function getTopToday(limit = 10) {

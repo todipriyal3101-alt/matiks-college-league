@@ -5,7 +5,6 @@ import { Suspense } from "react";
 
 import { DuelLoader } from "@/components/duel/duel-loader";
 import { Glass } from "@/components/glass";
-import { CollegeRace } from "@/components/launch/college-race";
 import { Countdown } from "@/components/launch/countdown";
 import { InteractiveMascot } from "@/components/launch/interactive-mascot";
 import { TopToday } from "@/components/launch/top-today";
@@ -53,7 +52,7 @@ export default function HomePage() {
             college.
           </h1>
           <p className="max-w-lg text-lg text-foreground/85">
-            The inter-college mind sports league by Matiks. Rally your campus, climb the race, unlock up to {formatINR(PRIZE_TIERS[0].amount)}.
+            The inter-college mind sports league by Matiks. Rally your campus, play the league, unlock up to {formatINR(PRIZE_TIERS[0].amount)}.
           </p>
           <Suspense fallback={<Skeleton className="h-20 w-80 rounded-2xl" />}>
             <NextStart />
@@ -96,13 +95,6 @@ export default function HomePage() {
             <HomeDuel />
           </Suspense>
         </Glass>
-      </section>
-
-      {/* College race */}
-      <section id="race" className="scroll-mt-24">
-        <Suspense fallback={<Skeleton className="h-[30rem] w-full rounded-3xl" />}>
-          <Race />
-        </Suspense>
       </section>
 
       {/* Prize tiers */}
@@ -214,7 +206,3 @@ async function HomeDuel() {
   return <DuelLoader compact rival={leader?.name ?? "IIT Bombay"} />;
 }
 
-async function Race() {
-  const [india, usa] = await Promise.all([getCollegeRace("india"), getCollegeRace("usa")]);
-  return <CollegeRace data={{ india, usa }} />;
-}
