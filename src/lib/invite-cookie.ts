@@ -3,3 +3,9 @@
 export const INVITE_COOKIE = "mcl_invite";
 export const INVITE_MAX_AGE = 60 * 60 * 24 * 30;
 export const INVITE_CODE_RE = /^[a-z0-9]{10}$/;
+
+// Co-lead links (/j/CODE, migration 0008): remembered for 7 days so the link still works after sign-up and email
+// confirmation (which land on /college); the Register tab redeems it.
+export const SQUAD_COOKIE = "mcl_squad";
+export const SQUAD_MAX_AGE = 60 * 60 * 24 * 7;
+export const SQUAD_CODE_RE = /^[a-z0-9]{12}$/;

@@ -3,10 +3,12 @@
 import { createHmac, randomInt } from "node:crypto";
 
 import { refresh } from "next/cache";
+import { cookies } from "next/headers";
 import { z } from "zod";
 
 import { getStateRivalry } from "@/lib/data/public";
 import { emailEnabled, sendEmail, verificationCodeEmail } from "@/lib/email";
+import { SQUAD_COOKIE } from "@/lib/invite-cookie";
 import { createClient } from "@/lib/supabase/server";
 import { registerDraftSchema, verifyCodeSchema, type RegisterDraft } from "@/lib/validation/portal";
 
@@ -85,6 +87,9 @@ export async function saveDraft(draft: RegisterDraft): Promise<Result> {
   if (!parsed.success) return { ok: false, error: "Couldn't save the draft." };
   const { supabase, userId } = await signedIn();
   if (!userId) return { ok: false, error: "Sign in again." };
+  // Already registered (a late autosave racing the submit): there's nothing to draft any more.
+  const { count } = await supabase.from("college_access").select("user_id", { count: "exact", head: true }).eq("user_id", userId);
+  if (count) return { ok: true };
   const { error } = await supabase.from("registration_drafts").upsert({ user_id: userId, data: parsed.data });
   if (error) {
     console.error("saveDraft:", error.message);
@@ -148,4 +153,23 @@ export async function isEmailVerified(address: string): Promise<boolean> {
   if (!userId) return false;
   const { data } = await supabase.rpc("my_email_verified", { p_email: parsed.data });
   return !!data;
+}
+
+// ---------- Co-lead links (/j/CODE) ----------
+
+/** Redeems a co-lead link for the signed-in user: they get access and become a contact (max 3 per team). */
+export async function joinWithSquadLink(code: string): Promise<Result> {
+  const parsed = z.string().regex(/^[a-z0-9]{12}$/).safeParse(code);
+  if (!parsed.success) return { ok: false, error: "This invite link has expired. Ask your Campus Lead for a new one." };
+  const { supabase, userId } = await signedIn();
+  if (!userId) return { ok: false, error: "Sign in first." };
+  const { error } = await supabase.rpc("redeem_squad_invite", { p_code: parsed.data });
+  (await cookies()).delete(SQUAD_COOKIE);
+  if (error) return { ok: false, error: error.code === "P0001" ? error.message : "Couldn't join. Try again." };
+  return { ok: true };
+}
+
+/** Clears a remembered co-lead link that couldn't be used (shown once on the Register tab). */
+export async function forgetSquadLink(): Promise<void> {
+  (await cookies()).delete(SQUAD_COOKIE);
 }

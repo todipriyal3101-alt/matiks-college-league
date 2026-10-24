@@ -2,10 +2,10 @@
 
 import { ArrowRightIcon, Loader2Icon, MapPinIcon, PlusIcon, UsersIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { cancelJoinRequest, getClaimStatuses, getRivalry, requestToJoin, type ClaimStatus } from "@/app/college/register-actions";
+import { cancelJoinRequest, forgetSquadLink, getClaimStatuses, getRivalry, requestToJoin, type ClaimStatus } from "@/app/college/register-actions";
 import { CollegeSearch } from "@/components/college-search";
 import { Glass } from "@/components/glass";
 import { ActivityTicker, type ActivityItem } from "@/components/launch/activity-ticker";
@@ -26,12 +26,15 @@ export function ClaimScreen({
   activity,
   earlyBirdLeft,
   pendingJoin,
+  squadError,
   onClaim,
 }: {
   season: string;
   activity: ActivityItem[];
   earlyBirdLeft: number;
   pendingJoin: PendingJoin | null;
+  /** A remembered co-lead link that couldn't be used (shown once, then forgotten). */
+  squadError: string | null;
   onClaim: (college: CollegeSearchResult | null, newName: string | null) => void;
 }) {
   const router = useRouter();
@@ -59,6 +62,10 @@ export function ClaimScreen({
     } else setRivalry(null);
   }
 
+  useEffect(() => {
+    if (squadError) void forgetSquadLink();
+  }, [squadError]);
+
   const claim = picked ? claims[picked.id] : undefined;
 
   return (
@@ -73,6 +80,12 @@ export function ClaimScreen({
         </div>
         <Sticker name="vault" eager className="hidden h-auto w-28 shrink-0 sm:block" style={{ "--tilt": "8deg" } as React.CSSProperties} />
       </div>
+
+      {squadError && (
+        <p role="alert" className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm">
+          <span className="font-semibold">That co-lead link didn&apos;t work:</span> {squadError}
+        </p>
+      )}
 
       {pendingJoin && (
         <Glass className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:p-5">
@@ -141,7 +154,8 @@ export function ClaimScreen({
           <CollegeLogo url={null} name={picked.name} className="size-13" />
           <div className="min-w-0 flex-1">
             <p className="font-bold">
-              {picked.name} is already claimed by <span className="text-primary">{claim.claimedBy}</span>.
+              {picked.name} is already claimed by <span className="text-primary">{claim.claimedBy}</span>
+              {claim.claimedBy.endsWith(".") ? "" : "."}
             </p>
             <p className="text-sm text-muted-foreground">Join their team instead: they accept or decline in their panel (max 3 per college).</p>
           </div>

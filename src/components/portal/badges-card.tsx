@@ -10,24 +10,20 @@ import { BADGES } from "@/lib/badges";
 import { confetti } from "@/lib/confetti";
 
 const seenKey = (id: string) => `mcl_badges_seen_${id}`;
-const approvedKey = (id: string) => `mcl_approved_seen_${id}`;
 
 /**
- * Badges in the POC panel (earned + locked with how to earn). Newly approved or a new badge since this device last
- * looked: confetti + a toast (once per device; the database also sent a notification).
+ * Badges in the POC panel (earned + locked with how to earn). A new badge since this device last looked: confetti +
+ * a toast (once per device; the database also sent a notification). Approval itself is celebrated by the tracker.
  */
-export function BadgesCard({ registrationId, earned, approved }: { registrationId: string; earned: string[]; approved: boolean }) {
+export function BadgesCard({ registrationId, earned }: { registrationId: string; earned: string[] }) {
   useEffect(() => {
     try {
       const seen = new Set<string>(JSON.parse(localStorage.getItem(seenKey(registrationId)) ?? "[]"));
       const fresh = earned.filter((b) => !seen.has(b));
-      const newlyApproved = approved && !localStorage.getItem(approvedKey(registrationId));
-      if (newlyApproved) localStorage.setItem(approvedKey(registrationId), "1");
       if (fresh.length) localStorage.setItem(seenKey(registrationId), JSON.stringify(earned));
-      if (!newlyApproved && !fresh.length) return;
+      if (!fresh.length) return;
       const id = setTimeout(() => {
         confetti();
-        if (newlyApproved) toast.success("You're approved! 🎉 Your college is in the league.");
         for (const b of fresh) {
           const def = BADGES.find((x) => x.key === b);
           if (def) toast.success(`Badge earned: ${def.emoji} ${def.label}`);
@@ -35,7 +31,7 @@ export function BadgesCard({ registrationId, earned, approved }: { registrationI
       }, 400);
       return () => clearTimeout(id);
     } catch {}
-  }, [registrationId, earned, approved]);
+  }, [registrationId, earned]);
 
   return (
     <Glass className="space-y-3 p-5 sm:p-6">

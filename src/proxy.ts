@@ -6,7 +6,7 @@ import {
   attributionFromSearchParams,
   parseAttributionCookie,
 } from "@/lib/attribution";
-import { INVITE_CODE_RE, INVITE_COOKIE, INVITE_MAX_AGE } from "@/lib/invite-cookie";
+import { INVITE_CODE_RE, INVITE_COOKIE, INVITE_MAX_AGE, SQUAD_CODE_RE, SQUAD_COOKIE, SQUAD_MAX_AGE } from "@/lib/invite-cookie";
 import { updateSession } from "@/lib/supabase/proxy";
 
 export async function proxy(request: NextRequest) {
@@ -42,6 +42,17 @@ export async function proxy(request: NextRequest) {
   if (invite && INVITE_CODE_RE.test(invite[1])) {
     response.cookies.set(INVITE_COOKIE, invite[1], {
       maxAge: INVITE_MAX_AGE,
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+    });
+  }
+  // Co-lead links (/j/CODE): kept through sign-up so /college can add them to the team.
+  const squad = pathname.match(/^\/j\/([a-z0-9]{12})$/);
+  if (squad && SQUAD_CODE_RE.test(squad[1])) {
+    response.cookies.set(SQUAD_COOKIE, squad[1], {
+      maxAge: SQUAD_MAX_AGE,
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",

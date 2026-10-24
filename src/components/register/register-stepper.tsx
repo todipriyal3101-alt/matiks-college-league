@@ -121,6 +121,7 @@ export function RegisterStepper({
   const [submitting, startSubmit] = useTransition();
   const heading = useRef<HTMLHeadingElement>(null);
   const touch = useRef<{ x: number; y: number } | null>(null);
+  const submitted = useRef(false);
 
   const step = STEPS[s.step];
   const country = s.college?.country ?? s.country;
@@ -133,7 +134,9 @@ export function RegisterStepper({
 
   // Autosave: ~1 s after the last change (and right after claiming), to the user's one server-side draft.
   useEffect(() => {
+    if (submitted.current) return;
     const t = setTimeout(async () => {
+      if (submitted.current) return;
       setSave("saving");
       const res = await saveDraft(toDraft(s));
       setSave(res.ok ? "saved" : "error");
@@ -191,9 +194,11 @@ export function RegisterStepper({
       return;
     }
     react("bounce");
+    submitted.current = true; // no autosave can land after the server deletes the draft
     startSubmit(async () => {
       const res = await registerMyCollege(input);
       if (!res.ok) {
+        submitted.current = false;
         toast.error(res.error);
         return;
       }
@@ -256,7 +261,7 @@ export function RegisterStepper({
       </Glass>
 
       <div className="grid items-start gap-4 lg:grid-cols-[1.05fr_0.95fr]">
-        <Glass className="relative p-5 sm:p-7">
+        <Glass className="relative min-w-0 p-5 sm:p-7">
           <Sticker
             name="trophy"
             eager
@@ -509,7 +514,7 @@ export function RegisterStepper({
           </form>
         </Glass>
 
-        <div className="lg:sticky lg:top-24">
+        <div className="min-w-0 lg:sticky lg:top-24">
           <p className="mb-2 text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">Live preview · the card you&apos;ll share</p>
           <CardPreview
             name={collegeName}

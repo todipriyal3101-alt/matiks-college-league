@@ -28,6 +28,7 @@ export function RegisterFlow({
   pendingJoin,
   verifyEnabled,
   draftVerified,
+  squadError,
 }: {
   userId: string;
   email: string;
@@ -40,6 +41,7 @@ export function RegisterFlow({
   pendingJoin: PendingJoin | null;
   verifyEnabled: boolean;
   draftVerified: boolean;
+  squadError: string | null;
 }) {
   const fresh = (college: CollegeSearchResult | null, newName: string | null): StepperState => ({
     step: college ? 1 : 0,
@@ -77,6 +79,7 @@ export function RegisterFlow({
         activity={activity}
         earlyBirdLeft={earlyBirdLeft}
         pendingJoin={pendingJoin}
+        squadError={squadError}
         onClaim={(college, newName) => {
           setState(fresh(college, newName));
           setRun((n) => n + 1);

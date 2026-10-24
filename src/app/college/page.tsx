@@ -1,19 +1,21 @@
-import { BuildingIcon, CircleCheckIcon, ClockIcon, LockIcon, MessageCircleIcon, XCircleIcon } from "lucide-react";
+import { BuildingIcon, LockIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { Glass } from "@/components/glass";
-import { StageBadge } from "@/components/league/badges";
-import { CollegeLogo } from "@/components/league/college-logo";
 import { EmptyState } from "@/components/league/empty-state";
-import { EmptyStateSticker } from "@/components/stickers";
 import { PrizeProgress } from "@/components/launch/prize-progress";
 import { BadgesCard } from "@/components/portal/badges-card";
 import { CertificatesCard } from "@/components/portal/certificates-card";
 import { CollegeCardShare } from "@/components/portal/college-card-share";
 import { EditDetailsForm } from "@/components/portal/edit-details-form";
 import { InviteCard } from "@/components/portal/invite-card";
+import { CampusPass } from "@/components/portal/campus-pass";
+import { SquadCard } from "@/components/portal/squad-card";
+import { StatusTracker } from "@/components/portal/status-tracker";
 import { SuccessHero } from "@/components/portal/success-hero";
 import { RegisterChecklist } from "@/components/portal/register-checklist";
 import { TeamContacts } from "@/components/portal/team-contacts";
@@ -24,15 +26,15 @@ import { getAdmin } from "@/lib/auth/admin";
 import { getRegistrationDetail, type OverviewRow } from "@/lib/data/league-ops";
 import { getPocContext, pickRegistration, type PocContext } from "@/lib/data/poc";
 import { getActivityFeed, getEarlyBirdLeft, getHomeStats } from "@/lib/data/public";
+import { SQUAD_CODE_RE, SQUAD_COOKIE } from "@/lib/invite-cookie";
 import { emailEnabled } from "@/lib/email";
 import { getOverviewRow, getRegistrationsPaused } from "@/lib/data/portal";
+import { passQrSvg, passUrl } from "@/lib/pass";
 import { siteUrl } from "@/lib/site-url";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { formatDay, todayIst } from "@/lib/ist";
 import { SUPPORT_EMAIL, type Stage } from "@/lib/league";
-import { stageLine } from "@/lib/stage-line";
-import { cn } from "@/lib/utils";
 import { COUNTRY_FLAGS, COUNTRY_LABELS, detailsFromRow, registerDraftSchema, type Country } from "@/lib/validation/portal";
 
 import { SeasonSwitch } from "./season-switch";
@@ -49,7 +51,7 @@ export default function RegisterTab({ searchParams }: PageProps<"/college">) {
 }
 
 async function Register({ searchParams }: Pick<PageProps<"/college">, "searchParams">) {
-  const [ctx, { r, registered }] = await Promise.all([getPocContext(), searchParams]);
+  const [ctx, { r, registered, joined }] = await Promise.all([getPocContext(), searchParams]);
   if (!ctx) return null;
 
   if (ctx.registrations.length === 0) {
@@ -118,6 +120,41 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
   if (!row || !own || !detail) return <EmptyState icon={BuildingIcon} title="College not found" description="It may have been removed." />;
   const status = row.review_status!;
   const editable = status === "pending" || status === "rejected";
+  const active = status === "pending" || status === "waitlisted" || approved;
+  // Campus Lead Pass (my own name on it), co-lead links for open spots, and "Ask to join" requests.
+  const [qrSvg, { data: invites }, { data: requests }] = await Promise.all([
+    row.pass_code ? passQrSvg(row.pass_code) : Promise.resolve(""),
+    active ? supabase.rpc("my_squad_invites", { p_registration_id: selected.id }) : Promise.resolve({ data: [] }),
+    supabase.from("join_requests").select("id, name").eq("registration_id", selected.id).eq("status", "pending").order("created_at"),
+  ]);
+  const myName = detail.contacts.find((c) => c.email.toLowerCase() === ctx.email.toLowerCase())?.name ?? ctx.name ?? row.primary_poc_name ?? "Campus Lead";
+  const pass = row.pass_code && status !== "rejected" && (
+    <CampusPass
+      registrationId={selected.id}
+      name={myName}
+      college={row.college_name ?? ""}
+      season={row.league_name ?? "Matiks College League"}
+      status={status}
+      verified={!!row.email_verified_at}
+      target={row.target_players}
+      collegeLogoUrl={row.college_logo_url}
+      clubLogoUrl={row.club_logo_url}
+      code={row.pass_code}
+      qrSvg={qrSvg}
+      url={passUrl(row.pass_code)}
+    />
+  );
+  const squad = active && (
+    <SquadCard
+      members={detail.contacts.map((c) => ({ id: c.id, name: c.name, email: c.email, is_primary: c.is_primary }))}
+      invites={(invites ?? []).map((i) => i.code)}
+      requests={requests ?? []}
+      siteUrl={siteUrl}
+      myEmail={ctx.email}
+      college={row.college_name ?? "your college"}
+      highlight={!!registered}
+    />
+  );
 
   return (
     <div className="fade-in space-y-5">
@@ -132,15 +169,22 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
       ) : (
         <Heading eyebrow={row.league_name ?? "Matiks College League"} title={row.college_name ?? "Your college"} />
       )}
+      {joined && !registered && (
+        <Glass className="p-4 text-sm font-semibold sm:p-5">🎉 You&apos;re on the {row.college_name} team. Everything here is shared with your Campus Leads.</Glass>
+      )}
+      {registered && pass}
+      {registered && squad}
       {registered && invite && <InviteCard code={invite.code} plays={invite.plays} registrations={invite.registrations} collegeName={row.college_name ?? ""} siteUrl={siteUrl} highlight />}
-      <StatusCard row={row} />
+      <StatusTracker row={row} />
+      {!registered && pass}
+      {!registered && squad}
       {!registered && invite && <InviteCard code={invite.code} plays={invite.plays} registrations={invite.registrations} collegeName={row.college_name ?? ""} siteUrl={siteUrl} />}
       <Glass className="p-5 sm:p-6">
         <PrizeProgress players={row.participant_count ?? 0} country={(row.country ?? "india") as Country} />
       </Glass>
       {approved && collegeRow?.colleges.slug && <CollegeCardShare slug={collegeRow.colleges.slug} collegeName={row.college_name ?? ""} />}
       <CertificatesCard certificates={certificates ?? []} siteUrl={siteUrl} />
-      {approved && <BadgesCard registrationId={selected.id} earned={(badges ?? []).map((b) => b.badge)} approved />}
+      {approved && <BadgesCard registrationId={selected.id} earned={(badges ?? []).map((b) => b.badge)} />}
       <RegisterChecklist
         status={status}
         stage={(row.effective_stage ?? "registration_phase") as Stage}
@@ -162,6 +206,14 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
 /** No registration yet: claim screen → stepper (resumes the autosaved draft), with live ticker + early-bird spots. */
 async function ClaimAndRegister({ ctx }: { ctx: PocContext }) {
   const supabase = await createClient();
+  // Came through a co-lead link (/j/CODE, remembered through sign-up): join that team now.
+  const squadCode = (await cookies()).get(SQUAD_COOKIE)?.value;
+  let squadError: string | null = null;
+  if (squadCode && SQUAD_CODE_RE.test(squadCode)) {
+    const { error } = await supabase.rpc("redeem_squad_invite", { p_code: squadCode });
+    if (!error) redirect("/college?joined=1");
+    squadError = error.code === "P0001" ? error.message : "Couldn't join that team. Ask your Campus Lead for a new link.";
+  }
   const [{ data: draftRow }, { data: join }, activity, earlyBirdLeft, stats] = await Promise.all([
     supabase.from("registration_drafts").select("data").eq("user_id", ctx.userId).maybeSingle(),
     // The requester can't read the team's registration (RLS); the server looks up just the college's name.
@@ -188,6 +240,7 @@ async function ClaimAndRegister({ ctx }: { ctx: PocContext }) {
         pendingJoin={join ? { id: join.id, collegeName: join.registrations?.colleges.name ?? "that college" } : null}
         verifyEnabled={emailEnabled()}
         draftVerified={draftVerified}
+        squadError={squadError}
       />
     </div>
   );
@@ -200,44 +253,6 @@ function Heading({ eyebrow, title, children }: { eyebrow: string; title: string;
       <h1 className="text-5xl sm:text-6xl">{title}</h1>
       {children && <p className="mt-3 max-w-xl text-foreground/85">{children}</p>}
     </div>
-  );
-}
-
-const STATUS = {
-  pending: { icon: ClockIcon, title: "Pending review", tone: "bg-status-pending text-status-pending-fg", text: "A Matiks admin will review your college soon. You can still edit the details below." },
-  waitlisted: { icon: ClockIcon, title: "Waitlisted", tone: "bg-status-registration text-status-registration-fg", text: "You're on the waitlist. We'll let you know here if a spot opens up." },
-  approved: { icon: CircleCheckIcon, title: "Approved", tone: "bg-status-live text-status-live-fg", text: "You're in! Add your winners in the Winners tab when the league ends." },
-  rejected: { icon: XCircleIcon, title: "Denied", tone: "bg-destructive/15 text-destructive", text: "Fix the details below and resubmit, or message us in Chat." },
-} as const;
-
-function StatusCard({ row }: { row: OverviewRow }) {
-  const s = STATUS[row.review_status!];
-  return (
-    <Glass className="relative flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:p-6">
-      {row.review_status === "pending" && (
-        <EmptyStateSticker name="vault" className="absolute -top-3 right-3 mx-0 w-20 sm:static sm:order-last sm:w-24" />
-      )}
-      <CollegeLogo url={row.college_logo_url} name={row.college_name ?? "?"} className="size-14" />
-      <div className="min-w-0 flex-1 space-y-1.5">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={cn("inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-bold", s.tone)}>
-            <s.icon className="size-4" aria-hidden /> {s.title}
-          </span>
-          {row.review_status === "approved" && <StageBadge stage={(row.effective_stage ?? "registration_phase") as Stage}>{stageLine(row)}</StageBadge>}
-        </div>
-        <p className="text-sm text-foreground/85">{s.text}</p>
-        {row.review_status === "rejected" && row.deny_reason && (
-          <p className="rounded-xl bg-destructive/10 px-3 py-2 text-sm">
-            <span className="font-semibold">Reason:</span> {row.deny_reason}
-          </p>
-        )}
-      </div>
-      <Button asChild variant="outline" className="h-11 rounded-full">
-        <Link href="/college/chat">
-          <MessageCircleIcon /> Chat with us
-        </Link>
-      </Button>
-    </Glass>
   );
 }
 
