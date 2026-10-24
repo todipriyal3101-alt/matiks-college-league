@@ -10,6 +10,7 @@ import {
   MessageCircleIcon,
   SchoolIcon,
   SearchIcon,
+  SparklesIcon,
   ShieldIcon,
   SwordsIcon,
   TrophyIcon,
@@ -46,6 +47,7 @@ const PAGES = [
   { href: "/admin/leagues", label: "Seasons", icon: TrophyIcon },
   { href: "/admin/matches", label: "Matches", icon: SwordsIcon },
   { href: "/admin/ambassadors", label: "Ambassadors", icon: MegaphoneIcon },
+  { href: "/admin/growth", label: "Growth (invites + duels)", icon: SparklesIcon },
 ] as const;
 
 /** File download from a route handler (not a page navigation). */

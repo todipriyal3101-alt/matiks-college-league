@@ -342,3 +342,17 @@
     display: block;
   }
 }
+
+/* Duel: a quick shake on a wrong answer (none with reduced motion). */
+@keyframes duel-shake {
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+.duel-shake {
+  animation: duel-shake 0.18s ease-in-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .duel-shake {
+    animation: none;
+  }
+}

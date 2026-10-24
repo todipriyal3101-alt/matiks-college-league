@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDownIcon, LogOutIcon, MegaphoneIcon, ShieldIcon, SwordsIcon, TrophyIcon, UserRoundIcon } from "lucide-react";
+import { ChevronDownIcon, LogOutIcon, MegaphoneIcon, ShieldIcon, SparklesIcon, SwordsIcon, TrophyIcon, UserRoundIcon } from "lucide-react";
 import Link from "next/link";
 
 import { logout } from "@/lib/auth/actions";
@@ -70,6 +70,11 @@ export function AdminAccountMenu({ name, email, role }: { name: string; email: s
         <DropdownMenuItem asChild>
           <Link href="/admin/matches">
             <SwordsIcon /> Matches
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/admin/growth">
+            <SparklesIcon /> Growth
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>

@@ -1153,6 +1153,7 @@ export type Database = {
         Returns: { email: string; user_id: string }[]
       }
       my_invite: { Args: { p_registration_id: string }; Returns: { code: string; plays: number; registrations: number }[] }
+      new_invite_code: { Args: never; Returns: string }
       public_certificate: {
         Args: { p_id: string }
         Returns: { college_logo_url: string | null; college_name: string; id: string; issued_at: string; recipient_name: string; season: string }[]

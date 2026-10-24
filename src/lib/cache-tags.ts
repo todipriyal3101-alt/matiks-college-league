@@ -5,4 +5,8 @@ export const CACHE_TAGS = {
   matches: "matches",
   /** Public /colleges wall (approved colleges). Bump on review-status changes, adds, deletes and merges. */
   colleges: "colleges",
+  /** Launch pages: college race, home numbers, /c/[slug] (approved colleges' public data). Bumped with `colleges`. */
+  race: "race",
+  /** "Top today" duel board. */
+  duels: "duels",
 } as const;
