@@ -11,6 +11,8 @@ import { safeNext } from "@/lib/safe-next";
 import { signUpSchema } from "@/lib/validation/portal";
 import { createClient } from "@/lib/supabase/client";
 
+import { createAccount } from "./actions";
+
 // Inlined at build time. Turn on once the Google provider is configured in Supabase.
 const GOOGLE_LOGIN_ENABLED = process.env.NEXT_PUBLIC_ENABLE_GOOGLE_LOGIN === "true";
 
@@ -90,19 +92,14 @@ export function LoginForm({ next, initialMode = "password" }: { next?: string; i
       return null;
     });
 
-  // POCs create their own account (SPEC "Access"). "Confirm email" is off (0009): signUp returns a session, so they
-  // go straight to the Register tab. Name and phone go into the auth metadata for the primary contact.
+  // POCs create their own account (SPEC "Access"). No confirmation email: the server creates it confirmed and signs
+  // them in (./actions.ts), so they go straight to the Register tab. Name and phone go into the auth metadata.
   const signUp = () =>
     run("signup", async () => {
       const parsed = signUpSchema.safeParse({ name, phone, email, password });
       if (!parsed.success) return parsed.error.issues[0]?.message ?? "Check the form.";
-      const { data, error } = await createClient().auth.signUp({
-        email: parsed.data.email,
-        password: parsed.data.password,
-        options: { data: { name: parsed.data.name, phone: parsed.data.phone }, captchaToken: captcha() },
-      });
-      if (error) return /already registered/i.test(error.message) ? "This email already has an account. Sign in instead." : friendly(error.message);
-      if (!data.session) return "Your account was created, but we couldn't sign you in. Sign in with your email and password.";
+      const result = await createAccount({ name, phone, email, password }, captcha() ?? "");
+      if (!result.ok) return result.error;
       // Full load so the proxy sees the new session cookies; a co-lead link (?next=/j/CODE) continues there.
       window.location.assign(next ? continueUrl : "/college");
       return null;

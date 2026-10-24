@@ -19,8 +19,9 @@ Always read the relevant part of SPEC.md before building a feature.
 - Tailwind CSS + shadcn/ui components
 - Supabase: Postgres, Auth, Storage (project region: Mumbai)
 - Forms: react-hook-form + zod (same zod schema on client and server)
-- Emails: none, except Supabase's password reset and the optional college-email code (Resend). "Confirm email" is off:
-  sign-up signs in at once; admins add POCs without email (pending_access + a WhatsApp message); POC access comes only
+- Emails: none, except Supabase's password reset and the optional college-email code (Resend). No confirmation email:
+  sign-up is a server action (`src/app/login/actions.ts`: Turnstile check, account created confirmed, signed in at once),
+  so it never depends on Supabase's "Confirm email" setting; admins add POCs without email (pending_access + a WhatsApp message); POC access comes only
   from `college_access` (never from matching `poc_email`, migration 0009). Everything else is in-app notifications.
 - Realtime: Supabase Realtime (chat, notifications). Logos: Supabase Storage bucket `logos`
 - Captcha: Cloudflare Turnstile on every /login action, verified by Supabase Auth (Attack Protection › Captcha)

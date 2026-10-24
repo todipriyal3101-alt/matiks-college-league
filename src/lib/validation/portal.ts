@@ -24,6 +24,7 @@ export const signUpSchema = profileSchema.extend({
   email: z.email("Enter a valid email").trim().toLowerCase().max(120),
   password: z.string().min(8, "At least 8 characters").max(72),
 });
+export type SignUpInput = z.input<typeof signUpSchema>;
 
 /** "iitg.ac.in": lowercase, no "@", at least one dot. Same rule as registrations_email_domain_check. */
 export const DOMAIN_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$/;
