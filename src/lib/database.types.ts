@@ -835,6 +835,50 @@ export type Database = {
           },
         ]
       }
+      pending_access: {
+        Row: {
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          registration_id: string
+          revoked_at: string | null
+        }
+        Insert: {
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          registration_id: string
+          revoked_at?: string | null
+        }
+        Update: {
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          registration_id?: string
+          revoked_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_access_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       participants: {
         Row: {
           created_at: string
@@ -1062,6 +1106,25 @@ export type Database = {
           },
         ]
       }
+      verified_accounts: {
+        Row: {
+          method: string
+          user_id: string
+          verified_at: string
+        }
+        Insert: {
+          method: string
+          user_id: string
+          verified_at?: string
+        }
+        Update: {
+          method?: string
+          user_id?: string
+          verified_at?: string
+        }
+        Relationships: [
+        ]
+      }
       winners: {
         Row: {
           address: string | null
@@ -1167,6 +1230,7 @@ export type Database = {
           admin_first_viewed_at: string | null
           email_verified_at: string | null
           pass_code: string | null
+          poc_unverified: boolean | null
           reviewed_at: string | null
           target_players: number | null
           league_end: string | null
@@ -1213,6 +1277,7 @@ export type Database = {
       }
     }
     Functions: {
+      account_verified: { Args: { p_user_id: string }; Returns: boolean }
       cancel_my_join_request: { Args: { p_request_id: string }; Returns: undefined }
       check_email_verification: { Args: { p_code_hash: string; p_email: string }; Returns: string }
       college_claim_status: {

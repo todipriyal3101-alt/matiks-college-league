@@ -61,6 +61,11 @@ alter default privileges in schema public grant all on sequences to anon, authen
 -- ---------- Added for 0005 ----------
 -- auth.users metadata (sign-up name/phone live here on the real project).
 alter table auth.users add column raw_user_meta_data jsonb not null default '{}'::jsonb;
+-- Columns 0009's verified-account backfill reads (real Supabase has them).
+alter table auth.users add column raw_app_meta_data jsonb not null default '{}'::jsonb;
+alter table auth.users add column email_confirmed_at timestamptz;
+alter table auth.users add column confirmation_sent_at timestamptz;
+alter table auth.users add column invited_at timestamptz;
 
 -- Storage: just the parts our policies touch (bucket row, objects with RLS on, storage.foldername()).
 create schema storage;
