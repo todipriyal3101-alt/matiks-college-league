@@ -13,15 +13,18 @@ export function InviteCard({
   plays,
   registrations,
   collegeName,
+  siteUrl,
   highlight = false,
 }: {
   code: string;
   plays: number;
   registrations: number;
   collegeName: string;
+  /** From the server, so the link renders the same on both sides (no hydration mismatch). */
+  siteUrl: string;
   highlight?: boolean;
 }) {
-  const url = typeof window === "undefined" ? `/i/${code}` : `${window.location.origin}/i/${code}`;
+  const url = `${siteUrl}/i/${code}`;
   const people = plays + registrations;
   const text = `${collegeName} is in the Matiks College League! Take the 30-second math duel and help us unlock a bigger prize pool:`;
 

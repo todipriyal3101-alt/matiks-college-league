@@ -132,9 +132,9 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
       ) : (
         <Heading eyebrow={row.league_name ?? "Matiks College League"} title={row.college_name ?? "Your college"} />
       )}
-      {registered && invite && <InviteCard code={invite.code} plays={invite.plays} registrations={invite.registrations} collegeName={row.college_name ?? ""} highlight />}
+      {registered && invite && <InviteCard code={invite.code} plays={invite.plays} registrations={invite.registrations} collegeName={row.college_name ?? ""} siteUrl={siteUrl} highlight />}
       <StatusCard row={row} />
-      {!registered && invite && <InviteCard code={invite.code} plays={invite.plays} registrations={invite.registrations} collegeName={row.college_name ?? ""} />}
+      {!registered && invite && <InviteCard code={invite.code} plays={invite.plays} registrations={invite.registrations} collegeName={row.college_name ?? ""} siteUrl={siteUrl} />}
       <Glass className="p-5 sm:p-6">
         <PrizeProgress players={row.participant_count ?? 0} country={(row.country ?? "india") as Country} />
       </Glass>
