@@ -1,10 +1,11 @@
 "use client";
 
 import { CheckIcon, Loader2Icon, SearchIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Input } from "@/components/ui/input";
 import type { CollegeSearchResult } from "@/lib/data/colleges";
+import { cn } from "@/lib/utils";
 
 const DEBOUNCE_MS = 250;
 
@@ -19,6 +20,9 @@ export function CollegeSearch({
   placeholder = "Start typing your college name",
   autoFocus,
   onAddNew,
+  onResults,
+  renderBadge,
+  size = "default",
 }: {
   selectedId: string | null;
   selectedLabel: string;
@@ -30,11 +34,21 @@ export function CollegeSearch({
   autoFocus?: boolean;
   /** Shows "+ Add “…” as a new college" under the results (POC Register tab). */
   onAddNew?: (name: string) => void;
+  /** Claim screen: told about each result list (to look up claims) and adds a pill per row. */
+  onResults?: (colleges: CollegeSearchResult[]) => void;
+  renderBadge?: (college: CollegeSearchResult) => React.ReactNode;
+  /** Claim screen: one big field. */
+  size?: "default" | "lg";
 }) {
   const [query, setQuery] = useState(selectedLabel);
   const [results, setResults] = useState<CollegeSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+
+  const onResultsRef = useRef(onResults);
+  useEffect(() => {
+    onResultsRef.current = onResults;
+  });
 
   const term = query.trim();
   const showResults = term.length >= 2 && term !== selectedLabel;
@@ -50,6 +64,7 @@ export function CollegeSearch({
         });
         const data = (await res.json()) as { colleges?: CollegeSearchResult[] };
         setResults(data.colleges ?? []);
+        onResultsRef.current?.(data.colleges ?? []);
         setSearched(true);
       } catch {
         // Aborted or offline: keep the previous results.
@@ -66,7 +81,7 @@ export function CollegeSearch({
   return (
     <div className="space-y-2">
       <div className="relative">
-        <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+        <SearchIcon className={cn("pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground", size === "lg" && "left-4 size-5")} />
         <Input
           id={id}
           value={query}
@@ -78,7 +93,7 @@ export function CollegeSearch({
           autoComplete="off"
           autoFocus={autoFocus}
           aria-invalid={invalid}
-          className="h-12 pl-9 text-base"
+          className={cn("h-12 pl-9 text-base", size === "lg" && "h-16 rounded-2xl pl-12 text-lg shadow-[inset_0_0_0_2px_rgb(177_250_99/0.45)] focus-visible:shadow-[inset_0_0_0_2px_rgb(177_250_99/0.8),0_0_0_6px_rgb(177_250_99/0.1)]")}
         />
         {loading && (
           <Loader2Icon className="absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
@@ -108,7 +123,10 @@ export function CollegeSearch({
                     </span>
                   )}
                 </span>
-                {c.id === selectedId && <CheckIcon className="mt-0.5 size-4 shrink-0" />}
+                <span className="flex shrink-0 items-center gap-2">
+                  {renderBadge?.(c)}
+                  {c.id === selectedId && <CheckIcon className="mt-0.5 size-4 shrink-0" />}
+                </span>
               </button>
             </li>
           ))}

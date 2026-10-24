@@ -1,12 +1,13 @@
 "use server";
 
 import { track } from "@vercel/analytics/server";
-import { refresh } from "next/cache";
+import { refresh, updateTag } from "next/cache";
 import { cookies } from "next/headers";
 import { z } from "zod";
 
 import { ATTRIBUTION_COOKIE, parseAttributionCookie } from "@/lib/attribution";
 import { getAdmin } from "@/lib/auth/admin";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 import { getRegistrationsPaused } from "@/lib/data/portal";
 import { registrationReceivedEmail, sendLater } from "@/lib/email";
 import { INVITE_CODE_RE, INVITE_COOKIE } from "@/lib/invite-cookie";
@@ -43,7 +44,7 @@ function ownLogo(url: string | null, prefixes: string[]) {
 export async function registerMyCollege(input: PocRegisterInput): Promise<PortalResult<{ registrationId: string }>> {
   const parsed = pocRegisterSchema.safeParse(input);
   if (!parsed.success) return firstIssue(parsed.error);
-  const { collegeId, collegeName, country, details, contact } = parsed.data;
+  const { collegeId, collegeName, country, details, contact, targetPlayers } = parsed.data;
 
   const supabase = await createClient();
   const { data: claims } = await supabase.auth.getClaims();
@@ -116,6 +117,11 @@ export async function registerMyCollege(input: PocRegisterInput): Promise<Portal
     .eq("is_primary", true);
   if (contactError) console.error("registerMyCollege contact details:", contactError.message);
 
+  // Squad target (0008): a POC-editable column while pending; the draft is done with.
+  const { error: targetError } = await supabase.from("registrations").update({ target_players: targetPlayers }).eq("id", registrationId);
+  if (targetError) console.error("registerMyCollege target_players:", targetError.message);
+  await supabase.from("registration_drafts").delete().eq("user_id", userId);
+
   // Came through someone's invite link (/i/CODE)? Credit them. Admin-only column, so the service role sets it,
   // and never the POC's own link.
   if (inviteCode && INVITE_CODE_RE.test(inviteCode)) {
@@ -136,6 +142,8 @@ export async function registerMyCollege(input: PocRegisterInput): Promise<Portal
       return registrationReceivedEmail(email, { collegeName: data?.colleges.name ?? name, leagueName: data?.leagues.name ?? "", registrationId });
     });
   }
+  // The ticker and early-bird numbers pick up the new registration at once.
+  updateTag(CACHE_TAGS.activity);
   await track("college_registered", { source: attribution.utm_source ?? "direct", country, ...(attribution.ref ? { ref: attribution.ref } : {}) }).catch(() => {});
   refresh();
   return { ok: true, registrationId };

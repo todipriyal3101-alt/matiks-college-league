@@ -63,3 +63,8 @@ export function istMidnightIso(now = Date.now()) {
   const DAY = 86_400_000;
   return new Date(Math.floor((now + IST) / DAY) * DAY - IST).toISOString();
 }
+
+/** Today's date in India, "YYYY-MM-DD" (league dates are IST dates). */
+export function todayIst(): string {
+  return new Date(Date.now() + 5.5 * 3_600_000).toISOString().slice(0, 10);
+}

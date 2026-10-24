@@ -17,20 +17,23 @@ import { InviteCard } from "@/components/portal/invite-card";
 import { SuccessHero } from "@/components/portal/success-hero";
 import { RegisterChecklist } from "@/components/portal/register-checklist";
 import { TeamContacts } from "@/components/portal/team-contacts";
-import { RegisterForm } from "@/components/portal/register-form";
+import { RegisterFlow } from "@/components/register/register-flow";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAdmin } from "@/lib/auth/admin";
 import { getRegistrationDetail, type OverviewRow } from "@/lib/data/league-ops";
-import { getPocContext, pickRegistration } from "@/lib/data/poc";
+import { getPocContext, pickRegistration, type PocContext } from "@/lib/data/poc";
+import { getActivityFeed, getEarlyBirdLeft, getHomeStats } from "@/lib/data/public";
+import { emailEnabled } from "@/lib/email";
 import { getOverviewRow, getRegistrationsPaused } from "@/lib/data/portal";
 import { siteUrl } from "@/lib/site-url";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { formatDay } from "@/lib/ist";
+import { formatDay, todayIst } from "@/lib/ist";
 import { SUPPORT_EMAIL, type Stage } from "@/lib/league";
 import { stageLine } from "@/lib/stage-line";
 import { cn } from "@/lib/utils";
-import { COUNTRY_FLAGS, COUNTRY_LABELS, detailsFromRow, type Country } from "@/lib/validation/portal";
+import { COUNTRY_FLAGS, COUNTRY_LABELS, detailsFromRow, registerDraftSchema, type Country } from "@/lib/validation/portal";
 
 import { SeasonSwitch } from "./season-switch";
 
@@ -67,12 +70,10 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
     }
     // Always open: only the admin's emergency "Pause new registrations" closes it (read uncached).
     const paused = await getRegistrationsPaused();
-    return (
-      <div className="fade-in space-y-6">
-        <Heading eyebrow="Matiks College League" title="Register your college">
-          Tell us about your college and when you want to run the league. A Matiks admin reviews it, usually within a day.
-        </Heading>
-        {paused ? (
+    if (paused) {
+      return (
+        <div className="fade-in space-y-6">
+          <Heading eyebrow="Matiks College League" title="Register your college" />
           <Glass className="p-6">
             <EmptyState
               icon={LockIcon}
@@ -88,11 +89,10 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
               }
             />
           </Glass>
-        ) : (
-          <RegisterForm userId={ctx.userId} email={ctx.email} profile={{ name: ctx.name, phone: ctx.phone }} />
-        )}
-      </div>
-    );
+        </div>
+      );
+    }
+    return <ClaimAndRegister ctx={ctx} />;
   }
 
   const selected = pickRegistration(ctx, r)!;
@@ -155,6 +155,40 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
         )}
       </Glass>
       <TeamContacts registrationId={selected.id} contacts={detail.contacts} />
+    </div>
+  );
+}
+
+/** No registration yet: claim screen → stepper (resumes the autosaved draft), with live ticker + early-bird spots. */
+async function ClaimAndRegister({ ctx }: { ctx: PocContext }) {
+  const supabase = await createClient();
+  const [{ data: draftRow }, { data: join }, activity, earlyBirdLeft, stats] = await Promise.all([
+    supabase.from("registration_drafts").select("data").eq("user_id", ctx.userId).maybeSingle(),
+    // The requester can't read the team's registration (RLS); the server looks up just the college's name.
+    createAdminClient().from("join_requests").select("id, registrations(colleges(name))").eq("user_id", ctx.userId).eq("status", "pending").maybeSingle(),
+    getActivityFeed().catch(() => []),
+    getEarlyBirdLeft().catch(() => 0),
+    getHomeStats().catch(() => null),
+  ]);
+  const parsed = registerDraftSchema.safeParse(draftRow?.data ?? null);
+  const draft = parsed.success ? parsed.data : null;
+  const draftEmail = typeof draft?.details?.collegeEmail === "string" ? draft.details.collegeEmail : "";
+  const draftVerified = draftEmail ? !!(await supabase.rpc("my_email_verified", { p_email: draftEmail })).data : false;
+  return (
+    <div className="fade-in">
+      <RegisterFlow
+        userId={ctx.userId}
+        email={ctx.email}
+        profile={{ name: ctx.name, phone: ctx.phone }}
+        season={stats?.season ?? "Matiks College League"}
+        today={todayIst()}
+        draft={draft}
+        activity={activity}
+        earlyBirdLeft={earlyBirdLeft}
+        pendingJoin={join ? { id: join.id, collegeName: join.registrations?.colleges.name ?? "that college" } : null}
+        verifyEnabled={emailEnabled()}
+        draftVerified={draftVerified}
+      />
     </div>
   );
 }

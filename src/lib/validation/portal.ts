@@ -161,6 +161,8 @@ export const pocRegisterSchema = z
     country: z.enum(COUNTRIES),
     details: registrationDetailsSchema,
     contact: pocContactSchema,
+    /** "How many players can you bring?" (0008), saved as target_players. */
+    targetPlayers: z.number().int().min(50, "At least 50").max(1000, "At most 1000"),
   })
   .refine((v) => v.collegeId || v.collegeName.length >= 3, {
     message: "Pick your college or type its full name",
@@ -305,3 +307,28 @@ export function detailsToRow(d: {
 
 /** Team contacts: the primary contact first, up to 3 in all. */
 export const teamContactsSchema = z.array(pocContactSchema).min(1, "Keep the primary contact").max(3, "A college can have at most 3 contacts");
+
+// ---------- Register flow (0008) ----------
+
+export const TARGET_MIN = 50;
+export const TARGET_MAX = 1000;
+export const TARGET_DEFAULT = 200;
+
+/** The autosaved draft (registration_drafts.data): whatever the stepper holds, loosely checked and size-capped. */
+export const registerDraftSchema = z
+  .object({
+    step: z.number().int().min(0).max(20),
+    college: z
+      .object({ id: z.uuid(), name: z.string().max(200), country: z.enum(COUNTRIES), city: z.string().max(120).nullable(), state: z.string().max(120).nullable() })
+      .nullable(),
+    newName: z.string().max(200).nullable(),
+    country: z.enum(COUNTRIES),
+    details: z.record(z.string(), z.union([z.string().max(500), z.null()])),
+    contact: z.record(z.string(), z.union([z.string().max(500), z.null()])),
+    targetPlayers: z.number().int().min(TARGET_MIN).max(TARGET_MAX),
+    customDates: z.boolean(),
+  })
+  .partial();
+export type RegisterDraft = z.infer<typeof registerDraftSchema>;
+
+export const verifyCodeSchema = z.string().trim().regex(/^\d{6}$/, "Enter the 6-digit code");

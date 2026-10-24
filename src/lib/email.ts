@@ -211,3 +211,20 @@ export function winnerPaidEmail(
   };
 }
 
+
+/** Verified fast lane (0008): the 6-digit code for the college email. Expires in 10 minutes. */
+export function verificationCodeEmail(to: string, code: string): Email {
+  return {
+    to,
+    subject: `${code} is your Matiks College League code`,
+    html: layout({
+      preheader: "Your 6-digit code. It expires in 10 minutes.",
+      heading: "Verify your college email",
+      body:
+        p("Enter this code in the registration form to get the <strong>Verified</strong> badge (verified colleges are reviewed first):") +
+        `<p style="margin:18px 0;font-family:'Space Mono',Menlo,monospace;font-size:34px;font-weight:700;letter-spacing:10px;color:${C.primary}">${esc(code)}</p>` +
+        p(muted("It expires in 10 minutes. If you didn't ask for it, ignore this email.")),
+    }),
+    text: `Your Matiks College League code: ${code}\n\nIt expires in 10 minutes. If you didn't ask for it, ignore this email.`,
+  };
+}

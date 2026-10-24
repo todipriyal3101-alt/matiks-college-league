@@ -1,6 +1,6 @@
 "use client";
 
-import { ImageUpIcon, Loader2Icon, XIcon } from "lucide-react";
+import { CameraIcon, ImageUpIcon, Loader2Icon, XIcon } from "lucide-react";
 import { useId, useRef, useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
@@ -8,6 +8,24 @@ import { cn } from "@/lib/utils";
 
 const TYPES = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" } as const;
 const MAX_BYTES = 2 * 1024 * 1024;
+const MAX_SIDE = 1200;
+
+/** Camera photos are big (and sometimes HEIC): redraw anything too large or not PNG/JPG/WebP as a ≤1200px JPEG. */
+async function shrink(file: File): Promise<File> {
+  if (file.size <= MAX_BYTES && file.type in TYPES) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
+    return blob ? new File([blob], "photo.jpg", { type: "image/jpeg" }) : file;
+  } catch {
+    return file; // Not decodable here: the checks below explain what to do.
+  }
+}
 
 /**
  * Uploads a logo to the public "logos" bucket and returns its public URL (migration 0005: images only, max 2 MB;
@@ -22,6 +40,7 @@ export function LogoUpload({
   hint = "PNG, JPG or WebP · max 2 MB",
   disabled,
   invalid,
+  camera = false,
 }: {
   /** e.g. `users/<uid>` or `registrations/<id>` */
   folder: string;
@@ -33,14 +52,18 @@ export function LogoUpload({
   hint?: string;
   disabled?: boolean;
   invalid?: boolean;
+  /** Phones: also offer "Take photo" (opens the camera). */
+  camera?: boolean;
 }) {
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
+  const cameraInput = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function upload(file: File) {
+  async function upload(picked: File) {
     setError(null);
+    const file = await shrink(picked);
     const ext = TYPES[file.type as keyof typeof TYPES];
     if (!ext) return setError("Use a PNG, JPG or WebP image.");
     if (file.size > MAX_BYTES) return setError("That image is over 2 MB. Pick a smaller one.");
@@ -90,6 +113,16 @@ export function LogoUpload({
           </label>
           <p className="text-xs text-muted-foreground">{busy ? "Uploading…" : value ? "Tap the logo to replace it" : hint}</p>
         </div>
+        {camera && !disabled && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => cameraInput.current?.click()}
+            className="hidden h-9 shrink-0 items-center gap-1.5 rounded-full bg-white/8 px-3 text-xs font-semibold pointer-coarse:inline-flex"
+          >
+            <CameraIcon className="size-4" aria-hidden /> Take photo
+          </button>
+        )}
         {value && !disabled && (
           <button
             type="button"
@@ -113,6 +146,23 @@ export function LogoUpload({
             if (file) void upload(file);
           }}
         />
+        {camera && (
+          <input
+            ref={cameraInput}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="sr-only"
+            tabIndex={-1}
+            aria-label={`Take a photo for the ${label}`}
+            disabled={disabled || busy}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (file) void upload(file);
+            }}
+          />
+        )}
       </div>
       {error && (
         <p role="alert" className="text-sm text-destructive">
