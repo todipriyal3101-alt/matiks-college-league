@@ -161,6 +161,32 @@ export type Database = {
           },
         ]
       }
+      badges: {
+        Row: {
+          badge: string
+          earned_at: string
+          registration_id: string
+        }
+        Insert: {
+          badge: string
+          earned_at?: string
+          registration_id: string
+        }
+        Update: {
+          badge?: string
+          earned_at?: string
+          registration_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "badges_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_messages: {
         Row: {
           body: string
@@ -260,6 +286,51 @@ export type Database = {
           },
         ]
       }
+      certificates: {
+        Row: {
+          contact_id: string
+          hidden: boolean
+          id: string
+          issued_at: string
+          recipient_name: string
+          registration_id: string
+          updated_at: string
+        }
+        Insert: {
+          contact_id: string
+          hidden?: boolean
+          id?: string
+          issued_at?: string
+          recipient_name: string
+          registration_id: string
+          updated_at?: string
+        }
+        Update: {
+          contact_id?: string
+          hidden?: boolean
+          id?: string
+          issued_at?: string
+          recipient_name?: string
+          registration_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificates_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       college_access: {
         Row: {
           created_at: string
@@ -303,6 +374,7 @@ export type Database = {
           name: string
           normalized_name: string | null
           short_name: string | null
+          slug: string
           state: string | null
           updated_at: string
           website: string | null
@@ -316,6 +388,7 @@ export type Database = {
           logo_url?: string | null
           name: string
           short_name?: string | null
+          slug?: string
           state?: string | null
           updated_at?: string
           website?: string | null
@@ -329,6 +402,7 @@ export type Database = {
           logo_url?: string | null
           name?: string
           short_name?: string | null
+          slug?: string
           state?: string | null
           updated_at?: string
           website?: string | null
@@ -399,6 +473,120 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "contacts_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      duel_rounds: {
+        Row: {
+          attempted: number | null
+          best_combo: number | null
+          college_id: string | null
+          correct: number | null
+          expires_at: string
+          hidden: boolean
+          id: string
+          invite_code: string | null
+          ip_hash: string
+          issued_at: string
+          player_name: string | null
+          score: number | null
+          seed: number
+          submitted_at: string | null
+        }
+        Insert: {
+          attempted?: number | null
+          best_combo?: number | null
+          college_id?: string | null
+          correct?: number | null
+          expires_at: string
+          hidden?: boolean
+          id?: string
+          invite_code?: string | null
+          ip_hash: string
+          issued_at?: string
+          player_name?: string | null
+          score?: number | null
+          seed: number
+          submitted_at?: string | null
+        }
+        Update: {
+          attempted?: number | null
+          best_combo?: number | null
+          college_id?: string | null
+          correct?: number | null
+          expires_at?: string
+          hidden?: boolean
+          id?: string
+          invite_code?: string | null
+          ip_hash?: string
+          issued_at?: string
+          player_name?: string | null
+          score?: number | null
+          seed?: number
+          submitted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "duel_rounds_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "duel_rounds_invite_code_fkey"
+            columns: ["invite_code"]
+            isOneToOne: false
+            referencedRelation: "invite_codes"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      invite_codes: {
+        Row: {
+          code: string
+          college_id: string | null
+          created_at: string
+          display_name: string | null
+          kind: string
+          registration_id: string | null
+          score: number | null
+          user_id: string | null
+        }
+        Insert: {
+          code: string
+          college_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          kind: string
+          registration_id?: string | null
+          score?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          code?: string
+          college_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          kind?: string
+          registration_id?: string | null
+          score?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invite_codes_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invite_codes_registration_id_fkey"
             columns: ["registration_id"]
             isOneToOne: false
             referencedRelation: "registrations"
@@ -620,6 +808,7 @@ export type Database = {
           deny_reason: string | null
           email_domain: string | null
           id: string
+          invite_code: string | null
           league_end: string | null
           league_id: string
           league_start: string | null
@@ -652,6 +841,7 @@ export type Database = {
           deny_reason?: string | null
           email_domain?: string | null
           id?: string
+          invite_code?: string | null
           league_end?: string | null
           league_id: string
           league_start?: string | null
@@ -684,6 +874,7 @@ export type Database = {
           deny_reason?: string | null
           email_domain?: string | null
           id?: string
+          invite_code?: string | null
           league_end?: string | null
           league_id?: string
           league_start?: string | null
@@ -867,6 +1058,10 @@ export type Database = {
       }
     }
     Functions: {
+      admin_top_inviters: {
+        Args: { p_limit?: number }
+        Returns: { code: string; college_name: string | null; display_name: string | null; kind: string; plays: number; registrations: number }[]
+      }
       calc_prize_pool: { Args: { p_count: number }; Returns: number }
       can_read_thread: { Args: { p_thread_id: string }; Returns: boolean }
       can_write_logo: { Args: { p_name: string }; Returns: boolean }
@@ -946,6 +1141,7 @@ export type Database = {
         Args: { p_registration_id: string }
         Returns: undefined
       }
+      slugify: { Args: { p_text: string }; Returns: string }
       send_poc_notification: {
         Args: {
           p_body: string | null
@@ -956,6 +1152,55 @@ export type Database = {
         }
         Returns: { email: string; user_id: string }[]
       }
+      my_invite: { Args: { p_registration_id: string }; Returns: { code: string; plays: number; registrations: number }[] }
+      public_certificate: {
+        Args: { p_id: string }
+        Returns: { college_logo_url: string | null; college_name: string; id: string; issued_at: string; recipient_name: string; season: string }[]
+      }
+      public_college: {
+        Args: { p_slug: string }
+        Returns: {
+          badges: string[]
+          city: string | null
+          club_name: string | null
+          country: Database["public"]["Enums"]["country"]
+          league_end: string | null
+          league_start: string | null
+          logo_url: string | null
+          name: string
+          players: number
+          prize_pool: number | null
+          season: string
+          short_name: string | null
+          slug: string
+          stage: Database["public"]["Enums"]["registration_stage"]
+          state: string | null
+        }[]
+      }
+      public_college_race: {
+        Args: { p_country: Database["public"]["Enums"]["country"] }
+        Returns: {
+          city: string | null
+          logo_url: string | null
+          name: string
+          players: number
+          prize_pool: number | null
+          season: string
+          short_name: string | null
+          slug: string
+          state: string | null
+        }[]
+      }
+      public_home_stats: {
+        Args: never
+        Returns: { colleges: number; next_league_start: string | null; players: number; season: string | null }[]
+      }
+      public_invite: {
+        Args: { p_code: string }
+        Returns: { college_logo_url: string | null; college_name: string | null; college_slug: string | null; display_name: string | null; kind: string; score: number | null }[]
+      }
+      public_state_counts: { Args: { p_country: Database["public"]["Enums"]["country"] }; Returns: { colleges: number; state: string }[] }
+      refresh_my_badges: { Args: { p_registration_id: string }; Returns: string[] }
       register_college: {
         Args: {
           p_college_city?: string
@@ -974,6 +1219,10 @@ export type Database = {
           p_utm_source?: string
         }
         Returns: string
+      }
+      top_duels_today: {
+        Args: { p_limit?: number }
+        Returns: { college_name: string | null; college_slug: string | null; player_name: string; score: number }[]
       }
     }
     Enums: {
