@@ -27,9 +27,14 @@ export function shareOnLinkedInUrl(url: string) {
   return `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
 }
 
+/** "the Matiks College League" stays as is; any other season name gets " by Matiks". */
+export function seasonByMatiks(season: string) {
+  return /matiks/i.test(season) ? season : `${season} by Matiks`;
+}
+
 /** Ready-to-paste post text (the "Copy post text" button). */
 export function certificatePostText(c: { college: string; season: string; url: string }) {
-  return `Proud to be the Campus Lead for ${c.college} in the ${c.season} by Matiks! 🧠⚡
+  return `Proud to be the Campus Lead for ${c.college} in the ${seasonByMatiks(c.season)}! 🧠⚡
 
 We're bringing our campus into India's inter-college mind sports league. Think your college can beat us? Take the 30-second math duel and rally your batch.
 

@@ -24,8 +24,8 @@ $$;
 -- ---------- Tables ----------
 create table public.leagues (
   id                     uuid primary key default gen_random_uuid(),
-  name                   text not null,                 -- "Brumble 2.0"
-  slug                   text not null unique,          -- "brumble-2"
+  name                   text not null,                 -- "Matiks College League"
+  slug                   text not null unique,          -- "matiks-college-league"
   season                 int  not null,
   start_date             date,
   end_date               date,

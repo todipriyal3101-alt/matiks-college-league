@@ -5,6 +5,7 @@ import { ImageResponse } from "next/og";
 
 import { siteUrl } from "@/lib/site-url";
 import { bebas, C, initials, logoPng, wordmark } from "@/lib/launch-og";
+import { seasonByMatiks } from "@/lib/linkedin";
 
 export const CERT_SIZE = { width: 1200, height: 848 };
 
@@ -38,7 +39,7 @@ export async function certificateImage(c: CertificateData) {
               {c.recipient_name.toUpperCase()}
             </span>
             <span style={{ fontSize: 21, color: "#333", marginTop: 24, textAlign: "center", maxWidth: 820, lineHeight: 1.4 }}>
-              {`for leading ${c.college_name} in the ${c.season} by Matiks, bringing their campus into the inter-college mind sports league.`}
+              {`for leading ${c.college_name} in the ${seasonByMatiks(c.season)}, bringing their campus into the inter-college mind sports league.`}
             </span>
             <div style={{ display: "flex", width: "100%", marginTop: "auto", alignItems: "flex-end", justifyContent: "space-between" }}>
               <div style={{ display: "flex", flexDirection: "column", fontSize: 15, color: "#444", gap: 4 }}>
