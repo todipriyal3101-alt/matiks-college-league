@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BadgeCheckIcon,
   ArrowRightIcon,
   BanknoteIcon,
   CheckIcon,
@@ -186,6 +187,16 @@ export function EditorTopBar({
             title={`POC signed in as ${registration.poc_email}`}
           >
             Email domain mismatch
+          </span>
+        )}
+        {mode === "admin" && registration.email_verified_at && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-status-live px-2.5 py-0.5 text-xs font-semibold text-status-live-fg" title={`College email verified (${registration.college_email})`}>
+            <BadgeCheckIcon className="size-3.5" aria-hidden /> Verified
+          </span>
+        )}
+        {mode === "admin" && registration.target_players && (
+          <span className="rounded-full bg-lilac/15 px-2.5 py-0.5 text-xs font-semibold text-lilac" title="Players the POC aims to bring (registration form)">
+            Target {registration.target_players} players
           </span>
         )}
       </div>

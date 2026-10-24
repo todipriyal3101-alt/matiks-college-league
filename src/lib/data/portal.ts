@@ -27,7 +27,9 @@ export async function getRegistrations(country: Country): Promise<OverviewRow[]>
     .eq("country", country)
     .order("created_at", { ascending: false });
   if (error) throw new Error(`getRegistrations: ${error.message}`);
-  return data.sort((a, b) => Number(b.review_status === "pending") - Number(a.review_status === "pending"));
+  // Pending first; within pending, verified college emails first (the "Verified" fast lane, 0008).
+  const rank = (r: OverviewRow) => (r.review_status === "pending" ? (r.email_verified_at ? 2 : 1) : 0);
+  return data.sort((a, b) => rank(b) - rank(a));
 }
 
 export type OverviewTotals = {

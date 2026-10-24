@@ -35,6 +35,8 @@ async function Editor({ params }: Pick<PageProps<"/admin/colleges/[registrationI
 
   // Admins can read every admin_profiles row (RLS); used to name people in the activity timeline.
   const supabase = await createClient();
+  // The POC's tracker moves to "Under review" the first time any admin opens it (set once, by the database).
+  if (!detail.registration.admin_first_viewed_at) await supabase.rpc("mark_registration_viewed", { p_registration_id: registrationId });
   const { data: admins } = await supabase.from("admin_profiles").select("email, name");
   const adminNames = Object.fromEntries((admins ?? []).map((a) => [a.email.toLowerCase(), a.name ?? a.email]));
 

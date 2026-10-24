@@ -1,9 +1,10 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { refresh, updateTag } from "next/cache";
 import { z } from "zod";
 
 import { getAdmin } from "@/lib/auth/admin";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 import { fetchRegistrationDetail, type RegistrationDetail } from "@/lib/data/league-ops";
 import type { TablesInsert, TablesUpdate } from "@/lib/database.types";
 import { sendLater, winnerPaidEmail } from "@/lib/email";
@@ -179,6 +180,12 @@ export async function saveEditor(
         .insert({ ...row, registration_id: registrationId } satisfies TablesInsert<"winners">);
       if (error) return { ok: false, error: friendly(error) };
     }
+  }
+
+  // Public pages (wall, college page, home numbers, ticker, early-bird spots) show approvals, players and logos at once.
+  if (mode === "admin") {
+    updateTag(CACHE_TAGS.colleges);
+    updateTag(CACHE_TAGS.activity);
   }
 
   // No refresh(): re-rendering the whole page kept the save "pending" for seconds and blocked the next save.

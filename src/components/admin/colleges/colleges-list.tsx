@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckIcon, MailWarningIcon, XIcon } from "lucide-react";
+import { BadgeCheckIcon, CheckIcon, MailWarningIcon, XIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -88,6 +88,12 @@ export function CollegesList({ rows, isWriter }: { rows: OverviewRow[]; isWriter
                 </Link>
                 <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                   <ReviewBadge status={status} />
+                  {row.email_verified_at && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-status-live px-2 py-0.5 font-semibold text-status-live-fg" title="College email verified">
+                      <BadgeCheckIcon className="size-3" aria-hidden /> Verified
+                    </span>
+                  )}
+                  {row.target_players && <span className="rounded-full bg-lilac/15 px-2 py-0.5 font-semibold text-lilac">Target {row.target_players}</span>}
                   {row.domain_mismatch && (
                     <span
                       className="inline-flex items-center gap-1 rounded-full bg-status-pending px-2 py-0.5 font-semibold text-status-pending-fg"
