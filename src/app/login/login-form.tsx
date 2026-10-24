@@ -33,10 +33,10 @@ export function LoginForm({ next, initialMode = "password" }: { next?: string; i
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [pending, setPending] = useState<"password" | "magic" | "reset" | "google" | "signup" | null>(null);
+  const [pending, setPending] = useState<"password" | "reset" | "google" | "signup" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
-  // Cloudflare Turnstile: Supabase checks this token on sign-in, sign-up, magic link and password reset
+  // Cloudflare Turnstile: Supabase checks this token on sign-in, sign-up and password reset
   // (Attack Protection › Captcha). Tokens are single-use, so the widget is reset after every request that used one.
   const [captchaToken, setCaptchaToken] = useState("");
   const turnstile = useRef<TurnstileHandle>(null);
@@ -77,23 +77,6 @@ export function LoginForm({ next, initialMode = "password" }: { next?: string; i
       return null;
     });
 
-  const magicLink = () =>
-    run("magic", async () => {
-      if (!email.trim()) return "Enter your email first.";
-      if (!EMAIL_RE.test(email.trim())) return "Enter a valid email address.";
-      const { error } = await createClient().auth.signInWithOtp({
-        email: email.trim(),
-        options: { shouldCreateUser: false, emailRedirectTo: callback(), captchaToken: captcha() },
-      });
-      if (error) {
-        return /signups not allowed|not found/i.test(error.message)
-          ? "There's no account for this email yet. Create one below."
-          : friendly(error.message);
-      }
-      setSent(`We've emailed a login link to ${email.trim()}. Open it on any device.`);
-      return null;
-    });
-
   const resetPassword = () =>
     run("reset", async () => {
       if (!EMAIL_RE.test(email.trim())) return "Enter a valid email address.";
@@ -107,8 +90,8 @@ export function LoginForm({ next, initialMode = "password" }: { next?: string; i
       return null;
     });
 
-  // POCs create their own account (SPEC "Access"); email confirmation is on, so they confirm first.
-  // Name and phone go into the auth metadata; the Register tab uses them for the primary contact.
+  // POCs create their own account (SPEC "Access"). "Confirm email" is off (0009): signUp returns a session, so they
+  // go straight to the Register tab. Name and phone go into the auth metadata for the primary contact.
   const signUp = () =>
     run("signup", async () => {
       const parsed = signUpSchema.safeParse({ name, phone, email, password });
@@ -116,21 +99,12 @@ export function LoginForm({ next, initialMode = "password" }: { next?: string; i
       const { data, error } = await createClient().auth.signUp({
         email: parsed.data.email,
         password: parsed.data.password,
-        options: {
-          data: { name: parsed.data.name, phone: parsed.data.phone },
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent("/college")}`,
-          captchaToken: captcha(),
-        },
+        options: { data: { name: parsed.data.name, phone: parsed.data.phone }, captchaToken: captcha() },
       });
       if (error) return /already registered/i.test(error.message) ? "This email already has an account. Sign in instead." : friendly(error.message);
-      if (data.session) {
-        // Email confirmation turned off: already signed in. Full load so the proxy sees the new session cookies.
-        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-        window.location.assign("/college");
-        return null;
-      }
-      // Same message whether or not the email already had an account (Supabase doesn't say), so it can't be probed.
-      setSent(`We've emailed a confirmation link to ${parsed.data.email}. Open it to finish creating your account, then register your college.`);
+      if (!data.session) return "Your account was created, but we couldn't sign you in. Sign in with your email and password.";
+      // Full load so the proxy sees the new session cookies; a co-lead link (?next=/j/CODE) continues there.
+      window.location.assign(next ? continueUrl : "/college");
       return null;
     });
 
@@ -216,11 +190,7 @@ export function LoginForm({ next, initialMode = "password" }: { next?: string; i
               {pending === "password" && <Loader2Icon className="animate-spin" />}
               Sign in
             </Button>
-            <FieldSeparator>or</FieldSeparator>
-            <Button type="button" variant="outline" className="h-12" disabled={pending !== null} onClick={magicLink}>
-              {pending === "magic" ? <Loader2Icon className="animate-spin" /> : <MailIcon />}
-              Email me a login link
-            </Button>
+            {GOOGLE_LOGIN_ENABLED && <FieldSeparator>or</FieldSeparator>}
             {GOOGLE_LOGIN_ENABLED && (
               <Button type="button" variant="outline" className="h-12" disabled={pending !== null} onClick={google}>
                 {pending === "google" && <Loader2Icon className="animate-spin" />}

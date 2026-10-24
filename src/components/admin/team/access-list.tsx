@@ -1,10 +1,10 @@
 "use client";
 
-import { MailIcon, ShieldIcon, Trash2Icon } from "lucide-react";
+import { MailWarningIcon, ShieldIcon, Trash2Icon } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { resendInvite, revokeAccess } from "@/app/admin/(panel)/team/actions";
+import { revokeAccess } from "@/app/admin/(panel)/team/actions";
 import { EmptyState } from "@/components/league/empty-state";
 import {
   AlertDialog,
@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 export type AccessEntry = {
   key: string;
@@ -30,6 +29,8 @@ export type AccessEntry = {
   college: string | null;
   season: string | null;
   lastSignInAt: string | null;
+  /** Email proven by a link or Google (0009); unverified accounts are flagged. */
+  verified: boolean;
   isMe: boolean;
 };
 
@@ -38,10 +39,10 @@ const when = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", 
 
 export function AccessList({ entries, canWrite }: { entries: AccessEntry[]; canWrite: boolean }) {
   const [revoking, setRevoking] = useState<AccessEntry | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   if (entries.length === 0) {
-    return <EmptyState icon={ShieldIcon} title="Nobody has access yet" description="Invite an admin or a college POC above." />;
+    return <EmptyState icon={ShieldIcon} title="Nobody has access yet" description="Give an admin or a college POC access above." />;
   }
 
   return (
@@ -64,26 +65,21 @@ export function AccessList({ entries, canWrite }: { entries: AccessEntry[]; canW
                 </p>
               )}
             </div>
-            <p className={cn("basis-40 text-xs", e.lastSignInAt ? "text-muted-foreground" : "text-status-pending-fg")}>
-              {e.lastSignInAt ? `Last sign-in ${when.format(new Date(e.lastSignInAt))}` : "Never signed in"}
-            </p>
+            <div className="basis-40 space-y-1 text-xs">
+              <p className={e.lastSignInAt ? "text-muted-foreground" : "text-status-pending-fg"}>
+                {e.lastSignInAt ? `Last sign-in ${when.format(new Date(e.lastSignInAt))}` : "Never signed in"}
+              </p>
+              {!e.verified && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full bg-status-pending px-2 py-0.5 font-semibold text-status-pending-fg"
+                  title="Signed up without proving they own this email (no link or Google sign-in yet)"
+                >
+                  <MailWarningIcon className="size-3" aria-hidden /> Email not verified
+                </span>
+              )}
+            </div>
             {canWrite && (
               <div className="ml-auto flex gap-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  disabled={pending}
-                  onClick={() =>
-                    startTransition(async () => {
-                      const res = await resendInvite(e.email, e.role);
-                      if (res.ok) toast.success(res.message);
-                      else toast.error(res.error);
-                    })
-                  }
-                >
-                  <MailIcon /> {e.lastSignInAt ? "Send login link" : "Resend invite"}
-                </Button>
                 {/* You can't remove your own admin access; dropping your own POC access is fine. */}
                 {!(e.isMe && e.role !== "poc") && (
                   <Button type="button" variant="ghost" size="icon" className="size-8" onClick={() => setRevoking(e)} aria-label={`Revoke ${e.email}`}>
@@ -102,7 +98,7 @@ export function AccessList({ entries, canWrite }: { entries: AccessEntry[]; canW
             <AlertDialogTitle>Revoke access for {revoking?.email}?</AlertDialogTitle>
             <AlertDialogDescription>
               {revoking?.role === "poc"
-                ? `They'll no longer see ${revoking.college} (${revoking.season}). If their email is the college's registration email, they can still sign in to it.`
+                ? `They'll no longer see ${revoking.college} (${revoking.season}).`
                 : "They'll lose access to the admin panel immediately."}
             </AlertDialogDescription>
           </AlertDialogHeader>

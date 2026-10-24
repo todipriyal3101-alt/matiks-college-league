@@ -1,10 +1,11 @@
 "use client";
 
-import { Loader2Icon, SendIcon } from "lucide-react";
+import { Loader2Icon, UserPlusIcon } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { inviteAccess } from "@/app/admin/(panel)/team/actions";
+import { AccessMessage } from "@/components/admin/access-message";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
@@ -24,21 +25,26 @@ export function InviteForm({ colleges, seasonName }: { colleges: { id: string; n
   const [name, setName] = useState("");
   const [registrationId, setRegistrationId] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [share, setShare] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   return (
     <Card className="gap-4 p-5 sm:p-6">
       <div>
-        <h2 className="text-2xl">Invite someone</h2>
-        <p className="text-sm text-muted-foreground">New people get an email invite; existing accounts get access straight away.</p>
+        <h2 className="text-2xl">Give access</h2>
+        <p className="text-sm text-muted-foreground">
+          No emails are sent. Existing accounts get access straight away; a POC without an account gets it when they sign up with that email (share the WhatsApp message).
+        </p>
       </div>
       <form
         className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
         onSubmit={(e) => {
           e.preventDefault();
           setError(null);
+          setShare(null);
           startTransition(async () => {
             const res = await inviteAccess(role === "poc" ? { role, email, registrationId } : { role, email, name });
+            setShare(res.whatsapp ?? null);
             if (!res.ok) return setError(res.error);
             toast.success(res.message);
             setEmail("");
@@ -89,11 +95,16 @@ export function InviteForm({ colleges, seasonName }: { colleges: { id: string; n
         <div className="flex flex-wrap items-center justify-between gap-3 sm:col-span-2 lg:col-span-4">
           <FieldDescription>{ROLE_HELP[role]}</FieldDescription>
           <Button type="submit" disabled={pending || !email || (role === "poc" && !registrationId)}>
-            {pending ? <Loader2Icon className="animate-spin" /> : <SendIcon />}
-            Send invite
+            {pending ? <Loader2Icon className="animate-spin" /> : <UserPlusIcon />}
+            Give access
           </Button>
         </div>
         {error && <FieldError className="sm:col-span-2 lg:col-span-4">{error}</FieldError>}
+        {share && (
+          <div className="sm:col-span-2 lg:col-span-4">
+            <AccessMessage message={share} />
+          </div>
+        )}
       </form>
     </Card>
   );

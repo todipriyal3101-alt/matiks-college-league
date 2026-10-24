@@ -1,19 +1,15 @@
 import "server-only";
 
-import { after } from "next/server";
 import { Resend } from "resend";
 
-import { brandedSeason } from "@/lib/league";
 import { siteUrl } from "@/lib/site-url";
 
-// Transactional emails via Resend (PROMPTS Phase 12). Server only.
+// Emails via Resend. Server only. Since 0009 ("Confirm email" off, no invites) the only one is the optional
+// college-email verification code; password resets come from Supabase Auth. Everything else is in-app.
 // Without RESEND_API_KEY nothing is sent; the skip is logged, so local dev and previews work without a key.
 
 const SITE = siteUrl;
 const FROM = process.env.EMAIL_FROM ?? "Matiks College League <league@matiks.com>";
-
-/** Undo toasts stay up a few seconds; emails about an undoable change wait this long and re-check first. */
-const UNDO_WINDOW_MS = 15_000;
 
 let client: Resend | null | undefined;
 function resend() {
@@ -47,22 +43,6 @@ export async function sendEmail(email: Email): Promise<{ ok: boolean; error?: st
   }
 }
 
-/**
- * Sends after the response. With `afterUndoWindow`, waits until Undo is no longer offered first; `build` runs after
- * the wait and must re-read the data, returning nothing if the change was undone.
- */
-export function sendLater(build: () => Promise<Email | Email[] | null>, options: { afterUndoWindow?: boolean } = {}) {
-  after(async () => {
-    if (options.afterUndoWindow) await new Promise((r) => setTimeout(r, UNDO_WINDOW_MS));
-    try {
-      const built = await build();
-      for (const email of [built ?? []].flat()) await sendEmail(email);
-    } catch (e) {
-      console.error("sendLater:", e);
-    }
-  });
-}
-
 // ---------- Templates (dark theme, inline styles for email clients) ----------
 
 const esc = (s: string) =>
@@ -91,126 +71,6 @@ ${opts.footnote ? `<p style="margin:20px 0 0;color:${C.muted};font-size:13px">${
 
 const p = (html: string) => `<p style="margin:0 0 12px">${html}</p>`;
 const muted = (html: string) => `<span style="color:${C.muted}">${html}</span>`;
-const mono = (s: string) => `<span style="font-family:'Space Mono',Menlo,monospace">${esc(s)}</span>`;
-
-export function registrationReceivedEmail(to: string, d: { collegeName: string; leagueName: string; registrationId: string }): Email {
-  return {
-    to,
-    subject: `We've got ${d.collegeName}'s registration for ${brandedSeason(d.leagueName)}`,
-    html: layout({
-      preheader: "What happens next with your registration.",
-      heading: "Registration received 🎉",
-      body:
-        p(`Thanks for registering <strong>${esc(d.collegeName)}</strong> for ${esc(brandedSeason(d.leagueName))}.`) +
-        p(`A Matiks admin reviews every registration, usually within a day. You can edit your details in the college portal until then, and message us from its Chat tab.`) +
-        p(`${muted("Registration ID")}<br>${mono(d.registrationId)}`),
-      cta: { label: "Open your college portal", href: `${SITE}/college` },
-    }),
-    text: `Thanks for registering ${d.collegeName} for ${brandedSeason(d.leagueName)}.\n\nA Matiks admin reviews every registration, usually within a day. You can edit your details in the college portal until then.\n\nRegistration ID: ${d.registrationId}\n\n${SITE}/college`,
-  };
-}
-
-/** An admin announcement to POCs (POCs page "Send notification"); also shown in their in-app bell. */
-export function pocAnnouncementEmail(to: string, d: { title: string; body: string | null }): Email {
-  return {
-    to,
-    subject: d.title,
-    html: layout({
-      preheader: d.body?.slice(0, 120) ?? d.title,
-      heading: d.title,
-      body: d.body ? d.body.split(/\n{2,}/).map((para) => p(esc(para).replace(/\n/g, "<br>"))).join("") : "",
-      cta: { label: "Open your college portal", href: `${SITE}/college` },
-    }),
-    text: `${d.title}\n\n${d.body ?? ""}\n\n${SITE}/college`,
-  };
-}
-
-const STATUS_COPY = {
-  approved: {
-    subject: (c: string) => `${c} is approved for the league`,
-    heading: "You're approved ✅",
-    line: "Your college is approved. Sign in to your college portal to check your dates and, when the league ends, add your winners.",
-  },
-  waitlisted: {
-    subject: (c: string) => `${c} is on the waitlist`,
-    heading: "You're on the waitlist",
-    line: "Your college is on the waitlist. If a spot opens up, we'll approve you and email you an invite to your college portal.",
-  },
-  rejected: {
-    subject: (c: string) => `Update on ${c}'s registration`,
-    heading: "Registration update",
-    line: "We couldn't confirm your college for this season. You can fix the details and resubmit from your college portal, or message us from its Chat tab.",
-  },
-} as const;
-
-export function statusChangedEmail(
-  to: string,
-  d: { collegeName: string; leagueName: string; status: keyof typeof STATUS_COPY; reason?: string | null },
-): Email {
-  const copy = STATUS_COPY[d.status];
-  const reason = d.status === "rejected" && d.reason ? d.reason : null;
-  return {
-    to,
-    subject: copy.subject(d.collegeName),
-    html: layout({
-      preheader: copy.line,
-      heading: copy.heading,
-      body:
-        p(`<strong>${esc(d.collegeName)}</strong> · ${esc(brandedSeason(d.leagueName))}`) +
-        (reason ? p(`${muted("Reason")}<br>${esc(reason)}`) : "") +
-        p(copy.line),
-      cta: { label: "Open your college portal", href: `${SITE}/college` },
-    }),
-    text: `${d.collegeName} · ${brandedSeason(d.leagueName)}\n\n${reason ? `Reason: ${reason}\n\n` : ""}${copy.line}\n\n${SITE}/college`,
-  };
-}
-
-/** Invite with a one-time sign-in link (from auth.admin.generateLink). */
-export function invitedEmail(
-  to: string,
-  d: { link: string; role: "admin" | "viewer" | "poc"; collegeName?: string; approved?: boolean; existingUser?: boolean },
-): Email {
-  const where = d.role === "poc" ? (d.collegeName ? `manage <strong>${esc(d.collegeName)}</strong>` : "manage your college") : "the league admin panel";
-  const heading = d.approved ? "You're approved. Here's your invite" : "You're invited";
-  const lead = d.approved && d.collegeName ? p(`<strong>${esc(d.collegeName)}</strong> is approved for the league. 🎉`) : "";
-  return {
-    to,
-    subject: d.role === "poc" ? `Your invite to manage ${d.collegeName ?? "your college"} · Matiks College League` : "Your invite to the Matiks College League admin",
-    html: layout({
-      preheader: "Your sign-in link is inside.",
-      heading,
-      body:
-        lead +
-        p(`You've been given access to ${where}.`) +
-        (d.role === "poc" ? p("Sign in to add your team's contacts and, later, your winners' details.") : ""),
-      cta: { label: d.existingUser ? "Sign in" : "Accept invite", href: d.link },
-      footnote: d.existingUser
-        ? "Sign in with this email address. If you never set a password, use “Email me a login link”."
-        : `The link works once. If it has expired, go to ${esc(SITE.replace(/^https?:\/\//, ""))}/login and choose “Email me a login link”.`,
-    }),
-    text: `${d.approved && d.collegeName ? `${d.collegeName} is approved for the league.\n\n` : ""}You've been given access to ${d.role === "poc" ? `manage ${d.collegeName ?? "your college"}` : "the league admin panel"}.\n\n${d.existingUser ? "Sign in" : "Accept your invite"}: ${d.link}`,
-  };
-}
-
-export function winnerPaidEmail(
-  to: string | string[],
-  d: { winnerName: string; position: string; collegeName: string; leagueName: string; amount: string | null; utr: string },
-): Email {
-  return {
-    to,
-    subject: `Prize paid: ${d.position} · ${d.collegeName}`,
-    html: layout({
-      preheader: `UTR ${d.utr}`,
-      heading: "Your prize is on its way 💸",
-      body:
-        p(`Congratulations ${esc(d.winnerName)}! Your prize (${esc(d.position)}) for <strong>${esc(d.collegeName)}</strong> (${esc(brandedSeason(d.leagueName))}) has been paid${d.amount ? `: <strong>${esc(d.amount)}</strong>` : ""}.`) +
-        p(`${muted("UTR / transaction reference")}<br>${mono(d.utr)}`) +
-        p("It can take a few hours to show in your bank account. Reply to this email if it hasn't arrived in 2 working days."),
-    }),
-    text: `Congratulations ${d.winnerName}! Your prize (${d.position}) for ${d.collegeName} (${brandedSeason(d.leagueName)}) has been paid${d.amount ? `: ${d.amount}` : ""}.\n\nUTR: ${d.utr}`,
-  };
-}
-
 
 /** Verified fast lane (0008): the 6-digit code for the college email. Expires in 10 minutes. */
 export function verificationCodeEmail(to: string, code: string): Email {

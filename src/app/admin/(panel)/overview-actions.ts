@@ -4,9 +4,8 @@ import { refresh, updateTag } from "next/cache";
 import { z } from "zod";
 
 import { requireAdminWriter, type AdminProfile } from "@/lib/auth/admin";
-import { emailAccessGranted, findOrInviteUser, grantPocAccess } from "@/lib/auth/invite";
+import { addPocAccess } from "@/lib/auth/invite";
 import { CACHE_TAGS } from "@/lib/cache-tags";
-import { sendLater, statusChangedEmail } from "@/lib/email";
 import { REVIEW_STATUSES, STAGES, type ReviewStatus, type Stage } from "@/lib/league";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -55,7 +54,6 @@ export async function setReviewStatus(
     .in("id", parsed.data.ids);
   if (error) return { ok: false, error: error.message };
   updateTag(CACHE_TAGS.colleges);
-  emailStatusChange(parsed.data.ids, parsed.data.status);
   refresh();
   return { ok: true, previous };
 }
@@ -74,27 +72,8 @@ export async function denyRegistration(registrationId: string, reason: string | 
     .eq("id", parsed.data.registrationId);
   if (error) return { ok: false, error: error.message };
   updateTag(CACHE_TAGS.colleges);
-  emailStatusChange([parsed.data.registrationId], "rejected");
   refresh();
   return { ok: true, previous };
-}
-
-/** Tells each POC about the new review status, once the Undo window has passed and only if it still holds. */
-function emailStatusChange(registrationIds: string[], status: ReviewStatus) {
-  if (status === "pending") return;
-  sendLater(
-    async () => {
-      const { data } = await createAdminClient()
-        .from("registrations")
-        .select("poc_email, deny_reason, colleges(name), leagues(name)")
-        .in("id", registrationIds)
-        .eq("status", status);
-      return (data ?? []).map((r) =>
-        statusChangedEmail(r.poc_email, { collegeName: r.colleges.name, leagueName: r.leagues.name, status, reason: r.deny_reason }),
-      );
-    },
-    { afterUndoWindow: true },
-  );
 }
 
 /**
@@ -174,7 +153,7 @@ export async function deleteRegistration(registrationId: string, typedName: stri
 /** "Add college": registers a college for this season (approved) with its primary POC. */
 export async function addCollege(
   input: AddCollegeInput,
-): Promise<ActionResult<{ registrationId: string; message: string }> & { field?: string }> {
+): Promise<ActionResult<{ registrationId: string; message: string; whatsapp?: string }> & { field?: string }> {
   const { profile } = await requireAdminWriter();
   const parsed = addCollegeSchema.safeParse(input);
   if (!parsed.success) {
@@ -224,30 +203,35 @@ export async function addCollege(
   updateTag(CACHE_TAGS.colleges);
 
   let message = "";
+  let whatsapp: string | undefined;
   if (parsed.data.invitePoc) {
-    const invited = await inviteOne(profile, registrationId, { approve: false });
-    message = invited.ok ? invited.message : `The invite failed: ${invited.error}`;
+    const access = await addPocOne(profile, registrationId, { approve: false });
+    message = access.ok ? access.message : `Portal access failed: ${access.error}`;
+    if (access.ok) whatsapp = access.whatsapp;
   }
   refresh();
-  return { ok: true, registrationId, message };
+  return { ok: true, registrationId, message, whatsapp };
 }
 
-/** "Invite POC" / "Approve + invite POC": gives the registration's POC (or another email) a login for this college. */
+/**
+ * "Add POC" / "Approve + add POC": gives the registration's POC (or another email) access to this college. No email:
+ * an existing account gets access now; otherwise a pending entry + a WhatsApp message for the admin to share.
+ */
 export async function invitePoc(
   registrationId: string,
   options: { approve: boolean; email?: string },
-): Promise<ActionResult<{ message: string }>> {
+): Promise<ActionResult<{ message: string; whatsapp?: string }>> {
   const { profile } = await requireAdminWriter();
-  const res = await inviteOne(profile, registrationId, options);
+  const res = await addPocOne(profile, registrationId, options);
   refresh();
   return res;
 }
 
-async function inviteOne(
+async function addPocOne(
   profile: AdminProfile,
   registrationId: string,
   options: { approve: boolean; email?: string },
-): Promise<ActionResult<{ message: string }>> {
+): Promise<ActionResult<{ message: string; whatsapp?: string }>> {
   const parsed = z
     .object({ id: z.uuid(), approve: z.boolean(), email: z.email("Enter a valid email").trim().toLowerCase().optional() })
     .safeParse({ id: registrationId, ...options, email: options.email || undefined });
@@ -256,7 +240,7 @@ async function inviteOne(
   const supabase = await createClient();
   const { data: registration } = await supabase
     .from("registrations")
-    .select("poc_email, status, colleges(name)")
+    .select("poc_email, status, colleges(name), contacts(name, email, is_primary)")
     .eq("id", parsed.data.id)
     .maybeSingle();
   if (!registration) return { ok: false, error: "Registration not found." };
@@ -270,18 +254,13 @@ async function inviteOne(
       .eq("id", parsed.data.id);
     if (error) return { ok: false, error: `${who}: ${error.message}` };
     updateTag(CACHE_TAGS.colleges);
+    updateTag(CACHE_TAGS.activity);
   }
 
-  const context = { collegeName: who, approved: parsed.data.approve };
-  const user = await findOrInviteUser(email, "poc", context);
-  if (!user.ok) return { ok: false, error: `${who}: ${user.error}` };
-  const granted = await grantPocAccess(user.userId, parsed.data.id, profile.user_id);
-  if (!granted.ok) return { ok: false, error: `${who}: ${granted.error}` };
-  const emailed = !user.invited && (await emailAccessGranted(email, "poc", context));
-
+  // The contact with this email gives the WhatsApp message a first name.
+  const name = registration.contacts.find((c) => c.email.toLowerCase() === email)?.name ?? null;
+  const res = await addPocAccess({ email, registrationId: parsed.data.id, invitedBy: profile.user_id, collegeName: who, name });
+  if (!res.ok) return { ok: false, error: `${who}: ${res.error}` };
   const prefix = parsed.data.approve ? "Approved · " : "";
-  return {
-    ok: true,
-    message: `${prefix}${user.invited ? `invite sent to ${email}` : `${email} has access${emailed ? " (emailed)" : ""}`}`,
-  };
+  return res.status === "pending" ? { ok: true, message: prefix + res.message, whatsapp: res.whatsapp } : { ok: true, message: prefix + res.message };
 }

@@ -9,7 +9,6 @@ import { ATTRIBUTION_COOKIE, parseAttributionCookie } from "@/lib/attribution";
 import { getAdmin } from "@/lib/auth/admin";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 import { getRegistrationsPaused } from "@/lib/data/portal";
-import { registrationReceivedEmail, sendLater } from "@/lib/email";
 import { INVITE_CODE_RE, INVITE_COOKIE } from "@/lib/invite-cookie";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -133,15 +132,7 @@ export async function registerMyCollege(input: PocRegisterInput): Promise<Portal
     }
   }
 
-  const email = claims.claims.email;
-  const name = collegeName;
-  if (email) {
-    sendLater(async () => {
-      // The season was picked by the database (current season, created if needed).
-      const { data } = await supabase.from("registrations").select("colleges(name), leagues(name)").eq("id", registrationId).maybeSingle();
-      return registrationReceivedEmail(email, { collegeName: data?.colleges.name ?? name, leagueName: data?.leagues.name ?? "", registrationId });
-    });
-  }
+  // No "registration received" email (0009): the success screen, the pass and the tracker say it in the app.
   // The ticker and early-bird numbers pick up the new registration at once.
   updateTag(CACHE_TAGS.activity);
   await track("college_registered", { source: attribution.utm_source ?? "direct", country, ...(attribution.ref ? { ref: attribution.ref } : {}) }).catch(() => {});

@@ -49,7 +49,7 @@ export function NotifyDialog({ country, colleges }: { country: Country; colleges
         return;
       }
       toast.success(res.sent ? `Sent to ${res.sent} POC${res.sent === 1 ? "" : "s"}` : "Nobody matched: no POC logins yet", {
-        description: res.sent ? (res.emailed ? "In-app and by email." : "In-app (email isn't set up).") : undefined,
+        description: res.sent ? "They'll see it in their bell." : undefined,
       });
       setOpen(false);
       reset();

@@ -1,17 +1,16 @@
 "use server";
 
 import { requireAdminWriter } from "@/lib/auth/admin";
-import { emailEnabled, pocAnnouncementEmail, sendLater } from "@/lib/email";
 import { createClient } from "@/lib/supabase/server";
 import { pocNotificationSchema, type PocNotificationInput } from "@/lib/validation/portal";
 
 /**
  * "Send notification": in-app to every matching POC login (send_poc_notification, admin writers only, enforced in the
- * database too), plus an email each when Resend is configured.
+ * database too). In-app only: no emails (0009).
  */
 export async function sendPocNotification(
   input: PocNotificationInput,
-): Promise<{ ok: true; sent: number; emailed: boolean } | { ok: false; error: string; field?: string }> {
+): Promise<{ ok: true; sent: number } | { ok: false; error: string; field?: string }> {
   await requireAdminWriter();
   const parsed = pocNotificationSchema.safeParse(input);
   if (!parsed.success) {
@@ -33,7 +32,5 @@ export async function sendPocNotification(
     return { ok: false, error: error.code === "42501" ? "Only admins can send notifications." : "Couldn't send. Please try again." };
   }
 
-  const emails = [...new Set(data.map((r) => r.email.toLowerCase()))];
-  if (emails.length && emailEnabled()) sendLater(async () => emails.map((to) => pocAnnouncementEmail(to, { title, body })));
-  return { ok: true, sent: data.length, emailed: emailEnabled() && emails.length > 0 };
+  return { ok: true, sent: data.length };
 }

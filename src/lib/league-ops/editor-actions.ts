@@ -1,13 +1,13 @@
 "use server";
 
 import { refresh, updateTag } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 
 import { getAdmin } from "@/lib/auth/admin";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 import { fetchRegistrationDetail, type RegistrationDetail } from "@/lib/data/league-ops";
 import type { TablesInsert, TablesUpdate } from "@/lib/database.types";
-import { sendLater, winnerPaidEmail } from "@/lib/email";
 import { formatINR } from "@/lib/league";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -197,6 +197,9 @@ export async function saveEditor(
 
 // ---------- Admin toggles (immediate, with Undo) ----------
 
+/** Undo toasts stay up a few seconds; a notification about an undoable change waits this long and re-checks. */
+const UNDO_WINDOW_MS = 15_000;
+
 type WinnerPayment = { status: "pending" | "paid"; reference: string | null };
 
 /** Mark a winner paid with the UTR. Returns the previous payment state for Undo. */
@@ -228,34 +231,40 @@ async function setWinnerPayment(winnerId: string, next: WinnerPayment): Promise<
     .update({ payment_status: next.status, payment_reference: next.reference })
     .eq("id", winnerId);
   if (error) return { ok: false, error: friendly(error) };
-  if (next.status === "paid" && next.reference) emailWinnerPaid(winnerId, next.reference);
+  if (next.status === "paid" && next.reference) notifyWinnerPaid(winnerId, next.reference);
   refresh();
   return { ok: true, previous: { status: before.payment_status, reference: before.payment_reference } };
 }
 
-/** "Prize paid" to the winner (and the college POC), after the Undo window and only if still paid with this UTR. */
-function emailWinnerPaid(winnerId: string, utr: string) {
-  sendLater(
-    async () => {
-      const { data: w } = await createAdminClient()
-        .from("winners")
-        .select("name, email, position, prize_type, prize_amount, payment_status, payment_reference, registrations(poc_email, colleges(name), leagues(name))")
-        .eq("id", winnerId)
-        .maybeSingle();
-      if (!w || w.payment_status !== "paid" || w.payment_reference !== utr) return null;
-      const to = [...new Set([w.email, w.registrations.poc_email].filter((e): e is string => !!e).map((e) => e.toLowerCase()))];
-      if (!to.length) return null;
-      return winnerPaidEmail(to, {
-        winnerName: w.name ?? "there",
-        position: w.position,
-        collegeName: w.registrations.colleges.name,
-        leagueName: w.registrations.leagues.name,
-        amount: w.prize_type === "merch_only" ? null : formatINR(w.prize_amount),
-        utr,
-      });
-    },
-    { afterUndoWindow: true },
-  );
+/**
+ * "Prize paid" in the college POCs' bell (in-app only, 0009), after the Undo window and only if still paid with
+ * this UTR.
+ */
+function notifyWinnerPaid(winnerId: string, utr: string) {
+  after(async () => {
+    await new Promise((r) => setTimeout(r, UNDO_WINDOW_MS));
+    const admin = createAdminClient();
+    const { data: w } = await admin
+      .from("winners")
+      .select("registration_id, name, position, prize_type, prize_amount, payment_status, payment_reference")
+      .eq("id", winnerId)
+      .maybeSingle();
+    if (!w || w.payment_status !== "paid" || w.payment_reference !== utr) return;
+    const { data: pocs } = await admin.from("college_access").select("user_id").eq("registration_id", w.registration_id);
+    if (!pocs?.length) return;
+    const amount = w.prize_type === "merch_only" ? "merch" : formatINR(w.prize_amount);
+    const { error } = await admin.from("notifications").insert(
+      pocs.map((p) => ({
+        user_id: p.user_id,
+        kind: "payment",
+        title: `Prize paid: ${w.name ?? "a winner"} (${w.position})`,
+        body: `${amount} · UTR ${utr}`,
+        link: "/college/winners",
+        registration_id: w.registration_id,
+      })),
+    );
+    if (error) console.error("notifyWinnerPaid:", error.message);
+  });
 }
 
 /** Merch sent switch on a winner or a contact. */

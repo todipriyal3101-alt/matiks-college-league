@@ -54,6 +54,7 @@ const PRIVATE_TABLES = [
   "registrations", "contacts", "participants", "winners", "ambassadors", "admin_profiles", "college_access", "activity_log",
   "notifications", "chat_threads", "chat_messages", "chat_reads",
   "invite_codes", "duel_rounds", "certificates", "badges",
+  "pending_access", "verified_accounts",
 ] as const;
 
 // A 1×1 PNG for storage checks.
@@ -265,6 +266,11 @@ async function adminChecks(admin: SupabaseClient) {
 // ---------- viewer ----------
 async function viewerChecks(viewer: SupabaseClient) {
   const role = "viewer";
+  await check(role, "cannot add pending POC access", async () => {
+    const { data, error } = await viewer.from("pending_access").insert({ email: "v@rls.test", registration_id: REG! }).select("id");
+    if (data?.length) await service.from("pending_access").delete().eq("id", data[0].id);
+    return denied(error, data);
+  });
   for (const t of PRIVATE_TABLES) {
     await check(role, `reads ${t}`, async () => {
       const { error } = await count(viewer, t);
@@ -461,6 +467,25 @@ async function strangerChecks(stranger: SupabaseClient, userId: string) {
   await check(role, "cannot refresh another college's badges", async () => {
     const { error } = await stranger.rpc("refresh_my_badges", { p_registration_id: REG! });
     return error?.code === "42501" ? true : `got ${error?.code ?? "no error"}`;
+  });
+  // 0009: emails aren't verified, so matching a registration's poc_email must grant nothing.
+  await check(role, "a registration with its email as poc_email stays invisible", async () => {
+    const { data: me } = await service.auth.admin.getUserById(userId);
+    const { data: reg } = await service.from("registrations").select("league_id").eq("id", REG!).single();
+    const { data: college } = await service.from("colleges").insert({ name: `RLS poc_email ${userId.slice(0, 8)}` }).select("id").single();
+    const { data: row } = await service.from("registrations").insert({ league_id: reg!.league_id, college_id: college!.id, poc_email: me.user!.email! }).select("id").single();
+    const { data } = await stranger.from("registrations").select("id").eq("id", row!.id);
+    await service.from("registrations").delete().eq("id", row!.id);
+    await service.from("colleges").delete().eq("id", college!.id);
+    return data?.length ? "sees it" : true;
+  });
+  await check(role, "cannot add or read pending access, or mark itself verified", async () => {
+    const a = await stranger.from("pending_access").insert({ email: "x@rls.test", registration_id: REG! }).select("id");
+    const b = await stranger.from("verified_accounts").insert({ user_id: userId, method: "link" }).select("user_id");
+    const c = await stranger.from("pending_access").select("id");
+    if (a.data?.length) await service.from("pending_access").delete().eq("id", a.data[0].id);
+    if (b.data?.length) await service.from("verified_accounts").delete().eq("user_id", userId);
+    return a.error && b.error && !c.data?.length ? true : "allowed";
   });
   // 0008
   await check(role, "cannot read email verification codes", async () => {

@@ -6,7 +6,7 @@ import {
   BanknoteIcon,
   CheckIcon,
   GitMergeIcon,
-  MailPlusIcon,
+  UserPlusIcon,
   DownloadIcon,
   MoreHorizontalIcon,
   PencilIcon,
@@ -55,7 +55,7 @@ import { MergeDialog } from "./merge-dialog";
 
 /**
  * Always visible above the tabs: who this is, its status, and the most-used actions
- * (Approve + invite, review, stage, Mark paid). Sticky under the page header.
+ * (Approve + add POC, review, stage, Mark paid). Sticky under the page header.
  */
 export function EditorTopBar({
   detail,
@@ -125,7 +125,7 @@ export function EditorTopBar({
           <>
             {reviewStatus !== "approved" && (
               <Button type="button" size="sm" className="h-9" onClick={approve}>
-                <CheckIcon /> {detail.derived.hasPocAccess ? "Approve" : "Approve + invite"}
+                <CheckIcon /> {detail.derived.hasPocAccess ? "Approve" : "Approve + add POC"}
               </Button>
             )}
             <Select
@@ -187,6 +187,14 @@ export function EditorTopBar({
             title={`POC signed in as ${registration.poc_email}`}
           >
             Email domain mismatch
+          </span>
+        )}
+        {mode === "admin" && detail.derived.pocUnverified && (
+          <span
+            className="rounded-full bg-status-pending px-2.5 py-0.5 text-xs font-semibold text-status-pending-fg"
+            title="A POC with access signed up without proving they own their email (see Manage Admins)"
+          >
+            Email not verified
           </span>
         )}
         {mode === "admin" && registration.email_verified_at && (
@@ -403,7 +411,7 @@ function AdminMenu({
           <CollegeShareItems registrationId={registrationId} collegeName={collegeName} />
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={onInvite}>
-            <MailPlusIcon /> Invite POC
+            <UserPlusIcon /> Add POC
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => setMergeOpen(true)}>

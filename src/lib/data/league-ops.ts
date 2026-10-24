@@ -37,6 +37,8 @@ export type RegistrationDetail = {
     effectiveStage: Stage;
     hasPocAccess: boolean;
     domainMismatch: boolean;
+    /** 0009: someone with access hasn't proven they own their email. */
+    pocUnverified: boolean;
   };
 };
 
@@ -59,7 +61,7 @@ export async function fetchRegistrationDetail(id: string): Promise<RegistrationD
     supabase.from("winners").select("*").eq("registration_id", id).order("created_at"),
     supabase.from("participants").select("id, name, matiks_username, year").eq("registration_id", id).order("created_at"),
     supabase.from("activity_log").select("*").eq("registration_id", id).order("created_at", { ascending: false }).limit(100),
-    supabase.from("registration_overview").select("effective_stage, has_poc_access, domain_mismatch").eq("registration_id", id).maybeSingle(),
+    supabase.from("registration_overview").select("effective_stage, has_poc_access, domain_mismatch, poc_unverified").eq("registration_id", id).maybeSingle(),
   ]);
   for (const r of [contacts, winners, participants, activity, overview]) {
     if (r.error) throw new Error(`getRegistrationDetail: ${r.error.message}`);
@@ -75,6 +77,7 @@ export async function fetchRegistrationDetail(id: string): Promise<RegistrationD
       effectiveStage: (overview.data?.effective_stage ?? registration.stage) as Stage,
       hasPocAccess: !!overview.data?.has_poc_access,
       domainMismatch: !!overview.data?.domain_mismatch,
+      pocUnverified: !!overview.data?.poc_unverified,
     },
   };
 }
@@ -87,32 +90,20 @@ export type MyRegistration = Pick<Tables<"registrations">, "id" | "team_name" | 
   leagues: Pick<Tables<"leagues">, "id" | "name" | "season" | "status">;
 };
 
-/** Escape % and _ so an email is matched literally by ILIKE. */
-function likeLiteral(value: string) {
-  return value.replace(/[\\%_]/g, (c) => `\\${c}`);
-}
-
 /**
- * Registrations the logged-in user is a POC for (college_access or poc_email), newest season first.
- * Admins only get registrations they're personally a POC of, not everything.
+ * Registrations the logged-in user is a POC for (college_access only since 0009: a matching poc_email no longer
+ * counts, because emails aren't verified), newest season first. Admins only get registrations they're personally a
+ * POC of, not everything.
  */
 export const getMyRegistrations = cache(async (): Promise<MyRegistration[]> => {
   const supabase = await createClient();
   const { data: claims } = await supabase.auth.getClaims();
   const userId = claims?.claims.sub;
-  const email = claims?.claims.email;
   if (!userId) return [];
 
-  const [access, byEmail] = await Promise.all([
-    supabase.from("college_access").select("registration_id").eq("user_id", userId),
-    email
-      ? supabase.from("registrations").select("id").ilike("poc_email", likeLiteral(email))
-      : Promise.resolve({ data: [] as { id: string }[], error: null }),
-  ]);
+  const access = await supabase.from("college_access").select("registration_id").eq("user_id", userId);
   if (access.error) throw new Error(`getMyRegistrations: ${access.error.message}`);
-  if (byEmail.error) throw new Error(`getMyRegistrations: ${byEmail.error.message}`);
-
-  const ids = [...new Set([...(access.data ?? []).map((a) => a.registration_id), ...(byEmail.data ?? []).map((r) => r.id)])];
+  const ids = (access.data ?? []).map((a) => a.registration_id);
   if (ids.length === 0) return [];
 
   const { data, error } = await supabase

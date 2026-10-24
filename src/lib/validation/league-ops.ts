@@ -145,14 +145,14 @@ export const addCollegeSchema = z
         state: z.string().trim().min(1, "State is required").max(80),
       })
       .nullable(),
-    /** Email the POC a portal invite (default), so they can sign in without creating an account first. */
+    /** Give the POC portal access (default): now if they have an account, else when they sign up with this email. */
     invitePoc: z.boolean().default(true),
     /** Country (on the college) + the registration details; all optional except the country. */
     details: adminDetailsSchema,
     poc: z.object({
       name: z.string().trim().min(1, "POC name is required").max(80),
       phone: phoneSchema,
-      email: z.email("Enter a valid email (needed for the portal invite)").trim().toLowerCase().max(120),
+      email: z.email("Enter a valid email (needed for portal access)").trim().toLowerCase().max(120),
     }),
   })
   .refine((v) => v.collegeId || v.newCollege, { message: "Pick a college or add a new one", path: ["collegeId"] });

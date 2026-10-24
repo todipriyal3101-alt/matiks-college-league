@@ -4,7 +4,7 @@ import {
   CheckIcon,
   ClockIcon,
   ImageDownIcon,
-  MailPlusIcon,
+  UserPlusIcon,
   LinkIcon,
   MoreHorizontalIcon,
   Settings2Icon,
@@ -98,13 +98,13 @@ export function RowActions({
             <>
               <CollegeShareItems registrationId={registrationId} collegeName={collegeName} />
               <DropdownMenuSeparator />
-              {/* The current status is shown disabled rather than hidden. A POC without a login gets the invite
-                  dialog (it also offers "Approve only"). */}
+              {/* The current status is shown disabled rather than hidden. A college without a POC login gets the
+                  "Approve + add POC" dialog (it also offers "Approve only"). */}
               <DropdownMenuItem
                 disabled={reviewStatus === "approved"}
                 onSelect={() => (hasAccess ? onReview("approved") : setInvite("approve"))}
               >
-                <CheckIcon /> {hasAccess ? "Approve" : "Approve + invite POC"}
+                <CheckIcon /> {hasAccess ? "Approve" : "Approve + add POC"}
               </DropdownMenuItem>
               <DropdownMenuItem disabled={reviewStatus === "waitlisted"} onSelect={() => onReview("waitlisted")}>
                 <ClockIcon /> Waitlist
@@ -114,7 +114,7 @@ export function RowActions({
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => setInvite("invite")}>
-                <MailPlusIcon /> Invite POC
+                <UserPlusIcon /> Add POC
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onSelect={() => setConfirmOpen(true)}>

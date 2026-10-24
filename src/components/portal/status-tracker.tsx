@@ -47,7 +47,7 @@ export function StatusTracker({ row }: { row: OverviewRow }) {
         ? "Your league is on. Rally your batch!"
         : approved
           ? "You're in! Share your college card and invite link."
-          : "Usually within a day. We'll notify you here and by email.";
+          : "Usually within a day. You'll get a notification here.";
 
   return (
     <Glass className="relative space-y-5 p-5 sm:p-6">

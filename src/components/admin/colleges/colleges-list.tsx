@@ -102,6 +102,14 @@ export function CollegesList({ rows, isWriter }: { rows: OverviewRow[]; isWriter
                       <MailWarningIcon className="size-3" aria-hidden /> Email domain mismatch
                     </span>
                   )}
+                  {row.poc_unverified && (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full bg-status-pending px-2 py-0.5 font-semibold text-status-pending-fg"
+                      title="A POC with access signed up without proving they own their email"
+                    >
+                      <MailWarningIcon className="size-3" aria-hidden /> Email not verified
+                    </span>
+                  )}
                   {status === "rejected" && row.deny_reason ? (
                     <span className="truncate italic">“{row.deny_reason}”</span>
                   ) : row.club_name ? (
@@ -202,7 +210,7 @@ function ApproveDeny({
   return (
     <>
       <Button type="button" size="sm" className={cn("h-9 rounded-full px-3.5", wide && "h-11 flex-1")} onClick={onApprove}>
-        <CheckIcon /> {row.has_poc_access ? "Approve" : "Approve + invite"}
+        <CheckIcon /> {row.has_poc_access ? "Approve" : "Approve + add POC"}
       </Button>
       {status !== "rejected" && (
         <Button type="button" size="sm" variant="destructive" className={cn("h-9 rounded-full px-3.5", wide && "h-11 flex-1")} onClick={onDeny}>

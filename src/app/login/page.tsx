@@ -11,9 +11,9 @@ import { LoginForm } from "./login-form";
 export const metadata: Metadata = { title: "Sign in" };
 
 const ERRORS: Record<string, string> = {
-  link_expired: "That link expired or was already used. Get a new one below.",
+  link_expired: "That link expired or was already used. Sign in below, or use Forgot password for a new one.",
   reset_expired: "That reset link expired or was already used. Enter your email to get a new one.",
-  other_browser: "Open the link in the same browser you asked for it from, or get a new link here.",
+  other_browser: "Open the link in the same browser you asked for it from, or sign in below.",
   auth_failed: "Sign-in failed. Please try again.",
 };
 
