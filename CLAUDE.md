@@ -24,7 +24,8 @@ Always read the relevant part of SPEC.md before building a feature.
   so it never depends on Supabase's "Confirm email" setting; admins add POCs without email (pending_access + a WhatsApp message); POC access comes only
   from `college_access` (never from matching `poc_email`, migration 0009). Everything else is in-app notifications.
 - Realtime: Supabase Realtime (chat, notifications). Logos: Supabase Storage bucket `logos`
-- Captcha: Cloudflare Turnstile on every /login action, verified by Supabase Auth (Attack Protection › Captcha)
+- Captcha: Cloudflare Turnstile, widget mode Invisible (nothing shown; runs on submit), on every /login action,
+  verified by Supabase Auth (Attack Protection › Captcha) and by the sign-up action
 - Hosting: Vercel, auto-deploys from GitHub `main`
 
 ## Folder conventions
