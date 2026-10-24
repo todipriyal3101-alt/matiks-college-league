@@ -261,16 +261,13 @@
  * Decorative stickers in the empty side gutters, fixed while scrolling, never over content, nav or dialogs (they sit
  * behind everything, z-index -1). Each is sized to its gutter: gutter = (viewport - content width) / 2, minus a 1rem
  * margin each side, divided by 1.2 because the tilt widens the footprint; capped at 220px. Shown only where that
- * leaves >= ~110px. Admin content is 72rem wide, POC 56rem.
+ * leaves >= ~110px. Public pages only (content 72rem wide); the admin and POC panels have none.
  */
 .panel-stickers {
   --content-max: 72rem;
   --gutter: calc((100vw - var(--content-max)) / 2);
   --sticker-w: min(220px, calc((var(--gutter) - 2rem) / 1.2));
   display: none;
-}
-.panel-stickers[data-panel="poc"] {
-  --content-max: 56rem;
 }
 .panel-sticker {
   position: fixed;
@@ -286,26 +283,10 @@
   right: calc((var(--gutter) - var(--sticker-w)) / 2);
   top: clamp(14rem, 44vh, 24rem);
 }
-/* Admin: both from 1480px (gutter leaves >= 110px). */
+/* Both from 1480px (gutter leaves >= 110px). */
 @media (min-width: 1480px) {
-  .panel-stickers[data-panel="admin"],
   .panel-stickers[data-panel="public"] {
     display: block;
-  }
-}
-/* POC: both from 1280px; between 1200 and 1279px only the right one, smaller. */
-@media (min-width: 1280px) {
-  .panel-stickers[data-panel="poc"] {
-    display: block;
-  }
-}
-@media (min-width: 1200px) and (max-width: 1279.98px) {
-  .panel-stickers[data-panel="poc"] {
-    --sticker-w: min(130px, calc((var(--gutter) - 2rem) / 1.2));
-    display: block;
-  }
-  .panel-stickers[data-panel="poc"] .panel-sticker[data-side="left"] {
-    display: none;
   }
 }
 

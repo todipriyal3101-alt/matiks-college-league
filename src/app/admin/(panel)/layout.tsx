@@ -5,7 +5,6 @@ import { AdminAccountMenu } from "@/components/panel/account-menu";
 import { NavFallback } from "@/components/panel/nav-fallback";
 import { NotificationBell } from "@/components/panel/notification-bell";
 import { PanelNav } from "@/components/panel/panel-nav";
-import { PanelStickers } from "@/components/stickers";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireAdmin } from "@/lib/auth/admin";
 
@@ -13,8 +12,6 @@ import { requireAdmin } from "@/lib/auth/admin";
 export default function AdminPanelLayout({ children }: LayoutProps<"/admin">) {
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      {/* Decorative, wide screens only; must stay a direct child here so position: fixed isn't trapped. */}
-      <PanelStickers panel="admin" />
       <Suspense fallback={<NavFallback />}>
         <AdminNav />
       </Suspense>

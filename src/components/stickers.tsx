@@ -48,13 +48,11 @@ export function Sticker({
 }
 
 const PANELS = {
-  admin: { left: "vault", right: "game-modes", leftTilt: "-8deg", rightTilt: "6deg" },
-  poc: { left: "trophy", right: "streak", leftTilt: "-6deg", rightTilt: "8deg" },
   public: { left: "game-modes", right: "trophy", leftTilt: "-6deg", rightTilt: "8deg" },
 } as const;
 
 /**
- * Two stickers in the empty side gutters of a panel, fixed while scrolling. Sized to the gutter (never over the
+ * Two stickers in the empty side gutters of the public pages (not the admin or POC panels), fixed while scrolling. Sized to the gutter (never over the
  * content), shown only on wide screens (rules in globals.css "Panel stickers"); hidden on phones.
  */
 export function PanelStickers({ panel }: { panel: keyof typeof PANELS }) {
