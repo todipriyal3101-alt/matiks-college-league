@@ -78,7 +78,7 @@ export function ClaimScreen({
           </h1>
           <p className="mt-2 max-w-xl text-foreground/85">Every college gets one Campus Lead team. Find yours before someone else does.</p>
         </div>
-        <Sticker name="vault" eager className="hidden h-auto w-28 shrink-0 sm:block" style={{ "--tilt": "8deg" } as React.CSSProperties} />
+        <Sticker name="vault" className="hidden h-auto w-28 shrink-0 sm:block" style={{ "--tilt": "8deg" } as React.CSSProperties} />
       </div>
 
       {squadError && (

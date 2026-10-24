@@ -55,8 +55,10 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
   if (!ctx) return null;
 
   if (ctx.registrations.length === 0) {
+    // One round trip for everything the claim screen needs (it's the first thing a new POC sees).
+    const [admin, paused, claim] = await Promise.all([getAdmin(), getRegistrationsPaused(), loadClaimData(ctx)]);
     // Admins land here from a shared /college link: point them to the admin panel, not to registering.
-    if (await getAdmin()) {
+    if (admin) {
       return (
         <EmptyState
           icon={BuildingIcon}
@@ -71,7 +73,6 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
       );
     }
     // Always open: only the admin's emergency "Pause new registrations" closes it (read uncached).
-    const paused = await getRegistrationsPaused();
     if (paused) {
       return (
         <div className="fade-in space-y-6">
@@ -94,7 +95,19 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
         </div>
       );
     }
-    return <ClaimAndRegister ctx={ctx} />;
+    if (claim.joined) redirect("/college?joined=1");
+    return (
+      <div className="fade-in">
+        <RegisterFlow
+          userId={ctx.userId}
+          email={ctx.email}
+          profile={{ name: ctx.name, phone: ctx.phone }}
+          today={todayIst()}
+          verifyEnabled={emailEnabled()}
+          {...claim.props}
+        />
+      </div>
+    );
   }
 
   const selected = pickRegistration(ctx, r)!;
@@ -203,15 +216,15 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
   );
 }
 
-/** No registration yet: claim screen → stepper (resumes the autosaved draft), with live ticker + early-bird spots. */
-async function ClaimAndRegister({ ctx }: { ctx: PocContext }) {
+/** No registration yet: redeem a remembered co-lead link, else the claim screen's data (draft, ticker, spots). */
+async function loadClaimData(ctx: PocContext) {
   const supabase = await createClient();
   // Came through a co-lead link (/j/CODE, remembered through sign-up): join that team now.
   const squadCode = (await cookies()).get(SQUAD_COOKIE)?.value;
   let squadError: string | null = null;
   if (squadCode && SQUAD_CODE_RE.test(squadCode)) {
     const { error } = await supabase.rpc("redeem_squad_invite", { p_code: squadCode });
-    if (!error) redirect("/college?joined=1");
+    if (!error) return { joined: true as const, props: null as never };
     squadError = error.code === "P0001" ? error.message : "Couldn't join that team. Ask your Campus Lead for a new link.";
   }
   const [{ data: draftRow }, { data: join }, activity, earlyBirdLeft, stats] = await Promise.all([
@@ -223,27 +236,17 @@ async function ClaimAndRegister({ ctx }: { ctx: PocContext }) {
     getHomeStats().catch(() => null),
   ]);
   const parsed = registerDraftSchema.safeParse(draftRow?.data ?? null);
-  const draft = parsed.success ? parsed.data : null;
-  const draftEmail = typeof draft?.details?.collegeEmail === "string" ? draft.details.collegeEmail : "";
-  const draftVerified = draftEmail ? !!(await supabase.rpc("my_email_verified", { p_email: draftEmail })).data : false;
-  return (
-    <div className="fade-in">
-      <RegisterFlow
-        userId={ctx.userId}
-        email={ctx.email}
-        profile={{ name: ctx.name, phone: ctx.phone }}
-        season={stats?.season ?? "Matiks College League"}
-        today={todayIst()}
-        draft={draft}
-        activity={activity}
-        earlyBirdLeft={earlyBirdLeft}
-        pendingJoin={join ? { id: join.id, collegeName: join.registrations?.colleges.name ?? "that college" } : null}
-        verifyEnabled={emailEnabled()}
-        draftVerified={draftVerified}
-        squadError={squadError}
-      />
-    </div>
-  );
+  return {
+    joined: false as const,
+    props: {
+      season: stats?.season ?? "Matiks College League",
+      draft: parsed.success ? parsed.data : null,
+      activity,
+      earlyBirdLeft,
+      pendingJoin: join ? { id: join.id, collegeName: join.registrations?.colleges.name ?? "that college" } : null,
+      squadError,
+    },
+  };
 }
 
 function Heading({ eyebrow, title, children }: { eyebrow: string; title: string; children?: React.ReactNode }) {

@@ -161,7 +161,7 @@ async function anonChecks() {
   await check(role, "activity feed has kind/label/at only", async () => {
     const { data, error } = await anon.rpc("public_activity_feed", { p_limit: 30 });
     if (error) return error.message;
-    const extra = [...new Set(data.flatMap((r: object) => Object.keys(r)))].filter((k) => !["kind", "label", "at"].includes(k));
+    const extra = [...new Set<string>(data.flatMap((r: object) => Object.keys(r)))].filter((k) => !["kind", "label", "at"].includes(k));
     return extra.length ? `extra columns: ${extra.join(", ")}` : true;
   });
   for (const [fn, args] of [
@@ -480,8 +480,8 @@ async function strangerChecks(stranger: SupabaseClient, userId: string) {
     const { data: reg } = await service.from("registrations").select("college_id").eq("id", REG!).single();
     const { data, error } = await stranger.rpc("college_claim_status", { p_college_ids: [reg!.college_id] });
     if (error) return error.message;
-    const extra = [...new Set(data.flatMap((r: object) => Object.keys(r)))].filter((k) => !["college_id", "registration_id", "claimed_by", "status"].includes(k));
-    const full = data.some((r) => !/^(\S+( \p{L}\.)?|a Campus Lead)$/u.test(r.claimed_by));
+    const extra = [...new Set<string>(data.flatMap((r: object) => Object.keys(r)))].filter((k) => !["college_id", "registration_id", "claimed_by", "status"].includes(k));
+    const full = data.some((r: { claimed_by: string }) => !/^(\S+( \p{L}\.)?|a Campus Lead)$/u.test(r.claimed_by));
     return extra.length ? `extra columns: ${extra.join(", ")}` : full ? `full name: ${data[0].claimed_by}` : true;
   });
   await check(role, "cannot list another team's co-lead links", async () => {

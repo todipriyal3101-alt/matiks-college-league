@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { registerMyCollege } from "@/app/college/actions";
-import { discardDraft, saveDraft } from "@/app/college/register-actions";
+import { discardDraft, isEmailVerified, saveDraft } from "@/app/college/register-actions";
 import { Glass } from "@/components/glass";
 import { LogoUpload } from "@/components/logo-upload";
 import { ContactFieldsForm } from "@/components/portal/contact-fields";
@@ -99,7 +99,6 @@ export function RegisterStepper({
   season,
   today,
   verifyEnabled,
-  initiallyVerified,
   onChangeCollege,
 }: {
   initial: StepperState;
@@ -107,15 +106,14 @@ export function RegisterStepper({
   season: string;
   today: string;
   verifyEnabled: boolean;
-  initiallyVerified: boolean;
   onChangeCollege: () => void;
 }) {
   const router = useRouter();
   const [s, setS] = useState<StepperState>(initial);
   const [dir, setDir] = useState<1 | -1>(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [verified, setVerified] = useState(initiallyVerified);
-  const [verifiedEmail, setVerifiedEmail] = useState(initiallyVerified ? initial.details.collegeEmail : "");
+  // Verified state for the current college email: checked when the Verify step opens (resumed drafts included).
+  const [verifiedEmail, setVerifiedEmail] = useState("");
   const [save, setSave] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [buddy, setBuddy] = useState<Buddy>(null);
   const [submitting, startSubmit] = useTransition();
@@ -126,7 +124,8 @@ export function RegisterStepper({
   const step = STEPS[s.step];
   const country = s.college?.country ?? s.country;
   const collegeName = s.college?.name ?? s.newName ?? "";
-  const isVerified = verified && verifiedEmail === s.details.collegeEmail.trim().toLowerCase();
+  const email = s.details.collegeEmail.trim().toLowerCase();
+  const isVerified = !!email && verifiedEmail === email;
   const input: PocRegisterInput = useMemo(
     () => ({ collegeId: s.college?.id ?? null, collegeName, country, details: s.details, contact: s.contact, targetPlayers: s.targetPlayers }),
     [s, collegeName, country],
@@ -143,6 +142,15 @@ export function RegisterStepper({
     }, 900);
     return () => clearTimeout(t);
   }, [s]);
+
+  useEffect(() => {
+    if (step.key !== "verify" || !email || email === verifiedEmail) return;
+    let live = true;
+    void isEmailVerified(email).then((ok) => live && ok && setVerifiedEmail(email));
+    return () => {
+      live = false;
+    };
+  }, [step.key, email, verifiedEmail]);
 
   // Each new step: focus its question (screen readers hear it; keyboard users start there).
   useEffect(() => {
@@ -394,8 +402,7 @@ export function RegisterStepper({
                   enabled={verifyEnabled}
                   verified={isVerified}
                   onVerified={() => {
-                    setVerified(true);
-                    setVerifiedEmail(s.details.collegeEmail.trim().toLowerCase());
+                    setVerifiedEmail(email);
                     react("cheer");
                   }}
                 />

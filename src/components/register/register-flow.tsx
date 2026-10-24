@@ -1,10 +1,18 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
+
+import { Skeleton } from "@/components/ui/skeleton";
+
+// The stepper loads only once someone claims (keeps the claim screen light on phones).
+const RegisterStepper = dynamic(() => import("@/components/register/register-stepper").then((m) => m.RegisterStepper), {
+  loading: () => <Skeleton className="h-[34rem] w-full rounded-3xl" />,
+});
 
 import type { ActivityItem } from "@/components/launch/activity-ticker";
 import { ClaimScreen, type PendingJoin } from "@/components/register/claim-screen";
-import { RegisterStepper, type StepperState } from "@/components/register/register-stepper";
+import type { StepperState } from "@/components/register/register-stepper";
 import type { CollegeSearchResult } from "@/lib/data/colleges";
 import {
   EMPTY_CONTACT_FIELDS,
@@ -27,7 +35,6 @@ export function RegisterFlow({
   earlyBirdLeft,
   pendingJoin,
   verifyEnabled,
-  draftVerified,
   squadError,
 }: {
   userId: string;
@@ -40,7 +47,6 @@ export function RegisterFlow({
   earlyBirdLeft: number;
   pendingJoin: PendingJoin | null;
   verifyEnabled: boolean;
-  draftVerified: boolean;
   squadError: string | null;
 }) {
   const fresh = (college: CollegeSearchResult | null, newName: string | null): StepperState => ({
@@ -96,7 +102,6 @@ export function RegisterFlow({
       season={season}
       today={today}
       verifyEnabled={verifyEnabled}
-      initiallyVerified={run === 0 && draftVerified}
       onChangeCollege={() => setState(null)}
     />
   );
