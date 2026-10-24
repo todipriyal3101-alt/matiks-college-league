@@ -9,6 +9,7 @@ import { CollegeLogo } from "@/components/league/college-logo";
 import { EmptyState } from "@/components/league/empty-state";
 import { EmptyStateSticker } from "@/components/stickers";
 import { PrizeProgress } from "@/components/launch/prize-progress";
+import { BadgesCard } from "@/components/portal/badges-card";
 import { CertificatesCard } from "@/components/portal/certificates-card";
 import { CollegeCardShare } from "@/components/portal/college-card-share";
 import { EditDetailsForm } from "@/components/portal/edit-details-form";
@@ -96,7 +97,9 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
 
   const selected = pickRegistration(ctx, r)!;
   const supabase = await createClient();
-  const [row, { data: own }, detail, invite, { data: certificates }, { data: collegeRow }] = await Promise.all([
+  // Time-based badges (e.g. Champion once the league is over) are checked on open; the database awards + notifies.
+  if (selected.status === "approved") await supabase.rpc("refresh_my_badges", { p_registration_id: selected.id });
+  const [row, { data: own }, detail, invite, { data: certificates }, { data: collegeRow }, { data: badges }] = await Promise.all([
     getOverviewRow(selected.id),
     // The registration's own columns: the view's logo falls back to the college master record's.
     supabase
@@ -109,6 +112,7 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
     supabase.rpc("my_invite", { p_registration_id: selected.id }).then(({ data }) => data?.[0] ?? null),
     supabase.from("certificates").select("id, recipient_name, issued_at, hidden").eq("registration_id", selected.id).order("issued_at"),
     supabase.from("registrations").select("colleges(slug)").eq("id", selected.id).maybeSingle(),
+    supabase.from("badges").select("badge").eq("registration_id", selected.id),
   ]);
   const approved = row?.review_status === "approved";
   if (!row || !own || !detail) return <EmptyState icon={BuildingIcon} title="College not found" description="It may have been removed." />;
@@ -136,6 +140,7 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
       </Glass>
       {approved && collegeRow?.colleges.slug && <CollegeCardShare slug={collegeRow.colleges.slug} collegeName={row.college_name ?? ""} />}
       <CertificatesCard certificates={certificates ?? []} siteUrl={siteUrl} />
+      {approved && <BadgesCard registrationId={selected.id} earned={(badges ?? []).map((b) => b.badge)} approved />}
       <RegisterChecklist
         status={status}
         stage={(row.effective_stage ?? "registration_phase") as Stage}
