@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatINR } from "@/lib/league";
 import { stateCode, TILES } from "@/lib/tile-maps";
 import { cn } from "@/lib/utils";
-import { COUNTRY_FLAGS, COUNTRY_LABELS, type Country } from "@/lib/validation/portal";
+import { COUNTRY_FLAGS, COUNTRY_LABELS, type Country } from "@/lib/countries";
 
 const TileMap = dynamic(() => import("@/components/launch/tile-map"), { ssr: false, loading: () => <Skeleton className="aspect-[9/7] w-full rounded-2xl" /> });
 
@@ -81,7 +81,7 @@ export function CollegeRace({ data }: { data: Record<Country, RaceCollege[]> }) 
                       </span>
                       <span className="text-right">
                         <span className="block font-mono font-bold">{r.players}</span>
-                        <span className={cn("block text-xs", i < 3 ? "text-primary" : "text-muted-foreground")}>{r.prize_pool != null ? formatINR(r.prize_pool) : "players"}</span>
+                        <span className={cn("block font-mono text-xs", i < 3 ? "text-primary" : "text-muted-foreground")}>{r.prize_pool != null ? formatINR(r.prize_pool) : "players"}</span>
                       </span>
                     </Link>
                   </li>

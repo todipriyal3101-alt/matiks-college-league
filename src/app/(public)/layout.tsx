@@ -8,7 +8,7 @@ export default function PublicLayout({ children }: LayoutProps<"/">) {
       {/* Decorative, wide screens only; must stay a direct child here so position: fixed isn't trapped. */}
       <PanelStickers panel="public" />
       <SiteHeader />
-      <main className="fade-in mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-12">{children}</main>
+      <main className="rise-in mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-12">{children}</main>
       <SiteFooter />
     </div>
   );

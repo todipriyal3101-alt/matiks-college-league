@@ -1,14 +1,11 @@
 import { z } from "zod";
 
+import { COUNTRIES } from "@/lib/countries";
 import { Constants } from "@/lib/database.types";
 
 // POC portal + admin redesign (migration 0005). Shared by client forms and server actions (CLAUDE.md rule 5).
 
-export const COUNTRIES = Constants.public.Enums.country;
-export type Country = (typeof COUNTRIES)[number];
-
-export const COUNTRY_LABELS: Record<Country, string> = { india: "India", usa: "USA" };
-export const COUNTRY_FLAGS: Record<Country, string> = { india: "🇮🇳", usa: "🇺🇸" };
+export { COUNTRIES, COUNTRY_FLAGS, COUNTRY_LABELS, type Country } from "@/lib/countries";
 
 /** India: 10-digit mobile (+91 / 0 stripped). USA and others: 7–15 digits with an optional +country code. */
 export const phoneSchema = z

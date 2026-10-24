@@ -50,7 +50,10 @@ function Cta({ signedIn }: { signedIn: boolean }) {
   if (signedIn) {
     return (
       <Button asChild className="h-10 rounded-full px-5">
-        <Link href="/auth/continue">Go to dashboard</Link>
+        <Link href="/auth/continue">
+          <span className="sm:hidden">Dashboard</span>
+          <span className="hidden sm:inline">Go to dashboard</span>
+        </Link>
       </Button>
     );
   }

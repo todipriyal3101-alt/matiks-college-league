@@ -235,6 +235,15 @@
     transform: translateY(4px);
   }
 }
+/* Public pages: movement only. Starting at opacity 0 hides the hero from LCP and delays it on phones. */
+@utility rise-in {
+  animation: rise-in 0.25s ease-out both;
+}
+@keyframes rise-in {
+  from {
+    transform: translateY(4px);
+  }
+}
 
 /* Reduced transparency: solid panels, no blur or refraction. Outside @layer so it beats the utilities. */
 @media (prefers-reduced-transparency: reduce) {
