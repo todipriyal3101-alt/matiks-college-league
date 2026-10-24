@@ -106,3 +106,16 @@ export function deriveStage(r: {
   if (!r.leagueEnd || today <= r.leagueEnd) return "live";
   return r.winnersTotal > 0 && r.winnersPaid >= r.winnersTotal ? "ended_prize_sent" : "ended_prize_pending";
 }
+
+/**
+ * Prize-pool progress for a turnout (same tiers as calc_prize_pool / PRIZE_TIERS): the tier unlocked now, the next
+ * one (null at the top), players still needed, and % of the way from this tier to the next.
+ */
+export function prizeProgress(players: number) {
+  const count = Math.max(0, Math.floor(players) || 0);
+  const ascending = [...PRIZE_TIERS].sort((a, b) => a.min - b.min);
+  const current = [...ascending].reverse().find((t) => count >= t.min)!;
+  const next = ascending.find((t) => t.min > count) ?? null;
+  const pct = next ? Math.min(100, Math.round(((count - current.min) / (next.min - current.min)) * 100)) : 100;
+  return { players: count, unlocked: current.amount, next, remaining: next ? next.min - count : 0, pct };
+}

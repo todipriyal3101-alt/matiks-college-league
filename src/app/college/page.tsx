@@ -8,7 +8,9 @@ import { StageBadge } from "@/components/league/badges";
 import { CollegeLogo } from "@/components/league/college-logo";
 import { EmptyState } from "@/components/league/empty-state";
 import { EmptyStateSticker } from "@/components/stickers";
+import { PrizeProgress } from "@/components/launch/prize-progress";
 import { CertificatesCard } from "@/components/portal/certificates-card";
+import { CollegeCardShare } from "@/components/portal/college-card-share";
 import { EditDetailsForm } from "@/components/portal/edit-details-form";
 import { InviteCard } from "@/components/portal/invite-card";
 import { SuccessHero } from "@/components/portal/success-hero";
@@ -94,7 +96,7 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
 
   const selected = pickRegistration(ctx, r)!;
   const supabase = await createClient();
-  const [row, { data: own }, detail, invite, { data: certificates }] = await Promise.all([
+  const [row, { data: own }, detail, invite, { data: certificates }, { data: collegeRow }] = await Promise.all([
     getOverviewRow(selected.id),
     // The registration's own columns: the view's logo falls back to the college master record's.
     supabase
@@ -106,7 +108,9 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
     // The POC's personal invite link (made on first visit) + people who came through it.
     supabase.rpc("my_invite", { p_registration_id: selected.id }).then(({ data }) => data?.[0] ?? null),
     supabase.from("certificates").select("id, recipient_name, issued_at, hidden").eq("registration_id", selected.id).order("issued_at"),
+    supabase.from("registrations").select("colleges(slug)").eq("id", selected.id).maybeSingle(),
   ]);
+  const approved = row?.review_status === "approved";
   if (!row || !own || !detail) return <EmptyState icon={BuildingIcon} title="College not found" description="It may have been removed." />;
   const status = row.review_status!;
   const editable = status === "pending" || status === "rejected";
@@ -127,6 +131,10 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
       {registered && invite && <InviteCard code={invite.code} plays={invite.plays} registrations={invite.registrations} collegeName={row.college_name ?? ""} highlight />}
       <StatusCard row={row} />
       {!registered && invite && <InviteCard code={invite.code} plays={invite.plays} registrations={invite.registrations} collegeName={row.college_name ?? ""} />}
+      <Glass className="p-5 sm:p-6">
+        <PrizeProgress players={row.participant_count ?? 0} country={(row.country ?? "india") as Country} />
+      </Glass>
+      {approved && collegeRow?.colleges.slug && <CollegeCardShare slug={collegeRow.colleges.slug} collegeName={row.college_name ?? ""} />}
       <CertificatesCard certificates={certificates ?? []} siteUrl={siteUrl} />
       <RegisterChecklist
         status={status}
