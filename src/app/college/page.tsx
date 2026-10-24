@@ -8,6 +8,7 @@ import { StageBadge } from "@/components/league/badges";
 import { CollegeLogo } from "@/components/league/college-logo";
 import { EmptyState } from "@/components/league/empty-state";
 import { EmptyStateSticker } from "@/components/stickers";
+import { CertificatesCard } from "@/components/portal/certificates-card";
 import { EditDetailsForm } from "@/components/portal/edit-details-form";
 import { InviteCard } from "@/components/portal/invite-card";
 import { SuccessHero } from "@/components/portal/success-hero";
@@ -20,6 +21,7 @@ import { getAdmin } from "@/lib/auth/admin";
 import { getRegistrationDetail, type OverviewRow } from "@/lib/data/league-ops";
 import { getPocContext, pickRegistration } from "@/lib/data/poc";
 import { getOverviewRow, getRegistrationsPaused } from "@/lib/data/portal";
+import { siteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 import { formatDay } from "@/lib/ist";
 import { SUPPORT_EMAIL, type Stage } from "@/lib/league";
@@ -92,7 +94,7 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
 
   const selected = pickRegistration(ctx, r)!;
   const supabase = await createClient();
-  const [row, { data: own }, detail, invite] = await Promise.all([
+  const [row, { data: own }, detail, invite, { data: certificates }] = await Promise.all([
     getOverviewRow(selected.id),
     // The registration's own columns: the view's logo falls back to the college master record's.
     supabase
@@ -103,6 +105,7 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
     getRegistrationDetail(selected.id),
     // The POC's personal invite link (made on first visit) + people who came through it.
     supabase.rpc("my_invite", { p_registration_id: selected.id }).then(({ data }) => data?.[0] ?? null),
+    supabase.from("certificates").select("id, recipient_name, issued_at, hidden").eq("registration_id", selected.id).order("issued_at"),
   ]);
   if (!row || !own || !detail) return <EmptyState icon={BuildingIcon} title="College not found" description="It may have been removed." />;
   const status = row.review_status!;
@@ -124,6 +127,7 @@ async function Register({ searchParams }: Pick<PageProps<"/college">, "searchPar
       {registered && invite && <InviteCard code={invite.code} plays={invite.plays} registrations={invite.registrations} collegeName={row.college_name ?? ""} highlight />}
       <StatusCard row={row} />
       {!registered && invite && <InviteCard code={invite.code} plays={invite.plays} registrations={invite.registrations} collegeName={row.college_name ?? ""} />}
+      <CertificatesCard certificates={certificates ?? []} siteUrl={siteUrl} />
       <RegisterChecklist
         status={status}
         stage={(row.effective_stage ?? "registration_phase") as Stage}

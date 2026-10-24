@@ -245,3 +245,16 @@ export async function saveTeamContacts(registrationId: string, input: PocContact
   refresh();
   return { ok: true };
 }
+
+/**
+ * "Hide my certificate": the verify page then says "not available" (and the LinkedIn link stops working).
+ * The POC's own session: RLS (own registration) + column grant (hidden only).
+ */
+export async function setCertificateHidden(certificateId: string, hidden: boolean): Promise<PortalResult> {
+  if (!/^MCL-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}$/.test(certificateId) || typeof hidden !== "boolean") return { ok: false, error: "Invalid request." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("certificates").update({ hidden }).eq("id", certificateId).select("id");
+  if (error || !data.length) return { ok: false, error: error?.message ?? "Certificate not found." };
+  refresh();
+  return { ok: true };
+}
