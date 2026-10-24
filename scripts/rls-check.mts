@@ -53,6 +53,7 @@ async function sessionFor(email: string): Promise<SupabaseClient> {
 const PRIVATE_TABLES = [
   "registrations", "contacts", "participants", "winners", "ambassadors", "admin_profiles", "college_access", "activity_log",
   "notifications", "chat_threads", "chat_messages", "chat_reads",
+  "invite_codes", "duel_rounds", "certificates", "badges",
 ] as const;
 
 // A 1×1 PNG for storage checks.
@@ -116,6 +117,39 @@ async function anonChecks() {
       return error?.code === "42501" ? true : `got ${error?.code ?? "no error"}`;
     });
   }
+  // 0007: public functions are callable and return public columns only.
+  for (const [fn, args] of [
+    ["public_home_stats", {}],
+    ["public_college_race", { p_country: "india" }],
+    ["public_state_counts", { p_country: "india" }],
+    ["top_duels_today", { p_limit: 5 }],
+    ["public_college", { p_slug: "no-such-college" }],
+    ["public_invite", { p_code: "0000000000" }],
+    ["public_certificate", { p_id: "MCL-0000-0000-0000" }],
+  ] as const) {
+    await check(role, `can call ${fn}()`, async () => {
+      const { error } = await anon.rpc(fn, args as never);
+      return error ? error.message : true;
+    });
+  }
+  await check(role, "college race / top today expose no POC contact fields", async () => {
+    const race = await anon.rpc("public_college_race", { p_country: "india" });
+    const top = await anon.rpc("top_duels_today", { p_limit: 50 });
+    const keys = new Set([...(race.data ?? []), ...(top.data ?? [])].flatMap((r: object) => Object.keys(r)));
+    const leak = [...keys].filter((k) => /email|phone|poc|contact|user/i.test(k));
+    return leak.length ? `exposes ${leak.join(", ")}` : true;
+  });
+  for (const fn of ["my_invite", "refresh_my_badges", "admin_top_inviters"] as const) {
+    await check(role, `cannot call ${fn}()`, async () => {
+      const { error } = await anon.rpc(fn, (fn === "admin_top_inviters" ? {} : { p_registration_id: REG! }) as never);
+      return error?.code === "42501" ? true : `got ${error?.code ?? "no error"}`;
+    });
+  }
+  await check(role, "cannot write duel rounds", async () => {
+    const { data, error } = await anon.from("duel_rounds").insert({ seed: 1, ip_hash: "rls", expires_at: new Date().toISOString(), score: 200 } as never).select("id");
+    if (data?.length) await service.from("duel_rounds").delete().eq("id", (data[0] as { id: string }).id);
+    return denied(error, data);
+  });
   await check(role, "cannot upload logos", async () => {
     const { data, error } = await upload(anon, `users/anon-${Date.now()}/x.png`);
     if (data) await service.storage.from("logos").remove([data.path]);
@@ -285,6 +319,13 @@ async function pocChecks(poc: SupabaseClient, pocUserId: string) {
     const { data, error } = await poc.from("registrations").update({ team_name: other.team_name }).eq("id", other.id).select("id");
     return denied(error, data);
   });
+  await check(role, "gets its own invite link", async () => {
+    const { data, error } = await poc.rpc("my_invite", { p_registration_id: REG! });
+    if (error) return error.message;
+    const code = data?.[0]?.code;
+    if (code) await service.from("invite_codes").delete().eq("code", code);
+    return code && /^[a-z0-9]{10}$/.test(code) ? true : `got ${JSON.stringify(data)}`;
+  });
   await check(role, "chat: sees only its own college thread", async () => {
     const { data, error } = await poc.from("chat_threads").select("registration_id, kind");
     if (error) return error.message;
@@ -362,6 +403,14 @@ async function pocChecks(poc: SupabaseClient, pocUserId: string) {
 // ---------- signed up, no college yet ----------
 async function strangerChecks(stranger: SupabaseClient, userId: string) {
   const role = "new";
+  await check(role, "cannot get another college's invite link", async () => {
+    const { error } = await stranger.rpc("my_invite", { p_registration_id: REG! });
+    return error?.code === "42501" ? true : `got ${error?.code ?? "a code"}`;
+  });
+  await check(role, "cannot refresh another college's badges", async () => {
+    const { error } = await stranger.rpc("refresh_my_badges", { p_registration_id: REG! });
+    return error?.code === "42501" ? true : `got ${error?.code ?? "no error"}`;
+  });
   const args = (name: string) => ({
     p_college_id: null, p_college_name: name, p_country: "usa" as const, p_college_email: "sports@rlscheck.edu",
     p_email_domain: "rlscheck.edu", p_college_logo_url: null, p_club_name: "RLS Club", p_club_logo_url: null,
