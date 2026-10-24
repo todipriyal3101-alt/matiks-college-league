@@ -16,13 +16,11 @@ export function Sticker({
   name,
   className,
   style,
-  side,
   eager = false,
 }: {
   name: StickerName;
   className?: string;
   style?: React.CSSProperties;
-  side?: "left" | "right";
   /** In view on load (empty states): load at once so it never delays the page's largest paint. */
   eager?: boolean;
 }) {
@@ -41,27 +39,8 @@ export function Sticker({
         draggable={false}
         className={cn("sticker pointer-events-none select-none", className)}
         style={style}
-        data-side={side}
       />
     </picture>
-  );
-}
-
-const PANELS = {
-  public: { left: "game-modes", right: "trophy", leftTilt: "-6deg", rightTilt: "8deg" },
-} as const;
-
-/**
- * Two stickers in the empty side gutters of the public pages (not the admin or POC panels), fixed while scrolling. Sized to the gutter (never over the
- * content), shown only on wide screens (rules in globals.css "Panel stickers"); hidden on phones.
- */
-export function PanelStickers({ panel }: { panel: keyof typeof PANELS }) {
-  const p = PANELS[panel];
-  return (
-    <div aria-hidden className="panel-stickers" data-panel={panel}>
-      <Sticker name={p.left} side="left" className="panel-sticker" style={{ "--tilt": p.leftTilt } as React.CSSProperties} />
-      <Sticker name={p.right} side="right" className="panel-sticker" style={{ "--tilt": p.rightTilt } as React.CSSProperties} />
-    </div>
   );
 }
 

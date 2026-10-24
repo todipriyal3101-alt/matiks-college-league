@@ -55,8 +55,8 @@ Always read the relevant part of SPEC.md before building a feature.
    Montserrat UI, Nunito Sans paragraphs, Space Mono numbers; brand files in `public/brand/`. Glass surfaces only via
    `<Glass>` or the `glass` / `glass-strong` / `glass-surface` / `glass-refract` utilities; `glass-surface` (no blur)
    for list rows. Mascot on public pages only. Money via `formatMoney(amount, country)` (₹ Indian format / $).
-   Decorative stickers (`public/brand/stickers`, `src/components/stickers.tsx`) only in empty side gutters (sized to the
-   gutter, never over content), in a few empty states, and one beside the /login card; aria-hidden, no motion when reduced.
+   Decorative stickers (`public/brand/stickers`, `src/components/stickers.tsx`) only in a few empty states, the home hero
+   and one beside the /login card; never in the side gutters of any page; aria-hidden, no motion when reduced.
 9. Before saying a task is done: run `npm run build` and fix every error and type error.
 10. Keep each change small and focused; explain what you changed at the end in a short list.
 11. **DB types are hand-written.** The Supabase CLI is not linked, so `src/lib/database.types.ts` is written by hand
